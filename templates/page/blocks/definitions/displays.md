@@ -4,20 +4,42 @@
 # NeoPixel LED Strip
 <category name="NeoPixel LED Strip">
 <label text="NeoPixel RGB LED Strip"></label>
-<button text="%{DOCUMENTATION}: neopixel" callbackKey="loadDoc"></button>
+<label text="Library: https://github.com/blaz-r/pi_pico_neopixel"></label>
+<button text="%{INSTALL_LIBRARY}: neopixel" callbackKey="installPyLib"></button>
+
+# neopixel_led_strip
+<block type="neopixel_led_strip"></block>
 
 # neopixel_init
 <block type="neopixel_init">
-  <value name="pin">
-    <shadow type="pinout">
-      <field name="Pin"></field>
-    </shadow>
-  </value>
+   <value name="pin">
+      <shadow type="pinout">
+        <field name="PIN">0</field>
+      </shadow>
+    </value>
   <value name="number">
-    <shadow type="math_number">
-      <field name="NUM">8</field>
+      <shadow type="math_number">
+	<field name="NUM">0</field>
+      </shadow>
+    </value>
+    <value name="state_machine">
+      <shadow type="math_number">
+	<field name="NUM">0</field>
+      </shadow>
+    </value>
+</block>
+
+# neopixel_brightness
+<block type="neopixel_brightness">
+  <value name="strip_name">
+    <shadow type="neopixel_led_strip">
     </shadow>
-  </value>
+ </value>
+ <value name="brightness">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
+  </shadow>
+ </value>
 </block>
 
 # neopixel_color_numbers
@@ -61,8 +83,12 @@
   </value>
 </block>
 
-# neopixel_control
-<block type="neopixel_control">
+# neopixel_set_pixel
+<block type="neopixel_set_pixel">
+ <value name="strip_name">
+    <shadow type="neopixel_led_strip">
+    </shadow>
+ </value>
  <value name="address">
   <shadow type="math_number">
     <field name="NUM">0</field>
@@ -70,13 +96,101 @@
  </value>
  <value name="color">
   <shadow type="neopixel_color_colors">
-    <field name="PIN"></field>
+  </shadow>
+ </value>
+ <value name="brightness">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
+  </shadow>
+ </value>
+</block>
+
+# neopixel_set_line_pixel
+<block type="neopixel_set_line_pixel">
+ <value name="strip_name">
+    <shadow type="neopixel_led_strip">
+    </shadow>
+ </value>
+ <value name="start">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
+  </shadow>
+ </value>
+ <value name="end">
+  <shadow type="math_number">
+    <field name="NUM">1</field>
+  </shadow>
+ </value>
+ <value name="color">
+  <shadow type="neopixel_color_colors">
+  </shadow>
+ </value>
+ <value name="brightness">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
+  </shadow>
+ </value>
+</block>
+
+# neopixel_set_line_gradient_pixel
+<block type="neopixel_set_line_gradient_pixel">
+ <value name="strip_name">
+    <shadow type="neopixel_led_strip">
+    </shadow>
+ </value>
+ <value name="start">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
+  </shadow>
+ </value>
+ <value name="end">
+  <shadow type="math_number">
+    <field name="NUM">1</field>
+  </shadow>
+ </value>
+ <value name="startColor">
+  <shadow type="neopixel_color_colors">
+  </shadow>
+ </value>
+ <value name="endColor">
+  <shadow type="neopixel_color_colors">
+  </shadow>
+ </value>
+ <value name="brightness">
+  <shadow type="math_number">
+    <field name="NUM">0</field>
   </shadow>
  </value>
 </block>
 
 # neopixel_write
 <block type="neopixel_write"></block>
+
+# neopixel_rotate_left
+<block type="neopixel_rotate_left">
+   <value name="strip_name">
+      <shadow type="neopixel_led_strip">
+      </shadow>
+    </value>
+    <value name="steps">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
+      </shadow>
+    </value>
+  </block>
+
+# neopixel_rotate_right
+<block type="neopixel_rotate_right">
+   <value name="strip_name">
+      <shadow type="neopixel_led_strip">
+      </shadow>
+    </value>
+    <value name="steps">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
+      </shadow>
+    </value>
+  </block>
 
 # Character display
 <category name="Character display">

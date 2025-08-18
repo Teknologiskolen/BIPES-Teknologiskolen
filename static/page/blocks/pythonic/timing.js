@@ -1,4 +1,4 @@
-Blockly.Python['delay'] = function(block) {
+Blockly.Python['delay_old'] = function(block) {
 //Blockly.Python['utime.delay'] = function(block) {
   Blockly.Python.definitions_['import_time'] = 'import time';
   var value_time = Blockly.Python.valueToCode(block, 'TIME', Blockly.Python.ORDER_NONE);
@@ -20,7 +20,7 @@ Blockly.Python['utime.vars'] = function(block) {
 	}
 	return [code, Blockly.Python.ORDER_NONE];
 };
-Blockly.Python['utime.ticks_add'] = function(block) {
+Blockly.Python['utime.ticks_add_old'] = function(block) {
   Blockly.Python.definitions_['import_utime'] = 'import utime';
   var value_time1 = Blockly.Python.valueToCode(block, 'TIME1', Blockly.Python.ORDER_NONE);
   var value_time2 = Blockly.Python.valueToCode(block, 'TIME2', Blockly.Python.ORDER_NONE);
@@ -28,7 +28,7 @@ Blockly.Python['utime.ticks_add'] = function(block) {
   var code =  `utime.ticks_add(${value_time1},${value_time2})`;
   return [code, Blockly.Python.ORDER_FUNCTION_CALL];
 };
-Blockly.Python['utime.ticks_diff'] = function(block) {
+Blockly.Python['utime.ticks_diff_old'] = function(block) {
   Blockly.Python.definitions_['import_utime'] = 'import utime';
   var value_time1 = Blockly.Python.valueToCode(block, 'TIME1', Blockly.Python.ORDER_NONE);
   var value_time2 = Blockly.Python.valueToCode(block, 'TIME2', Blockly.Python.ORDER_NONE);

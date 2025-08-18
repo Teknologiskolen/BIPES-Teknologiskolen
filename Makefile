@@ -220,6 +220,7 @@ zip:
 	@cp -r static/page/blocks/media .BIPES/static/page/blocks
 	@cp -r static/page/blocks/images .BIPES/static/page/blocks
 	@cp -r static/page/device/media .BIPES/static/page/device
+	@cp -r static/page/blocks/libraries .BIPES/static/page/blocks
 	@cp -r static/media .BIPES/static/
 	@cp -r static/msg .BIPES/static/
 	@cp -r docs/_build .BIPES/docs/ 2>/dev/null || :

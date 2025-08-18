@@ -428,6 +428,10 @@ let blocksWarningIfTrue = (self, criteria) => {
   self.setWarningText(warnings.length > 0 ? warnings.join("\n") : null)
 }
 
+function isLocalContext() {
+  return window.location.protocol === 'file:';
+}
+
 let moreInfo = 'is unknown, set at static/page/blocks/external.js'
 let blocksRegisterCallbacks = (workspace) => {
   workspace.registerButtonCallback('installPyLib', (button) => {
@@ -441,24 +445,51 @@ let blocksRegisterCallbacks = (workspace) => {
       console.error(`Blocks: Blockly "${id}" library ${moreInfo}.`)
       return
     }
-    notification.send(`${Msg['PageBlocks']}: ${Tool.format([Msg['FetchingLib'], id])}`)
+    //notification.send(`${Msg['PageBlocks']}: ${Tool.format([Msg['FetchingLib'], id])}`)
     let lib = knownLibs[id]
     let _toFetch
     if (typeof lib.file === "string")
       _toFetch = [lib.file]
     else
       _toFetch = lib.fileblocksExport
+	 console.log(_toFetch)
 
-    _toFetch.forEach(_lib_file => {
-      const response = fetch(`${lib.hostname}/${_lib_file}`, {method:'Get'})
-        .then((response) => {
-          if (!response.ok)
-            throw new Error(response.status)
-          return response.text()
-        }).then(response => {
-          files.device.writeToTarget(`/lib/${_lib_file}`, response)
-        })
-    })
+	if(isLocalContext()) {
+		_toFetch.forEach(_lib_file => {
+			const input = document.createElement('input')
+			input.type = 'file'
+			input.accept = '.' + _lib_file.split('.').pop()
+			input.style.display = 'none'
+
+			input.onchange = e => {
+				const file = e.target.files[0]
+				if (!file || file.name !== _lib_file) {
+			  		console.error('Wrong file selected')
+			  		document.body.removeChild(input)
+			  		return
+				}
+				const reader = new FileReader()
+				reader.onload = () => {
+			  		files.device.writeToTarget(`/${_lib_file}`, 'WebSerial')
+				}
+				reader.readAsText(file)
+				document.body.removeChild(input)
+			}
+			document.body.appendChild(input)
+			input.click()
+		})
+	} else {
+		_toFetch.forEach(_lib_file => {
+		  const response = fetch(`${lib.hostname}/${_lib_file}`, {method:'Get'})
+		    .then((response) => {
+		      if (!response.ok)
+		        throw new Error(response.status)
+		      return response.text()
+		    }).then(response => {
+		      files.device.writeToTarget(`${_lib_file}`, response)
+		    })
+		})
+	}
   })
 
   workspace.registerButtonCallback('loadExample', (button) => {

@@ -61,34 +61,37 @@ Blockly.Python['uart_read_into'] = function(block) {
 
 // SPI -------------------------------------------------------------------------
 
-Blockly.Python["machine.SPI_SPI.init"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "machine.SPI.SPI.init(" + value_pIn + ")\n";
+Blockly.Python["SPI.init"] = function(block) {
+	Blockly.Python.definitions_['import_machine_spi'] = 'from machine import SPI';
+	var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
+	var baudrate = Blockly.Python.valueToCode(block, 'baudRate', Blockly.Python.ORDER_ATOMIC);
+	var code = `spi = SPI(${id}, ${baudrate})\n`;
 	return code;
 };
-Blockly.Python["machine.SPI_SPI.deinit"] = function(block) {
-		Blockly.Python.definitions_['import_machine.SPI'] = 'import machine.SPI';
-	var code = "machine.SPI.SPI.deinit()\n";
+Blockly.Python["SPI.deinit"] = function(block) {
+	Blockly.Python.definitions_['import_machine_spi'] = 'from machine import SPI';
+	var code = "spi.deinit()\n";
 	return code;
 };
-Blockly.Python["machine.SPI_SPI.read"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "machine.SPI.SPI.read(" + value_pIn + ")\n";
+Blockly.Python["SPI.read"] = function(block) {
+	var bytes = Blockly.Python.valueToCode(block, 'bytes', Blockly.Python.ORDER_ATOMIC);
+	var code = `spi.read(${bytes})\n`;
 	return [code, Blockly.Python.ORDER_NONE];
 };
-Blockly.Python["machine.SPI_SPI.readinto"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "machine.SPI.SPI.readinto(" + value_pIn + ")\n";
+Blockly.Python["SPI.readinto"] = function(block) {
+	var buffer = Blockly.Python.valueToCode(block, 'buffer', Blockly.Python.ORDER_ATOMIC);
+	var code = `spi.read(${buffer})\n`;
 	return [code, Blockly.Python.ORDER_NONE];
 };
-Blockly.Python["machine.SPI_SPI.write"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "machine.SPI.SPI.write(" + value_pIn + ")\n";
+Blockly.Python["SPI.write"] = function(block) {
+		var message = Blockly.Python.valueToCode(block, 'message', Blockly.Python.ORDER_ATOMIC);
+	var code = `spi.wite(${message})\n`;
 	return code;
 };
-Blockly.Python["machine.SPI_SPI.write_readinto"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "machine.SPI.SPI.write_readinto(" + value_pIn + ")\n";
+Blockly.Python["SPI.write_readinto"] = function(block) {
+	var message = Blockly.Python.valueToCode(block, 'message', Blockly.Python.ORDER_ATOMIC);
+	var buffer = Blockly.Python.valueToCode(block, 'buffer', Blockly.Python.ORDER_ATOMIC);
+	var code = `spi.write_readInto(${message}, ${buffer})\n`;
 	return code;
 };
 

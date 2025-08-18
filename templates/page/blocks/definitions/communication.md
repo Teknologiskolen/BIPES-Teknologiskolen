@@ -27,23 +27,23 @@
 <category name="SPI">
 <label text="SPI"></label>
 
-# machine.SPI_SPI.init
-<block type="machine.SPI_SPI.init"></block>
+# SPI.init
+<block type="SPI.init"></block>
 
-# machine.SPI_SPI.deinit
-<block type="machine.SPI_SPI.deinit"></block>
+# SPI.deinit
+<block type="SPI.deinit"></block>
 
-# machine.SPI_SPI.read
-<block type="machine.SPI_SPI.read"></block>
+# SPI.read
+<block type="SPI.read"></block>
 
-# machine.SPI_SPI.readinto
-<block type="machine.SPI_SPI.readinto"></block>
+# SPI.readinto
+<block type="SPI.readinto"></block>
 
-# machine.SPI_SPI.write
-<block type="machine.SPI_SPI.write"></block>
+# SPI.write
+<block type="SPI.write"></block>
 
-# machine.SPI_SPI.write_readinto
-<block type="machine.SPI_SPI.write_readinto"></block>
+# SPI.write_readinto
+<block type="SPI.write_readinto"></block>
 
 # GSM Modem
 <category name="GSM Modem">

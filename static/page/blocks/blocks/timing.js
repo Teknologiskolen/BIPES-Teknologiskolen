@@ -1,4 +1,4 @@
-Blockly.Blocks['delay'] = {
+Blockly.Blocks['delay_old'] = {
   init: function() {
     this.appendValueInput("TIME")
         .setCheck(null)
@@ -57,7 +57,7 @@ Blockly.Blocks['utime.vars'] = {
   }
 };
 
-Blockly.Blocks['utime.ticks_add'] = {
+Blockly.Blocks['utime.ticks_add_old'] = {
   init: function() {
     this.appendValueInput("TIME1")
         .setCheck(null)
@@ -72,7 +72,7 @@ Blockly.Blocks['utime.ticks_add'] = {
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.ticks_add");
   }
 };
-Blockly.Blocks['utime.ticks_diff'] = {
+Blockly.Blocks['utime.ticks_diff_old'] = {
   init: function() {
     this.appendValueInput("TIME1")
         .setCheck(null)

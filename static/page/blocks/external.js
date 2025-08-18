@@ -102,6 +102,18 @@ export const knownLibs = {
   MCP23017:{
     hostname:'https://bipes.net.br/ide/pylibs/',
     file:'mcp23017.py'
+  },
+  PicoRobotics:{
+    hostname:'./static/page/blocks/libraries',
+    file:'PicoRobotics.py'
+  },
+  hcsr04:{
+    hostname:'./static/page/blocks/libraries',
+    file:'hcsr04.py'
+  },
+  neopixel:{
+    hostname:'./static/page/blocks/libraries',
+    file:'neopixel.py'
   }
 }
 

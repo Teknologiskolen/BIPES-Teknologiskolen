@@ -1,6 +1,6 @@
 # %{TIMING}
 <category name="%{TIMING}">
-<label text="%{TIMING}"></label>
+
 
 # delay
 <block type="delay">

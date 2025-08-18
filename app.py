@@ -16,15 +16,16 @@ app_version = '3.0.13'
 default_lang = 'en'
 # Languages available, used in the templates generators.
 available_lang = {
-    'en':'English',
-    'pt-br':'Brazilian Portuguese',
-    'de':'German',
-    'es':'Spanish',
-    'fr':'French',
-    'it':'Italian',
-    'nb':'Norwegian',
-    'zh-hans':'Chinese (simplified)',
-    'zh-hant':'Chinese (traditional)'
+    'da':'Dansk',
+    'en':'English'
+    #'pt-br':'Brazilian Portuguese',
+    #'de':'German',
+    #'es':'Spanish',
+    #'fr':'French',
+    #'it':'Italian',
+    #'nb':'Norwegian',
+    #'zh-hans':'Chinese (simplified)',
+    #'zh-hant':'Chinese (traditional)'
 }
 # Note: Default theme is in the static/base/tool.js urlDefaults function.
 
@@ -68,7 +69,7 @@ def create_app(database="sqlite"):
            'Invalid database engine "' + database + '"'
 
     app = Flask(__name__)
-
+    
     # Parse server/conf.ini
     conf = ConfigParser()
     conf.read(os.path.join(app.root_path,'server/conf.ini'))
@@ -177,6 +178,12 @@ def create_app(database="sqlite"):
         app.logger.warning('No mosquitto password in server/conf.ini, skipping')
       
     return app
+
+def add_cors(response):
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5001'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    return respons
 
 # Generate basic server/conf.ini file
 def conf_ini(flask_passwd=None, mosquitto_passwd=None, mosquitto_host=None):

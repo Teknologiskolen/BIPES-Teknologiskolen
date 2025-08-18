@@ -1,28 +1,99 @@
 // Neopixel -------------------------------------------------------------------
+const LedStripNameMap = {}; //key: block.id, value: name
+
+Blockly.Blocks['neopixel_led_strip'] = {
+  update_list: function() {
+    const entries = Object.values(LedStripNameMap);
+	const blocks = this.workspace.getAllBlocks();
+	blocks.forEach(block => {
+		if(block.type === 'neopixel_init') {
+			const nameInput = block.getFieldValue('strip_name'); 	
+			LedStripNameMap[block.id] = nameInput;
+		}
+	});	
+	
+	if(entries.length === 0) return [[`${Msg["no"]} LED Strip`, ""]];
+	return entries.map(name => [name, name]);
+  },
+  refresh: function() {
+	this.update_list();
+  },
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldDropdown(() => this.update_list()), 'strip_name');
+    this.setOutput(true, "String");
+    this.setColour(160);
+    this.setHelpUrl("http://www.bipes.net.br");
+  },
+};
+
 Blockly.Blocks['neopixel_init'] = {
   init: function() {
-    this.setColour(135);
     this.appendDummyInput()
-        .appendField("Init NeoPixel");
-
- this.appendDummyInput()
+        .appendField(`${Msg["init"]} Neopixel Strip`);
+    this.appendDummyInput()
       .appendField(new Blockly.FieldImage(
         "static/page/blocks/images/neopixel.png",
         55,
         55,
         "*"));
-
+	this.appendDummyInput()
+		.appendField(Msg["name"])
+		.appendField(new Blockly.FieldTextInput(""), "strip_name")
     this.appendValueInput("pin")
-        .setCheck(null)
-	.appendField("Pin");
-
+        .setCheck("Number")
+		.appendField("Pin:")
     this.appendValueInput("number")
         .setCheck("Number")
-	  .appendField("Number of LEDs");
-
+        .setAlign(Blockly.ALIGN_LEFT)
+	    .appendField(`${Msg["number_of"]} LEDs`);
+    this.appendValueInput("state_machine")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_LEFT)
+        .appendField("State Machine");
+    this.setColour(160);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setTooltip("Init NeoPixel on the specified pin");
+  },
+  onchange: function(event) {
+	if(event.type === Blockly.Events.BLOCK_DELETE) {
+		delete LedStripNameMap[this.id];	
+		return;	
+	}
+
+	if(!this.workspace || this.isInFlyout || this.isInsertionMarker()) return;
+
+	const nameInput = this.getFieldValue('strip_name');
+	if(!nameInput) return;
+
+	const blockId = this.id;
+	
+	if(LedStripNameMap[blockId] !== nameInput) {
+		LedStripNameMap[blockId] = nameInput;
+	}
+  }
+};
+
+Blockly.Blocks['neopixel_brightness'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabel(`${Msg["set"]} ${Msg["brightness"]}`), "MSG_NEOPIXEL");
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
+
+    this.appendValueInput("brightness")
+        .setCheck("Number")
+	  .appendField(Msg["brightness"]);
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+
+    this.setColour(160);
+ this.setTooltip("Set NeoPixel");
+ this.setHelpUrl("http://www.bipes.net.br");
   }
 };
 
@@ -30,20 +101,20 @@ Blockly.Blocks['neopixel_init'] = {
 Blockly.Blocks['neopixel_color_numbers'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField("Red");
+        .appendField(Msg["red"]);
     this.appendValueInput("red")
         .setCheck(null);
     this.appendDummyInput()
-        .appendField("Green");
+        .appendField(Msg["green"]);
     this.appendValueInput("green")
         .setCheck(null);
     this.appendDummyInput()
-        .appendField("Blue");
+        .appendField(Msg["blå"]);
     this.appendValueInput("blue")
         .setCheck(null);
     this.setInputsInline(true);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(160);
     this.setTooltip("NeoPixel LED RGB URL");
     this.setHelpUrl("https://bipes.net.br/wp/?page_id=177");
   },
@@ -61,11 +132,11 @@ Blockly.Blocks['neopixel_color_numbers'] = {
 Blockly.Blocks['neopixel_color_colors'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField("Color")
+        .appendField(Msg["color"])
         .appendField(new Blockly.FieldColour("#ff0000"), "color");
     this.setInputsInline(true);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(160);
  this.setTooltip("NeoPixel LED Color");
  this.setHelpUrl("https://bipes.net.br/wp/?page_id=177");
   }
@@ -82,13 +153,13 @@ Blockly.Blocks['HSL_to_RGB'] = {
     this.appendValueInput("saturation")
         .setCheck('Number');
     this.appendDummyInput()
-        .appendField("Lightness");
+        .appendField("Value");
     this.appendValueInput("lightness")
         .setCheck('Number');
 
     this.setInputsInline(true);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(160);
     this.setTooltip("HUE to RGB color, Hue from 0º to 360º, Saturation and Lightness from 0% to 100%.");
     this.setHelpUrl("https://bipes.net.br/wp/?page_id=177");
   },
@@ -104,10 +175,84 @@ Blockly.Blocks['HSL_to_RGB'] = {
   }
 };
 
-Blockly.Blocks['neopixel_control'] = {
+Blockly.Blocks['neopixel_set_line_gradient_pixel'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField(new Blockly.FieldLabel("Control NeoPixel"), "MSG_NEOPIXEL");
+        .appendField(new Blockly.FieldLabel(`${Msg["set"]} gradient for strip`), "MSG_NEOPIXEL");
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
+	this.appendValueInput("start")
+        .setCheck(null)
+	.appendField("Start LED");
+
+	this.appendValueInput("end")
+        .setCheck(null)
+	.appendField(`${Msg["end"]} LED`);
+
+    this.appendValueInput("startColor")
+        .setCheck("Number")
+	  .appendField(`start ${Msg["color"]}`);
+
+	this.appendValueInput("endColor")
+        .setCheck("Number")
+	  .appendField(`${Msg["end"]} ${Msg["color"]}`);
+
+    this.appendValueInput("brightness")
+        .setCheck("Number")
+	  .appendField(Msg["brightness"]);
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+
+    this.setColour(160);
+ this.setTooltip("Set NeoPixel");
+ this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+Blockly.Blocks['neopixel_set_line_pixel'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Neopixel Strip`), "MSG_NEOPIXEL");
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
+	this.appendValueInput("start")
+        .setCheck(null)
+	.appendField("Start LED");
+
+	this.appendValueInput("end")
+        .setCheck(null)
+	.appendField(`${Msg["end"]} LED`);
+
+    this.appendValueInput("color")
+        .setCheck("Number")
+	  .appendField(Msg["color"]);
+
+    this.appendValueInput("brightness")
+        .setCheck("Number")
+	  .appendField(Msg["brightness"]);
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+
+    this.setColour(160);
+ this.setTooltip("Set NeoPixel");
+ this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+Blockly.Blocks['neopixel_set_pixel'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Single Neopixel`), "MSG_NEOPIXEL");
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
 
     this.appendValueInput("address")
         .setCheck(null)
@@ -115,12 +260,16 @@ Blockly.Blocks['neopixel_control'] = {
 
     this.appendValueInput("color")
         .setCheck("Number")
-	  .appendField("Color");
+	  .appendField(Msg["color"]);
+
+    this.appendValueInput("brightness")
+        .setCheck("Number")
+	  .appendField(Msg["brightness"]);
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
 
-    this.setColour(230);
+    this.setColour(160);
  this.setTooltip("Set NeoPixel");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -135,7 +284,7 @@ Blockly.Blocks['neopixel_write'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
 
-    this.setColour(230);
+    this.setColour(160);
     this.setTooltip("Write NeoPixel");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -145,6 +294,46 @@ function componentToHex(c) {
   var hex =  parseInt(c).toString(16);
   return hex.length == 1 ? "0" + hex : hex;
 }
+
+Blockly.Blocks['neopixel_rotate_left'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["left"]}`));
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
+    this.appendValueInput("steps")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_LEFT)
+        .appendField(Msg["steps"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(160); // Pick a color for "left" actions
+    this.setTooltip("Rotate all LEDs to the left by a number of steps");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['neopixel_rotate_right'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["right"]}`));
+	this.appendValueInput("strip_name")
+		.setCheck("String")
+		.setAlign(Blockly.ALIGN_LEFT)
+        .appendField(`strip ${Msg["name"]}`);
+    this.appendValueInput("steps")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_LEFT)
+        .appendField(Msg["steps"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(160); // Pick a color for "left" actions
+    this.setTooltip("Rotate all LEDs to the left by a number of steps");
+    this.setHelpUrl("");
+  }
+};
 
 // Character display -----------------------------------------------------------
 Blockly.Blocks['char_lcd_init'] = {

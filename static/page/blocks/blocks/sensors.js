@@ -1027,4 +1027,3 @@ Blockly.Blocks['esp32_cam_white_led'] = {
  this.setHelpUrl("bipes.net.br");
   }
 };
-

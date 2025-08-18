@@ -8,9 +8,11 @@ Blockly.Msg["VARIABLES"] = "Variables";
 Blockly.Msg["FUNCTIONS"] = "Functions";
 Blockly.Msg["TIMING"] = "Timing";
 Blockly.Msg["MACHINE"] = "Machine";
+Blockly.Msg["PINS"] = "Pins";
+Blockly.Msg["MICROCONTROLLER"] = "Microcontroller";
 Blockly.Msg["DISPLAYS"] = "Displays";
 Blockly.Msg['SENSORS'] = "Sensors";
-Blockly.Msg['OUTPUTS'] = "Outputs / Actuators";
+Blockly.Msg['OUTPUTS'] = "Actuators";
 Blockly.Msg['SOUNDS'] = "Sounds";
 Blockly.Msg['COMM'] = "Communication";
 Blockly.Msg['TEMP_HUMI'] = "Temperature and Humidity";
@@ -185,9 +187,12 @@ var Msg = {
   seconds: "seconds",
   milliseconds: "milliseconds",
   microseconds: "microseconds",
+  ond: "on",
   to: "to",
+  in: "in",
   setpin: "set output pin",
   pin: "pin",
+  setPWMpin: "Set PWM Signal",
   read_digital_pin: "read digital input",
   read_analog_pin: "read analog input",
   show_iot: "show on IoT tab",
@@ -237,7 +242,33 @@ var Msg = {
   dht_measure: "update DHT11/22 sensor reading",
   dht_temp: "get DHT11/22 temperature",
   dht_humi: "get DHT11/22 humidity",
-  type: "type",
+  type: "type",  
+  number: "number",
+  direction: "direction",
+  speed: "speed",
+  turn: "Turn",
+  degrees : "degrees",
+  number_of : "number of",
+  brightness: "brightness",
+  init: "Initialize",
+  red: "red",
+  green: "green",
+  blue: "blue",
+  set: "Set",
+  rotate: "Rotate",
+  left: "left",
+  right: "right",
+  create: "create",
+  address: "address",
+  get_distance_from: "Get distance from",
+  name: "name",
+  no: "no",
+  color: "color",
+  end: "End",
+  steps: "steps",
+  change: "Change",
+  add: "Add",
+  
 
   //BMP180
   pressure: "pressure",

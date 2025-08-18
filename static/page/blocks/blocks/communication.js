@@ -14,7 +14,7 @@ Blockly.Blocks['uart_init'] = {
     this.appendValueInput("speed")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField("Baud rate:");
+        .appendField("Baud Rate:");
 
     this.appendValueInput("bits")
         .setCheck("Number")
@@ -113,11 +113,21 @@ Blockly.Blocks['uart_read_into'] = {
 // SPI -------------------------------------------------------------------------
 
 
-Blockly.Blocks["machine.SPI_SPI.init"] = {
+Blockly.Blocks['SPI.init'] = {
   init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" SPI.init");
-        this.setColour(0);
+	this.appendDummyInput()
+        .appendField("Initialize SPI");
+
+    this.appendValueInput("id")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_RIGHT)
+        .appendField("ID:");
+
+    this.appendValueInput("baudRate")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_RIGHT)
+        .appendField("Baud Rate:");
+    this.setColour(0);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -127,10 +137,10 @@ Blockly.Blocks["machine.SPI_SPI.init"] = {
 
 
 
-Blockly.Blocks["machine.SPI_SPI.deinit"] = {
+Blockly.Blocks["SPI.deinit"] = {
   init: function() {
     this.appendDummyInput()
-        .appendField(" SPI.deinit");
+        .appendField(" Deinitialize SPI");
     this.setColour(0);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -141,10 +151,12 @@ Blockly.Blocks["machine.SPI_SPI.deinit"] = {
 
 
 
-Blockly.Blocks["machine.SPI_SPI.read"] = {
+Blockly.Blocks["SPI.read"] = {
   init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" SPI.read");
+	this.appendDummyInput()
+        .appendField("Read value with SPI");
+  this.appendValueInput("bytes")
+        .appendField("Amount of bytes: ");
         this.setColour(0);
     this.setOutput(true, null);
  this.setTooltip(".. method:: SPI.read(nbytes, write=0x00) Read a number of bytes specified by ``nbytes`` while continuously writing the single byte given by ``write``. ");
@@ -154,10 +166,12 @@ Blockly.Blocks["machine.SPI_SPI.read"] = {
 
 
 
-Blockly.Blocks["machine.SPI_SPI.readinto"] = {
+Blockly.Blocks["SPI.readinto"] = {
   init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" SPI.readinto");
+	this.appendDummyInput()
+        .appendField("Read into buffer with SPI");
+  this.appendValueInput("buffer")
+        .appendField("Buffer: ");
         this.setColour(0);
     this.setOutput(true, null);
  this.setTooltip(".. method:: SPI.readinto(buf, write=0x00) Read into the buffer specified by ``buf`` while continuously writing the single byte given by ``write``. ");
@@ -167,10 +181,12 @@ Blockly.Blocks["machine.SPI_SPI.readinto"] = {
 
 
 
-Blockly.Blocks["machine.SPI_SPI.write"] = {
+Blockly.Blocks["SPI.write"] = {
   init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" SPI.write");
+	this.appendDummyInput()
+        .appendField("Write with SPI");
+  this.appendValueInput("message")
+        .appendField("Message: ");
         this.setColour(0);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -181,10 +197,15 @@ Blockly.Blocks["machine.SPI_SPI.write"] = {
 
 
 
-Blockly.Blocks["machine.SPI_SPI.write_readinto"] = {
+Blockly.Blocks["SPI.write_readinto"] = {
   init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" SPI.write_readinto");
+	this.appendDummyInput()
+        .appendField("Write with SPI and read with buffer");
+  this.appendValueInput("message")
+        .appendField("Message: ");
+        this.setColour(0);
+	this.appendValueInput("buffer")
+        .appendField("Buffer: ");
         this.setColour(0);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);

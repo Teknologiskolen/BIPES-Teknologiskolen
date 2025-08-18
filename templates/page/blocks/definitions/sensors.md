@@ -55,7 +55,7 @@
 # HCSR04 ultrasound distance sensor
 <label text="HCSR04 ultrasound distance sensor"></label>
 <label text="Library: https://github.com/rsc1975/micropython-hcsr04"></label>
-<button text="%{INSTALL_LIBRARY}: HCSR04" callbackKey="installPyLib"></button>
+<button text="%{INSTALL_LIBRARY}: hcsr04" callbackKey="installPyLib"></button>
 
 # hcsr_init
 <block type="hcsr_init">

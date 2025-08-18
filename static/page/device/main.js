@@ -209,13 +209,13 @@ class Device {
   empty (){
     return {
       firmware:rosetta.language(''),
-      target:'ESP32'
+      target:'RPIPico'
     }
   }
   load (obj){
     // Set/check language and check target
     obj.firmware = rosetta.language(obj.firmware)
-    obj.target = Object.keys(this.deviceInfo).includes(obj.target) ? obj.target : 'ESP32'
+    obj.target = Object.keys(this.deviceInfo).includes(obj.target) ? obj.target : 'RPIPico'
 
     // Trigger blocks because blocks might be inited
     if (obj.hasOwnProperty('target'))
