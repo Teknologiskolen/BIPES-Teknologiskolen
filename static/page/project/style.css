@@ -57,3 +57,87 @@ section#project .username input {
 section#project > .container > .header {
     margin: 0.5rem 0.5rem 0.25rem 1rem;
 }
+
+/* User Profile Styles */
+section#project .user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0.75rem 1.25rem;
+  margin-left: 1rem;
+  border-radius: 1rem;
+  color: white;
+}
+
+section#project .user-profile .profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+section#project .user-profile .profile-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+section#project .user-profile .profile-role {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+section#project .user-profile .logout-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+section#project .user-profile .logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Class Assignment Dropdown */
+section#project .row.class-assignment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+section#project .row.class-assignment label {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 600;
+}
+
+section#project .class-assignment-select {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+section#project .class-assignment-select:hover {
+  border-color: #667eea;
+}
+
+section#project .class-assignment-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}

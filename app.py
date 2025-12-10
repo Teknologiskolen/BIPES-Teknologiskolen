@@ -107,10 +107,41 @@ def create_app(database="sqlite"):
         print(' * Database: sqlite')
 
     if database is not None:
-        from server.common import api, mqtt
+        from server.common import api, mqtt, auth_api
+        from datetime import timedelta
 
         app.register_blueprint(api.bp)
         app.register_blueprint(mqtt.bp)
+        app.register_blueprint(auth_api.bp)
+
+        # Configure session security
+        app.config.update(
+            SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE='Lax',
+            PERMANENT_SESSION_LIFETIME=timedelta(hours=24)
+        )
+
+    # Authentication routes
+    @app.route("/")
+    def landing():
+        return render_template('landing.html')
+
+    @app.route("/login/teacher")
+    def login_teacher():
+        return render_template('login.html')
+
+    @app.route("/login/student")
+    def login_student():
+        return render_template('login.html')
+
+    @app.route("/register")
+    def register():
+        return render_template('register.html')
+
+    @app.route("/setup")
+    def setup():
+        return render_template('setup.html')
 
     # Return "compiled" html file.
     @app.route("/ide")

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Setup - BIPES</title>
+    <link rel="stylesheet" href="/static/auth/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>Welcome!</h1>
+            <p>Please set up your account</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <div class="alert alert-info">
+            <strong>First-time setup required:</strong> Please change your password to secure your account. You can also add an email address for easier login.
+        </div>
+
+        <form id="setup-form" class="auth-form">
+            <div class="form-group">
+                <label for="current-password">Current Password</label>
+                <input type="password" id="current-password" name="current_password" required placeholder="Your teacher-provided password">
+            </div>
+
+            <div class="form-group">
+                <label for="new-password">New Password <span style="color: red;">*</span></label>
+                <input type="password" id="new-password" name="new_password" required placeholder="Choose a new password" minlength="8">
+                <div id="password-strength" class="password-strength"></div>
+                <small style="color: #666; font-size: 0.85rem;">Minimum 8 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">Confirm New Password <span style="color: red;">*</span></label>
+                <input type="password" id="confirm-password" name="confirm_password" required placeholder="Confirm your new password">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address (Optional)</label>
+                <input type="email" id="email" name="email" placeholder="your.email@example.com">
+                <small style="color: #666; font-size: 0.85rem;">You can use email to login instead of class code</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <span class="btn-text">Complete Setup</span>
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <p><small>* Required fields</small></p>
+        </div>
+    </div>
+
+    <script src="/static/auth/setup.js"></script>
+</body>
+</html>
