@@ -1,7 +1,7 @@
 "use strict";
 
 import {DOM} from '../../base/dom.js'
-import {Charts, Streams, Switches, Ranges, Gauges} from './plugins.js'
+import {Charts, Streams, Switches, Ranges, Gauges, Coordinates, Drawings} from './plugins.js'
 export {Actions, Action}
 
 import {project} from '../project/main.js'
@@ -97,6 +97,30 @@ class Actions {
 	      minValue: 'input',
 	      maxValue: 'input',
 	    },
+	    'coordinate': {
+	      title: 'input',
+	      target: 'dropdown',
+	      topic: 'input',
+	      size: 'dropdown',
+	      reach: 'input',
+	      minX: 'input',
+	      maxX: 'input',
+	      minY: 'input',
+	      maxY: 'input',
+	    },
+	    'drawing': {
+	      title: 'input',
+	      target: 'dropdown',
+	      filename: 'input',
+	      startCommand: 'input',
+	      homeCommand: 'input',
+	      size: 'dropdown',
+	      reach: 'input',
+	      minX: 'input',
+	      maxX: 'input',
+	      minY: 'input',
+	      maxY: 'input',
+	    },
 	  }
 	  return _dict[plugin][key]
 	}
@@ -152,6 +176,34 @@ class Actions {
 	        maxValue: 100
 	        }
 	      break
+	    case 'coordinate':
+	      return {
+          target: 'Console',
+	        title: 'Coordinate',
+	        topic: 'move',
+	        size: 'large',
+	        reach: 0,
+	        minX: -100,
+	        maxX: 100,
+	        minY: -100,
+	        maxY: 100
+	        }
+	      break
+	    case 'drawing':
+	      return {
+          target: 'Console',
+	        title: 'Drawing',
+	        filename: 'drawing.gcode',
+	        startCommand: "run_gcode('{filename}')",
+	        homeCommand: 'home()',
+	        size: 'large',
+	        reach: 0,
+	        minX: -100,
+	        maxX: 100,
+	        minY: -100,
+	        maxY: 100
+	        }
+	      break
 	  }
 	}
 
@@ -196,6 +248,30 @@ class Actions {
 	      topic: 'Topic',
 	      minValue: 'Lower bound',
 	      maxValue: 'Upper bound'
+	    },
+	    'coordinate': {
+	      target: ["Target", ['Console', 'EasyMQTT']],
+	      title: 'Title',
+	      topic: 'Topic',
+	      size: ["Size", ['small', 'medium', 'large']],
+	      reach: 'Reach radius (0=off)',
+	      minX: 'Min X',
+	      maxX: 'Max X',
+	      minY: 'Min Y',
+	      maxY: 'Max Y'
+	    },
+	    'drawing': {
+	      target: ["Target", ['Console', 'EasyMQTT']],
+	      title: 'Title',
+	      filename: 'G-code filename',
+	      startCommand: 'Start command',
+	      homeCommand: 'Home command',
+	      size: ["Size", ['small', 'medium', 'large']],
+	      reach: 'Reach radius (0=off)',
+	      minX: 'Min X',
+	      maxX: 'Max X',
+	      minY: 'Min Y',
+	      maxY: 'Max Y'
 	    },
 	  }
 	  return _dict[plugin][key]
@@ -336,6 +412,38 @@ class Action {
 			        break
 			    break
 			  }
+	      case 'coordinate':
+			    switch (this.key){
+			      case 'title':
+			      case 'topic':
+			      case 'reach':
+			      case 'minX':
+			      case 'maxX':
+			      case 'minY':
+			      case 'maxY':
+              data.setup[this.key] = str
+          		Coordinates.regen(obj, data)
+              bipes.page.dashboard.commit()
+			        break
+			    break
+			  }
+	      case 'drawing':
+			    switch (this.key){
+			      case 'title':
+			      case 'filename':
+			      case 'startCommand':
+			      case 'homeCommand':
+			      case 'reach':
+			      case 'minX':
+			      case 'maxX':
+			      case 'minY':
+			      case 'maxY':
+              data.setup[this.key] = str
+          		Drawings.regen(obj, data)
+              bipes.page.dashboard.commit()
+			        break
+			    break
+			  }
 			}
 	}
 	dropdown (obj, data) {
@@ -383,6 +491,32 @@ class Action {
 		      case 'source':
             data.setup.source = str,
         		Gauges.regen(obj, data),
+            bipes.page.dashboard.commit()
+        		break
+   		}
+		  case 'coordinate':
+		    switch (this.key){
+		      case 'target':
+            data.setup.target = str
+        		Coordinates.regen(obj, data)
+            bipes.page.dashboard.commit()
+        		break
+		      case 'size':
+            data.setup.size = str
+            Coordinates.resize(obj, data)
+            bipes.page.dashboard.commit()
+        		break
+   		}
+		  case 'drawing':
+		    switch (this.key){
+		      case 'target':
+            data.setup.target = str
+        		Drawings.regen(obj, data)
+            bipes.page.dashboard.commit()
+        		break
+		      case 'size':
+            data.setup.size = str
+            Drawings.resize(obj, data)
             bipes.page.dashboard.commit()
         		break
    		}

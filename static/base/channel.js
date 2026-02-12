@@ -103,7 +103,7 @@ class Channel {
       } else {
         for (let i = 0; i < callback.length-1; i++) {
           self = self[callback[i]]
-      }
+        }
         fun = self[callback[callback.length-1]]
       }
       this.callbacks.push({
@@ -585,7 +585,7 @@ function _WebBluetooth (parent){
           'gattserverdisconnected',
           this.disconnect.bind(this)
           );
-        return bleDevicec.gatt.connect()
+        return bleDevice.gatt.connect()
       })
       .then(server => {
         console.log('Locate NUS service')
@@ -623,9 +623,10 @@ function _WebBluetooth (parent){
               )
             }
           )
-        this.parent._connected('webluetooth', callback)
+        this.parent._connected('webbluetooth', callback)
         /* connnected */
       }).catch(error => {
+        console.error('WebBluetooth error:', error)
         this.parent._disconnected()
         /* error */
         if(this.bleDevice && this.bleDevice.gatt.connected)
@@ -636,9 +637,8 @@ function _WebBluetooth (parent){
    * Disconnect device connected with webbluetooth protocol.
    */
   this.disconnect = (force) => {
-    if (!this.bleDevice)
-      if (this.bleDevice.gatt.connected)
-        this.bleDevice.gatt.disconnect()
+    if (this.bleDevice && this.bleDevice.gatt.connected)
+      this.bleDevice.gatt.disconnect()
 
     this.bleDevice = undefined;
     this.nusService = undefined;
@@ -675,9 +675,8 @@ function _WebBluetooth (parent){
 
       this.rxCharacteristic.writeValue(value).then(() => {
 
-        // If no callback expected, release lock
-        if (this.parent.callbacks.length == 0)
-          this.parent.lock = false
+        // Release lock after successful write
+        this.parent.lock = false
 
         this.parent.input.shift()
 
@@ -686,15 +685,11 @@ function _WebBluetooth (parent){
         else
           this.streaming = false
       }).catch(e => {
-        console.error (e)
-        return Promise.resolve()
-        .then(() => this.delayPromise(500))
-        // Retry once
-        .then(() => this.rxCharacteristic.writeValue(value)).catch((e) => {
-        console.error (e)
-        if (e == "NetworkError: Failed to execute 'writeValue' on 'BluetoothRemoteGATTCharacteristic': GATT Server is disconnected. Cannot perform GATT operations. (Re)connect first with `device.gatt.connect`.")
-        console.error ("Lost Bluetooth connection.")
-        })
+        console.error ('WebBluetooth write error:', e)
+        // Release lock on error so queue doesn't get stuck
+        this.parent.lock = false
+        this.streaming = false
+        this.parent.input.shift()
       })
     })
   }

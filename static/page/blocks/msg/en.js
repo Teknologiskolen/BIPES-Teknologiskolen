@@ -421,6 +421,3 @@ Blockly.Msg["TEXTS_HUE"] = "160";
 Blockly.Msg["PROCEDURES_HUE"] = "290";
 Blockly.Msg["COLOUR_HUE"] = "20";
 Blockly.Msg["VARIABLES_DYNAMIC_HUE"] = "310";
-Blockly.Msg["MICROCONTROLLER_HUE"] = "190";
-Blockly.Msg["SENSOR_HUE"] = "70";
-Blockly.Msg["OUTPUT_HUE"] = "45";

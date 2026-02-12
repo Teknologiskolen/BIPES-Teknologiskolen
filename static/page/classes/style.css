@@ -1,3 +1,10 @@
+nav #classes::before {
+	background-position: left calc(-1.5rem*10) top;
+}
+nav #classes.on::before {
+	background-position: left calc(-1.5rem*10) bottom;
+}
+
 /* Classes Page Styles */
 
 .classes-container {

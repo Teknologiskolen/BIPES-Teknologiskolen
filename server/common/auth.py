@@ -5,7 +5,7 @@ Provides password hashing, session management, and utility functions
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from flask import session, jsonify
+from flask import session, jsonify, redirect, url_for
 import random
 import string
 import time
@@ -199,6 +199,27 @@ def require_student():
             user = get_current_user()
             if not user or user['user_type'] != 'student':
                 return jsonify({'error': 'Student access required'}), 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_auth_page():
+    """
+    Decorator to require authentication for page routes (not API)
+    Redirects to landing page if not authenticated
+
+    Usage:
+        @app.route('/classes')
+        @require_auth_page()
+        def classes_page():
+            return render_template('classes.html')
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not is_authenticated():
+                return redirect(url_for('landing'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator

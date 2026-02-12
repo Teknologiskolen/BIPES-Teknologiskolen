@@ -37,6 +37,7 @@ var Msg = {
 'PageProject':'Projekter',
 'PagePrompt':'Konsol',
 'PageDashboard':'Dashboard',
+'PageClasses':'Klasser',
 'PageFreeboard':'Freeboard',
 
   // Common actions
@@ -151,6 +152,13 @@ HelloUser:'Hej, ',
 'SharedProjectDoesNotExist':'Det delte projekt findes ikke længere',
 ProjectFromURL:'Delt projekt fra link',
 ClickToImport:'Tryk for at importere til dine projekter',
+AssignToClass:'Tildel til klasse',
+UnassignFromClass:'Fjern fra klasse',
+SelectClass:'Vælg en klasse',
+AssignedTo:'Tildelt til',
+NoClasses:'Du er ikke tilmeldt nogen klasser',
+StudentProjects:'Elevprojekter',
+NoStudentProjects:'Ingen elevprojekter tildelt endnu',
 
 // Page Notification
 'Forum':'Forum',

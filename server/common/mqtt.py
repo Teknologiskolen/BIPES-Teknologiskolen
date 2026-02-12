@@ -87,10 +87,25 @@ def listen(app, conf):
     mqtt.init_app(app)
     return
 
-# Get current password
+# Get current password and connection config
 @bp.route('/public_conf', methods=('POST', 'GET'))
 def mqtt_public_conf():
-    if 'MQTT_PASSWORD' in current_app.config:
+    if 'MQTT_PASSWORD' not in current_app.config:
+        return {'easyMQTT':{'password':False}}
+
+    # When behind HTTPS reverse proxy, browser connects via wss:// through nginx /wss path
+    forwarded_proto = request.headers.get('X-Forwarded-Proto', 'http')
+    if forwarded_proto == 'https':
+        return {
+            'easyMQTT':{
+                'password':current_app.config['MQTT_PASSWORD'],
+                'ssl':True,
+                'host':request.host.split(':')[0],
+                'ws_port':443,
+                'path':'/wss'
+            }
+        }
+    else:
         return {
             'easyMQTT':{
                 'password':current_app.config['MQTT_PASSWORD'],
@@ -99,8 +114,6 @@ def mqtt_public_conf():
                 'ws_port':current_app.config['MQTT_BROKER_WS_PORT']
             }
         }
-    else:
-        return {'easyMQTT':{'password':False}}
 
 # Get all data
 @bp.route('/<session>/grep', methods=('POST', 'GET'))

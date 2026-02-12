@@ -42,7 +42,7 @@ def connect(database):
             g.db.row_factory = sqlite3.Row
         elif current_app.config['DATABASE'] == 'postgresql':
             import psycopg
-            _url = "postgres://{user}:{password}@{host}:{port}"\
+            _url = "postgres://{user}:{password}@{host}:{port}/{database}"\
                         .format(user=current_app.config['POSTGRESQL_USER'], \
                                 password=current_app.config['POSTGRESQL_PASSWORD'], \
                                 host=current_app.config['POSTGRESQL_HOST'], \
@@ -111,6 +111,8 @@ def select(__db, table_name, columns, *args):
         data = db.execute(_s(_sql)).fetchall()
 
     db.close()
+    g.pop('db', None)
+    g.pop('db', None)
     return (table_name, columns, data)
 
 
@@ -137,6 +139,7 @@ def select_where(__db, table_name, where, columns, *args):
         data = db.execute(_s(_sql), (where[1],)).fetchall()
 
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns, data)
 
@@ -162,6 +165,7 @@ def select_distinct(__db, table_name, columns, *args):
         data = db.execute(_s(_sql)).fetchall()
 
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns, data)
 
@@ -180,6 +184,7 @@ def fetch(__db, table_name, columns, where):
 
     data = db.execute(_s(_sql), (where[1],)).fetchone()
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns, data)
 
@@ -200,6 +205,7 @@ def insert(__db, table_name, columns, values):
     db.execute(_s(_sql), values)
     db.commit()
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns)
 
@@ -221,6 +227,7 @@ def delete(__db, table_name, columns, values):
 
     db.commit()
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns)
 
@@ -236,6 +243,7 @@ def update(__db, table_name, columns, values):
     db.execute(_s(sql), values)
     db.commit()
     db.close()
+    g.pop('db', None)
 
     return (table_name, columns)
 

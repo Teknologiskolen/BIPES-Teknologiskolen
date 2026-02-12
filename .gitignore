@@ -27,6 +27,11 @@ static/import/*
 licenses/
 docs/_build
 docker/*
-
 !docker/Dockerfile
+!docker/Dockerfile.prod
 !docker/docker-compose.yml
+!docker/nginx.conf
+!docker/gunicorn_config.py
+!docker/init-db.sql
+!docker/mosquitto.conf
+!docker/generate-ssl.sh

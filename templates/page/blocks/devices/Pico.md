@@ -78,6 +78,14 @@ end_category
 
 sep
 
+Sand_Drawing_Machine
+end_category
+
+Alarm_Clock
+end_category
+
+sep
+
 %{MICROCONTROLLER}
 %{MACHINE}
 end_category

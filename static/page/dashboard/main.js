@@ -822,7 +822,9 @@ class DashboardAddMenu {
       chart:'Chart',
       switch: 'Switch',
       range:'Range',
-      gauge:'Gauge'
+      gauge:'Gauge',
+      coordinate:'Coordinate',
+      drawing:'Drawing'
     }
     let $ = this.$ = {}
     $.addMenu = dom

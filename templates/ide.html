@@ -39,6 +39,13 @@
 {% endfor %}
 </div>
 <div id="extra">
+  {% if user %}
+  <div id="user-info">
+    <span id="user-name">{{ user.name }}</span>
+    <span id="user-role">{{ user.user_type }}</span>
+    <a id="logout-link" href="#">Logout</a>
+  </div>
+  {% endif %}
   <div id="app-version">Version {{ app_version }}</div>
 </div>
 </nav>
@@ -52,6 +59,18 @@
   <div id='globals'></div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('logout-link');
+  if (btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      fetch('/api/auth/logout', {method:'POST', credentials:'include'})
+        .then(function() { window.location.href = '/'; });
+    });
+  }
+});
+</script>
 <script type="{{import_type}}" src="./static/libs/bipes.umd.js"></script>
 {% if import_type == "text/javascript" -%}
 <script>

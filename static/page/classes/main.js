@@ -4,6 +4,7 @@
  */
 
 import { session } from '../../base/session.js';
+import { DOM } from '../../base/dom.js';
 
 class ClassesPage {
     constructor() {
@@ -12,27 +13,46 @@ class ClassesPage {
         this.classes = [];
         this.currentClass = null;
         this.selectedStudents = [];
+        this.inited = false;
+        this.sessionListenerAdded = false;
 
-        this.init();
+        // Create page container
+        let $ = this.$ = {};
+        $.container = new DOM('div', { className: 'classes-container' });
+
+        // Only attach to DOM if section exists (for authenticated users)
+        const sectionElement = DOM.get('section#classes');
+        if (sectionElement) {
+            $.section = new DOM(sectionElement).append($.container);
+        }
     }
 
     init() {
-        // Create page structure
-        this.$.page = document.createElement('div');
-        this.$.page.className = 'classes-page';
-        this.$.page.style.display = 'none';
-
-        // Wait for session to load
-        window.addEventListener('sessionchange', (e) => {
-            if (e.detail.isAuthenticated) {
-                this.renderContent();
-            }
-        });
-
-        // If session already loaded
-        if (session.isLoggedIn()) {
-            this.renderContent();
+        // Redirect guests to landing page
+        if (!session.isLoggedIn()) {
+            window.location.href = '/';
+            return;
         }
+
+        if (this.inited)
+            return;
+
+        // Add session change listener once
+        if (!this.sessionListenerAdded) {
+            window.addEventListener('sessionchange', (e) => {
+                if (e.detail.isAuthenticated) {
+                    this.renderContent();
+                } else {
+                    // User logged out, redirect to landing
+                    window.location.href = '/';
+                }
+            });
+            this.sessionListenerAdded = true;
+        }
+
+        // Render content
+        this.renderContent();
+        this.inited = true;
     }
 
     renderContent() {
@@ -48,7 +68,7 @@ class ClassesPage {
     // =========================================================================
 
     renderTeacherView() {
-        this.$.page.innerHTML = `
+        this.$.container.$.innerHTML = `
             <div class="classes-container">
                 <div class="classes-header">
                     <h1>My Classes</h1>
@@ -114,16 +134,16 @@ class ClassesPage {
         `;
 
         // Attach event listeners
-        this.$.createClassBtn = this.$.page.querySelector('#create-class-btn');
-        this.$.createClassModal = this.$.page.querySelector('#create-class-modal');
-        this.$.createClassForm = this.$.page.querySelector('#create-class-form');
-        this.$.addStudentModal = this.$.page.querySelector('#add-student-modal');
+        this.$.createClassBtn = this.$.container.$.querySelector('#create-class-btn');
+        this.$.createClassModal = this.$.container.$.querySelector('#create-class-modal');
+        this.$.createClassForm = this.$.container.$.querySelector('#create-class-form');
+        this.$.addStudentModal = this.$.container.$.querySelector('#add-student-modal');
 
         this.$.createClassBtn.addEventListener('click', () => this.showCreateClassModal());
         this.$.createClassForm.addEventListener('submit', (e) => this.handleCreateClass(e));
 
         // Close modals
-        this.$.page.querySelectorAll('.modal .close').forEach(btn => {
+        this.$.container.$.querySelectorAll('.modal .close').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.target.closest('.modal').style.display = 'none';
             });
@@ -140,8 +160,8 @@ class ClassesPage {
     async handleCreateClass(e) {
         e.preventDefault();
 
-        const className = this.$.page.querySelector('#class-name').value;
-        const description = this.$.page.querySelector('#class-description').value;
+        const className = this.$.container.$.querySelector('#class-name').value;
+        const description = this.$.container.$.querySelector('#class-description').value;
 
         try {
             const response = await fetch('/api/classes/create', {
@@ -170,7 +190,7 @@ class ClassesPage {
     }
 
     async loadClasses() {
-        const container = this.$.page.querySelector('#classes-list');
+        const container = this.$.container.$.querySelector('#classes-list');
         container.innerHTML = '<div class="loading">Loading classes...</div>';
 
         try {
@@ -192,7 +212,7 @@ class ClassesPage {
     }
 
     renderClassesList() {
-        const container = this.$.page.querySelector('#classes-list');
+        const container = this.$.container.$.querySelector('#classes-list');
 
         if (this.classes.length === 0) {
             container.innerHTML = `
@@ -235,7 +255,7 @@ class ClassesPage {
     async showClassDetail(classId) {
         this.currentClass = this.classes.find(c => c.class_id === classId);
 
-        const container = this.$.page.querySelector('#class-detail');
+        const container = this.$.container.$.querySelector('#class-detail');
         container.style.display = 'block';
         container.innerHTML = '<div class="loading">Loading class details...</div>';
 
@@ -256,7 +276,7 @@ class ClassesPage {
     }
 
     renderClassDetail(students) {
-        const container = this.$.page.querySelector('#class-detail');
+        const container = this.$.container.$.querySelector('#class-detail');
 
         container.innerHTML = `
             <div class="class-detail-header">
@@ -268,11 +288,6 @@ class ClassesPage {
                     Class Code: <strong>${this.currentClass.class_code}</strong>
                     <button class="btn-icon" id="copy-class-code" title="Copy class code">📋</button>
                 </div>
-            </div>
-
-            <div class="class-tabs">
-                <button class="tab-btn active" data-tab="students">Students</button>
-                <button class="tab-btn" data-tab="projects">Projects</button>
             </div>
 
             <div class="tab-content active" id="students-tab">
@@ -315,11 +330,6 @@ class ClassesPage {
                 </table>
             </div>
 
-            <div class="tab-content" id="projects-tab" style="display: none;">
-                <div class="projects-list" id="class-projects-list">
-                    <div class="loading">Loading projects...</div>
-                </div>
-            </div>
         `;
 
         // Event listeners
@@ -336,21 +346,6 @@ class ClassesPage {
             this.showAddStudentModal();
         });
 
-        // Tab switching
-        container.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tab = e.target.dataset.tab;
-                container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                container.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                e.target.classList.add('active');
-                container.querySelector(`#${tab}-tab`).style.display = 'block';
-
-                if (tab === 'projects') {
-                    this.loadClassProjects();
-                }
-            });
-        });
-
         // Remove student buttons
         container.querySelectorAll('.remove-student-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -365,10 +360,10 @@ class ClassesPage {
     showAddStudentModal() {
         this.$.addStudentModal.style.display = 'block';
 
-        const searchInput = this.$.page.querySelector('#student-search');
-        const searchResults = this.$.page.querySelector('#student-search-results');
-        const createBtn = this.$.page.querySelector('#create-student-btn');
-        const newStudentName = this.$.page.querySelector('#new-student-name');
+        const searchInput = this.$.container.$.querySelector('#student-search');
+        const searchResults = this.$.container.$.querySelector('#student-search-results');
+        const createBtn = this.$.container.$.querySelector('#create-student-btn');
+        const newStudentName = this.$.container.$.querySelector('#new-student-name');
 
         // Search students
         searchInput.addEventListener('input', async (e) => {
@@ -433,12 +428,12 @@ class ClassesPage {
 
             if (response.ok) {
                 // Show password
-                const passwordDisplay = this.$.page.querySelector('#student-password-display');
-                const passwordValue = this.$.page.querySelector('#generated-password');
+                const passwordDisplay = this.$.container.$.querySelector('#student-password-display');
+                const passwordValue = this.$.container.$.querySelector('#generated-password');
                 passwordValue.textContent = data.initial_password;
                 passwordDisplay.style.display = 'block';
 
-                this.$.page.querySelector('#copy-password-btn').addEventListener('click', () => {
+                this.$.container.$.querySelector('#copy-password-btn').addEventListener('click', () => {
                     navigator.clipboard.writeText(data.initial_password);
                     alert('Password copied!');
                 });
@@ -495,60 +490,12 @@ class ClassesPage {
         }
     }
 
-    async loadClassProjects() {
-        const container = this.$.page.querySelector('#class-projects-list');
-        container.innerHTML = '<div class="loading">Loading projects...</div>';
-
-        try {
-            const response = await fetch(`/api/projects/class/${this.currentClass.class_id}`, {
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                if (data.projects.length === 0) {
-                    container.innerHTML = '<div class="empty-state">No projects assigned to this class yet.</div>';
-                } else {
-                    container.innerHTML = `
-                        <table class="projects-table">
-                            <thead>
-                                <tr>
-                                    <th>Project Name</th>
-                                    <th>Student</th>
-                                    <th>Last Modified</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.projects.map(project => `
-                                    <tr>
-                                        <td>${project.name}</td>
-                                        <td>${project.student_name}</td>
-                                        <td>${new Date(project.last_edited * 1000).toLocaleDateString()}</td>
-                                        <td>
-                                            <button class="btn-icon view-project-btn" data-project-uid="${project.uid}" title="View project">
-                                                👁️
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                }
-            }
-        } catch (error) {
-            container.innerHTML = '<div class="error">Failed to load projects</div>';
-        }
-    }
-
     // =========================================================================
     // STUDENT VIEW
     // =========================================================================
 
     renderStudentView() {
-        this.$.page.innerHTML = `
+        this.$.container.$.innerHTML = `
             <div class="classes-container">
                 <div class="classes-header">
                     <h1>My Classes</h1>
@@ -564,7 +511,7 @@ class ClassesPage {
     }
 
     async loadStudentClasses() {
-        const container = this.$.page.querySelector('#student-classes-list');
+        const container = this.$.container.$.querySelector('#student-classes-list');
 
         try {
             const response = await fetch('/api/students/my-classes', {
@@ -601,6 +548,11 @@ class ClassesPage {
         if (session.isLoggedIn()) {
             this.renderContent();
         }
+    }
+
+    deinit() {
+        // Clean up when page is hidden
+        // Nothing to clean up currently, but method is required by navigation
     }
 
     empty() {

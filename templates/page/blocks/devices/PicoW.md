@@ -78,6 +78,13 @@ end_category
 
 sep
 
+Sand_Drawing_Machine
+end_category
+
+Alarm_Clock
+end_category
+
+sep
 
 %{MICROCONTROLLER}
 %{MACHINE}
@@ -179,3 +186,4 @@ utime_ticks_diff
 utime_time
 end_category
 end_category
+

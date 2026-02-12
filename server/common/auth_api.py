@@ -3,7 +3,7 @@ Authentication API endpoints for BIPES
 Handles teacher/student login, registration, class management, and student enrollment
 """
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, g, make_response
 import json
 from server.common import database as dbase
 from server.common import auth
@@ -368,7 +368,11 @@ def get_current_user_info():
     """
     try:
         user = auth.get_current_user()
-        return jsonify(user), 200
+        response = make_response(jsonify(user), 200)
+        # Prevent caching of auth state
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        return response
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -377,7 +381,7 @@ def get_current_user_info():
 # Class Management (Teachers Only)
 #---------------------------------------------------------------------------
 
-@bp.route('/api/classes/create', methods=['POST'])
+@bp.route('/classes/create', methods=['POST'])
 @auth.require_teacher()
 def create_class():
     """
@@ -427,7 +431,7 @@ def create_class():
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/my-classes', methods=['GET'])
+@bp.route('/classes/my-classes', methods=['GET'])
 @auth.require_teacher()
 def get_my_classes():
     """
@@ -470,7 +474,7 @@ def get_my_classes():
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>', methods=['GET'])
+@bp.route('/classes/<int:class_id>', methods=['GET'])
 @auth.require_teacher()
 def get_class_details(class_id):
     """
@@ -504,7 +508,7 @@ def get_class_details(class_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>', methods=['DELETE'])
+@bp.route('/classes/<int:class_id>', methods=['DELETE'])
 @auth.require_teacher()
 def delete_class(class_id):
     """
@@ -541,7 +545,7 @@ def delete_class(class_id):
 # Student Management (Teachers Only)
 #---------------------------------------------------------------------------
 
-@bp.route('/api/classes/<int:class_id>/students/search', methods=['POST'])
+@bp.route('/classes/<int:class_id>/students/search', methods=['POST'])
 @auth.require_teacher()
 def search_students(class_id):
     """
@@ -583,7 +587,7 @@ def search_students(class_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>/students/create', methods=['POST'])
+@bp.route('/classes/<int:class_id>/students/create', methods=['POST'])
 @auth.require_teacher()
 def create_student_and_enroll(class_id):
     """
@@ -615,27 +619,26 @@ def create_student_and_enroll(class_id):
         password_hash = auth.hash_password(initial_password)
         timestamp = auth.get_timestamp()
 
-        # Create student
-        dbase.insert(_db, 'students',
-            ['student_name', 'password_hash', 'initial_password', 'created_at', 'created_by_teacher_id'],
-            (student_name, password_hash, initial_password, timestamp, teacher_id))
-
-        # Get student_id
+        # Create student and get the new student_id via RETURNING
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT student_id FROM students
-            WHERE student_name = %s AND created_at = %s AND created_by_teacher_id = %s
-            LIMIT 1
+            INSERT INTO students (student_name, password_hash, initial_password, created_at, created_by_teacher_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING student_id
         """)
-        result = db.execute(sql, (student_name, timestamp, teacher_id)).fetchone()
+        result = db.execute(sql, (student_name, password_hash, initial_password, timestamp, teacher_id)).fetchone()
+        db.commit()
         student_id = result[0]
 
         # Enroll student in class
-        dbase.insert(_db, 'enrollments',
-            ['class_id', 'student_id', 'enrolled_at'],
-            (class_id, student_id, timestamp))
-
+        sql2 = dbase._s("""
+            INSERT INTO enrollments (class_id, student_id, enrolled_at)
+            VALUES (%s, %s, %s)
+        """)
+        db.execute(sql2, (class_id, student_id, timestamp))
+        db.commit()
         db.close()
+        g.pop('db', None)
 
         return jsonify({
             'success': True,
@@ -648,7 +651,7 @@ def create_student_and_enroll(class_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>/students/add', methods=['POST'])
+@bp.route('/classes/<int:class_id>/students/add', methods=['POST'])
 @auth.require_teacher()
 def add_existing_student(class_id):
     """
@@ -709,7 +712,7 @@ def add_existing_student(class_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>/students/<int:student_id>', methods=['DELETE'])
+@bp.route('/classes/<int:class_id>/students/<int:student_id>', methods=['DELETE'])
 @auth.require_teacher()
 def remove_student_from_class(class_id, student_id):
     """
@@ -745,7 +748,7 @@ def remove_student_from_class(class_id, student_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/classes/<int:class_id>/students', methods=['GET'])
+@bp.route('/classes/<int:class_id>/students', methods=['GET'])
 @auth.require_teacher()
 def get_class_students(class_id):
     """
@@ -803,7 +806,7 @@ def get_class_students(class_id):
 # Student Enrollment
 #---------------------------------------------------------------------------
 
-@bp.route('/api/students/my-classes', methods=['GET'])
+@bp.route('/students/my-classes', methods=['GET'])
 @auth.require_student()
 def get_student_classes():
     """
@@ -848,7 +851,7 @@ def get_student_classes():
 # Projects
 #---------------------------------------------------------------------------
 
-@bp.route('/api/projects/save', methods=['POST'])
+@bp.route('/projects/save', methods=['POST'])
 @auth.require_login()
 def save_project():
     """
@@ -891,6 +894,9 @@ def save_project():
             """)
             result = db.execute(sql, (uid,)).fetchone()
 
+            if result is None:
+                db.close()
+                return jsonify({'error': 'Project not found'}), 404
             if user_type == 'student' and result[0] != user_id:
                 db.close()
                 return jsonify({'error': 'Unauthorized'}), 403
@@ -917,7 +923,7 @@ def save_project():
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/projects/my-projects', methods=['GET'])
+@bp.route('/projects/my-projects', methods=['GET'])
 @auth.require_login()
 def get_my_projects():
     """
@@ -965,7 +971,7 @@ def get_my_projects():
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/projects/<string:uid>/assign-class', methods=['POST'])
+@bp.route('/projects/<string:uid>/assign-class', methods=['POST'])
 @auth.require_student()
 def assign_project_to_class(uid):
     """
@@ -1020,7 +1026,7 @@ def assign_project_to_class(uid):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/projects/class/<int:class_id>', methods=['GET'])
+@bp.route('/projects/class/<int:class_id>', methods=['GET'])
 @auth.require_teacher()
 def get_class_projects(class_id):
     """
@@ -1070,7 +1076,49 @@ def get_class_projects(class_id):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/projects/<string:uid>', methods=['DELETE'])
+@bp.route('/projects/<string:uid>', methods=['GET'])
+@auth.require_login()
+def get_project(uid):
+    """
+    Get a single project's full data
+    Returns: {uid, name, data, created_at, last_edited} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        user_id = user['user_id']
+        user_type = user['user_type']
+
+        db = dbase.get_db(_db)
+        sql = dbase._s("""
+            SELECT student_id, teacher_id, name, data, created_at, last_edited
+            FROM projects WHERE uid = %s
+        """)
+        result = db.execute(sql, (uid,)).fetchone()
+        db.close()
+
+        if result is None:
+            return jsonify({'error': 'Project not found'}), 404
+
+        student_id, teacher_id, name, data, created_at, last_edited = result
+
+        if user_type == 'student' and student_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        if user_type == 'teacher' and teacher_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        return jsonify({
+            'uid': uid,
+            'name': name,
+            'data': json.loads(data) if data else {},
+            'created_at': created_at,
+            'last_edited': last_edited
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/projects/<string:uid>', methods=['DELETE'])
 @auth.require_login()
 def delete_project(uid):
     """
@@ -1116,7 +1164,7 @@ def delete_project(uid):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/projects/migrate', methods=['POST'])
+@bp.route('/projects/migrate', methods=['POST'])
 @auth.require_login()
 def migrate_projects():
     """

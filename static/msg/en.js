@@ -37,6 +37,7 @@ var Msg = {
   'PageProject':'Projects',
   'PagePrompt':'Console',
   'PageDashboard':'Dashboard',
+  'PageClasses':'Classes',
   'PageFreeboard':'Freeboard',
   
   // Common actions
@@ -151,6 +152,13 @@ var Msg = {
   'SharedProjectDoesNotExist':'Shared project does not exist anymore',
   ProjectFromURL:'Shared project from link',
   ClickToImport:'Tap to import to your projects',
+  AssignToClass:'Assign to class',
+  UnassignFromClass:'Unassign from class',
+  SelectClass:'Select a class',
+  AssignedTo:'Assigned to',
+  NoClasses:'You are not enrolled in any classes',
+  StudentProjects:'Student Projects',
+  NoStudentProjects:'No student projects assigned yet',
 
   // Page Notification
   'Forum':'Forum',

@@ -16,7 +16,10 @@ class Project {
     this.current = undefined      // Reference current project
     this.projects = {}
     this.inited = false
-    this.userClasses = [] // Available classes for assignment (students only)
+    this.serverMode = false
+    this._serverInited = false
+    this._saveTimeout = null
+    this._classNames = {}  // Cache of class_id -> class_name
 
     this.cors_token = storage.has('cors_token') ?
                       storage.fetch('cors_token') :
@@ -30,36 +33,19 @@ class Project {
 
     $.projects = new DOM('span', {className:'listy'})
 
-    // User profile section (for authenticated users)
-    $.userProfile = new DOM('div', {className: 'user-profile', style: 'display:none;'})
-      .append([
-        new DOM('div', {className: 'profile-info'}).append([
-          new DOM('span', {className: 'profile-name', id: 'profile-name'}),
-          new DOM('span', {className: 'profile-role', id: 'profile-role'})
-        ]),
-        new DOM('button', {
-          className: 'logout-btn',
-          innerText: 'Logout'
-        }).onclick(this, this.logout)
-      ])
 
-    // Username input (for anonymous users)
     $.username = new DOM('input', {
       value:this.username == 'a user' ? Msg['AUser'] : this.username
     }).onevent('change', this, this.nameChange)
-
-    $.usernameSection = new DOM('span', {className: "username"})
-      .append([
-        new DOM('div', {innerText:Msg['HelloUser']}),
-        $.username,
-        new DOM('div', {innerText:'!'})
-      ])
-
     $.header = new DOM('div', {className:'header'})
       .append([
         new DOM('h2', {innerText:Msg['PageProject']}),
-        $.userProfile,
-        $.usernameSection
+        new DOM('span', {className: "username"})
+        .append([
+          new DOM('div', {innerText:Msg['HelloUser']}),
+          $.username,
+          new DOM('div', {innerText:'!'})
+        ])
       ])
     $.wrapper = new DOM('span', {className: "projects"})
       .append([
@@ -91,9 +77,13 @@ class Project {
     $.contextMenu = new DOM('div')
     this.contextMenu = new ContextMenu($.contextMenu, this)
 
-    $.section = new DOM(DOM.get('section#project'))
-      .append([$.container, $.contextMenu])
-    $.section.$.classList.add('default')
+    // Only attach to DOM if section exists (for guest users)
+    const sectionElement = DOM.get('section#project')
+    if (sectionElement) {
+      $.section = new DOM(sectionElement)
+        .append([$.container, $.contextMenu])
+      $.section.$.classList.add('default')
+    }
 
     // Cross tabs event handler on connecting and disconnecting device
     command.add(this, {
@@ -112,22 +102,18 @@ class Project {
     // Init shared projects if server mode
     if (!navigation.isLocal)
       this.shared = new SharedProject(this, $.wrapper)
+
+    // Enable server mode when session confirms authentication
+    window.addEventListener('sessionchange', (e) => {
+      if (e.detail.isAuthenticated) {
+        this.serverMode = true
+        // If page was already initialized in localStorage mode, re-init in server mode
+        if (this.inited && !this._serverInited)
+          this._initServerMode()
+      }
+    })
   }
-  async _init (){
-    // Check session and update UI
-    await this.checkSession()
-
-    // Load user's classes if student
-    if (session.isStudent()) {
-      await this.loadUserClasses()
-    }
-
-    // Sync localStorage projects to server on first authenticated access
-    if (session.isAuthenticated && !storage.has('projects_synced')) {
-      await this.syncLocalProjectsToServer()
-      storage.set('projects_synced', 'true')
-    }
-
+  _init (){
     if (Object.keys(this.projects).length == 0){
       this.new()
       return
@@ -140,202 +126,15 @@ class Project {
 
     this.select(key)
   }
-
-  /**
-   * Check session and update UI accordingly
-   */
-  async checkSession() {
-    if (session.isAuthenticated) {
-      const user = session.getCurrentUser()
-
-      // Hide username input, show profile
-      this.$.usernameSection.$.style.display = 'none'
-      this.$.userProfile.$.style.display = 'flex'
-
-      // Update profile display
-      const profileName = DOM.get('#profile-name', this.$.userProfile.$)
-      const profileRole = DOM.get('#profile-role', this.$.userProfile.$)
-
-      if (user.user_type === 'teacher') {
-        profileName.innerText = user.full_name
-        profileRole.innerText = 'Teacher'
-      } else if (user.user_type === 'student') {
-        profileName.innerText = user.student_name
-        profileRole.innerText = 'Student'
-      }
-    } else {
-      // Show username input, hide profile
-      this.$.usernameSection.$.style.display = 'flex'
-      this.$.userProfile.$.style.display = 'none'
-    }
-  }
-
-  /**
-   * Load user's classes for assignment dropdown (students only)
-   */
-  async loadUserClasses() {
-    try {
-      const response = await fetch('/api/classes/my', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        this.userClasses = data.classes || []
-      }
-    } catch (error) {
-      console.error('Failed to load user classes:', error)
-    }
-  }
-
-  /**
-   * Sync localStorage projects to server for newly authenticated users
-   */
-  async syncLocalProjectsToServer() {
-    if (!session.isAuthenticated || !session.isStudent()) {
-      return
-    }
-
-    try {
-      const localKeys = storage.keys(/project-(.*)/)
-
-      for (const key of localKeys) {
-        const projectData = JSON.parse(storage.fetch(key))
-
-        // Upload to server
-        await this.saveProjectToServer(key.replace('project-', ''), projectData)
-      }
-
-      notification.send(`${Msg['PageProject']}: Projects synced to server.`)
-    } catch (error) {
-      console.error('Failed to sync projects:', error)
-    }
-  }
-
-  /**
-   * Save project to server (for authenticated users)
-   */
-  async saveProjectToServer(uid, projectData) {
-    if (!session.isAuthenticated) {
-      return
-    }
-
-    try {
-      const response = await fetch('/api/projects/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          uid: uid,
-          data: projectData
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save to server')
-      }
-    } catch (error) {
-      console.error('Failed to save project to server:', error)
-      notification.send(`${Msg['PageProject']}: Failed to save to server.`)
-    }
-  }
-
-  /**
-   * Load projects from server (for authenticated users)
-   */
-  async loadProjectsFromServer() {
-    if (!session.isAuthenticated) {
-      return
-    }
-
-    try {
-      const response = await fetch('/api/projects/list', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-
-        // Merge server projects with local projects
-        for (const serverProject of data.projects) {
-          const uid = serverProject.uid
-          const key = `project-${uid}`
-
-          // Only add if not already in localStorage or server version is newer
-          if (!storage.has(key)) {
-            storage.set(key, JSON.stringify(serverProject.data))
-            this.projects[key] = undefined
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load projects from server:', error)
-    }
-  }
-
-  /**
-   * Assign project to a class (students only)
-   */
-  async assignToClass(uid, classId) {
-    if (!session.isStudent()) {
-      return
-    }
-
-    try {
-      const response = await fetch('/api/projects/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          project_uid: uid,
-          class_id: classId
-        })
-      })
-
-      if (response.ok) {
-        // Update local project data
-        if (this.projects[uid]) {
-          if (!this.projects[uid].project.hasOwnProperty('assigned_class_id')) {
-            this.projects[uid].project.assigned_class_id = classId
-          } else {
-            this.projects[uid].project.assigned_class_id = classId
-          }
-          this.write(uid)
-        }
-
-        notification.send(`${Msg['PageProject']}: Project assigned to class.`)
-      } else {
-        throw new Error('Failed to assign project')
-      }
-    } catch (error) {
-      console.error('Failed to assign project:', error)
-      notification.send(`${Msg['PageProject']}: Failed to assign to class.`)
-    }
-  }
-
-  /**
-   * Logout user
-   */
-  async logout() {
-    await session.logout()
-    window.location.href = '/'
-  }
   /*
-   * Save project to localStorage and server (if authenticated).
+   * Save project to localStorage.
    * @param {string} uid - Project's UID.
    */
-  async save (uid){
+  save (uid){
     if (uid == undefined)
       uid = this.currentUID
     this.projects[uid].lastEdited = +new Date()/1000
     this.write(uid)
-
-    // Also save to server if authenticated
-    if (session.isAuthenticated) {
-      await this.saveProjectToServer(uid, this.projects[uid])
-    }
   }
   /*
    * Create a new project in the platform. If an existing project is provided,
@@ -354,6 +153,10 @@ class Project {
     command.dispatch(this, 'new', [uid, project])
     // Select brand new project
     this.select(uid)
+
+    // Sync to server if authenticated
+    if (this.serverMode)
+      this._serverSave(uid)
 
     return uid
   }
@@ -387,6 +190,10 @@ class Project {
     command.dispatch(this, 'remove', [uid])
     // Update localStorage once
     storage.remove(`project-${uid}`)
+
+    // Delete from server if authenticated
+    if (this.serverMode)
+      this._serverDelete(uid)
 
     this.contextMenu.close()
   }
@@ -448,6 +255,14 @@ class Project {
     }
   }
   init (){
+    // Server-backed mode for authenticated users
+    if (session.isLoggedIn()) {
+      this.serverMode = true
+      if (!this._serverInited)
+        this._initServerMode()
+      return
+    }
+
     if (this.inited)
       return
 
@@ -468,15 +283,253 @@ class Project {
 
     this.inited = true
   }
+  async _initServerMode (){
+    if (this._serverIniting) return
+    this._serverIniting = true
+
+    const user = session.getCurrentUser()
+    if (user) {
+      this.username = user.name
+      this.$.username.$.value = user.name
+      this.$.username.$.disabled = true
+    }
+
+    if (session.isStudent())
+      await this._initStudentProjects(user)
+    else if (session.isTeacher())
+      await this._initTeacherProjects(user)
+
+    // Render project cards — split own vs student for teachers
+    this.$.projects.$.innerHTML = ''
+    let ownCards = []
+    let studentCards = []
+    for (const uid in this.projects) {
+      const item = JSON.parse(storage.fetch(`project-${uid}`))
+      if (item._readOnly)
+        studentCards.unshift(this.$Card(uid))
+      else
+        ownCards.unshift(this.$Card(uid))
+    }
+    this.$.projects.append(ownCards)
+
+    // Create "Student Projects" section if there are any
+    if (studentCards.length > 0) {
+      // Remove old student section if re-initing
+      const oldSection = this.$.wrapper?.$.querySelector('#student-projects-section')
+      if (oldSection) oldSection.remove()
+
+      const studentList = new DOM('span', {className:'listy'})
+      studentList.append(studentCards)
+      const studentSection = new DOM('div', {id:'student-projects-section'})
+        .append([
+          new DOM('div', {className:'header'})
+            .append([new DOM('h3', {innerText: Msg['StudentProjects']})]),
+          studentList
+        ])
+      this.$.wrapper.append(studentSection)
+    }
+
+    // Select a project if available
+    if (Object.keys(this.projects).length > 0) {
+      const prevUID = this.currentUID
+      this.currentUID = undefined
+      let key
+      if (prevUID && this.projects.hasOwnProperty(prevUID))
+        key = prevUID
+      else if (storage.has('current_project')) {
+        key = storage.fetch('current_project')
+        if (!this.projects.hasOwnProperty(key))
+          key = Object.keys(this.projects)[0]
+      } else {
+        key = Object.keys(this.projects)[0]
+      }
+      this.select(key)
+    }
+
+    // Hide shared projects for authenticated users
+    const sharedEl = this.$.section?.$.querySelector('#shared-projects')
+    if (sharedEl) sharedEl.style.display = 'none'
+
+    this.inited = true
+    this._serverInited = true
+  }
+  async _initStudentProjects (user){
+    try {
+      const response = await fetch('/api/projects/my-projects', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        const serverUids = new Set(data.projects.map(p => p.uid))
+
+        // Migrate localStorage projects not yet on server
+        const localToMigrate = []
+        for (const uid in this.projects) {
+          if (!serverUids.has(uid) && storage.has(`project-${uid}`)) {
+            const projData = JSON.parse(storage.fetch(`project-${uid}`))
+            if (!projData._serverOnly) {
+              localToMigrate.push({
+                uid: uid,
+                name: projData.project?.name || 'Untitled',
+                data: projData
+              })
+            }
+          }
+        }
+
+        if (localToMigrate.length > 0) {
+          try {
+            await fetch('/api/projects/migrate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ projects: localToMigrate })
+            })
+          } catch (e) {
+            console.error('Migration failed:', e)
+          }
+        }
+
+        // Merge server data with current projects
+        const mergedProjects = {}
+        for (const proj of data.projects) {
+          mergedProjects[proj.uid] = this.projects[proj.uid]
+          if (!storage.has(`project-${proj.uid}`)) {
+            storage.set(`project-${proj.uid}`, JSON.stringify({
+              project: {
+                name: proj.name,
+                author: user?.name || 'a user',
+                shared: { uid: '', token: '' },
+                createdAt: proj.created_at,
+                lastEdited: proj.last_edited,
+                assignedClassId: proj.assigned_class_id || null
+              },
+              _serverOnly: true
+            }))
+          } else {
+            let cached = JSON.parse(storage.fetch(`project-${proj.uid}`))
+            cached.project.assignedClassId = proj.assigned_class_id || null
+            storage.set(`project-${proj.uid}`, JSON.stringify(cached))
+          }
+        }
+
+        for (const proj of localToMigrate) {
+          if (!mergedProjects.hasOwnProperty(proj.uid))
+            mergedProjects[proj.uid] = this.projects[proj.uid]
+        }
+
+        this.projects = mergedProjects
+      }
+    } catch (error) {
+      console.error('Failed to sync projects:', error)
+    }
+
+    // Fetch class names for display on cards
+    try {
+      const clsResponse = await fetch('/api/students/my-classes', {
+        credentials: 'include'
+      })
+      const clsData = await clsResponse.json()
+      if (clsResponse.ok && clsData.classes) {
+        for (const cls of clsData.classes)
+          this._classNames[cls.class_id] = cls.class_name
+      }
+    } catch (e) {}
+  }
+  async _initTeacherProjects (user){
+    // 1. Fetch teacher's own projects
+    try {
+      const response = await fetch('/api/projects/my-projects', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (response.ok) {
+        const mergedProjects = {}
+        for (const proj of data.projects) {
+          mergedProjects[proj.uid] = this.projects[proj.uid]
+          if (!storage.has(`project-${proj.uid}`)) {
+            storage.set(`project-${proj.uid}`, JSON.stringify({
+              project: {
+                name: proj.name,
+                author: user?.name || 'a user',
+                shared: { uid: '', token: '' },
+                createdAt: proj.created_at,
+                lastEdited: proj.last_edited
+              },
+              _serverOnly: true
+            }))
+          }
+        }
+        this.projects = mergedProjects
+      }
+    } catch (error) {
+      console.error('Failed to sync teacher projects:', error)
+    }
+
+    // 2. Fetch student projects from all classes
+    try {
+      const clsResponse = await fetch('/api/classes/my-classes', {
+        credentials: 'include'
+      })
+      const clsData = await clsResponse.json()
+      if (clsResponse.ok && clsData.classes) {
+        for (const cls of clsData.classes) {
+          this._classNames[cls.class_id] = cls.class_name
+
+          const projResponse = await fetch(`/api/projects/class/${cls.class_id}`, {
+            credentials: 'include'
+          })
+          const projData = await projResponse.json()
+          if (projResponse.ok && projData.projects) {
+            for (const proj of projData.projects) {
+              const projObj = proj.data ? (typeof proj.data === 'string' ? JSON.parse(proj.data) : proj.data) : {
+                project: {
+                  name: proj.name,
+                  author: proj.student_name,
+                  shared: { uid: '', token: '' },
+                  createdAt: proj.created_at,
+                  lastEdited: proj.last_edited
+                }
+              }
+              if (!projObj.project) {
+                projObj.project = {
+                  name: proj.name,
+                  author: proj.student_name,
+                  shared: { uid: '', token: '' },
+                  createdAt: proj.created_at,
+                  lastEdited: proj.last_edited
+                }
+              }
+              projObj.project.assignedClassId = cls.class_id
+              projObj._studentName = proj.student_name
+              projObj._className = cls.class_name
+              projObj._readOnly = true
+
+              storage.set(`project-${proj.uid}`, JSON.stringify(projObj))
+              this.projects[proj.uid] = undefined
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch student projects:', error)
+    }
+  }
   select (uid){
     if (uid == this.currentUID || !this.projects.hasOwnProperty(uid))
       return
 
+    // Search the whole section for cards (own + student projects)
+    const searchRoot = this.$.section?.$ || this.$.projects.$
+
     if (this.currentUID != undefined){
       if (this.inited) {
-        let child = DOM.get(`[data-uid=${this.currentUID}]`, this.$.projects.$)
-        child.classList.remove('on')
-        DOM.get('#name', child).disabled = true
+        let child = DOM.get(`[data-uid=${this.currentUID}]`, searchRoot)
+        if (child) {
+          child.classList.remove('on')
+          DOM.get('#name', child).disabled = true
+        }
       }
       this.unload(uid)
     }
@@ -484,18 +537,57 @@ class Project {
     let proj = storage.fetch(`project-${uid}`)
     this.projects[uid] = JSON.parse(proj)
 
+    // Fetch full data from server if only metadata is cached
+    if (this.serverMode && this.projects[uid]._serverOnly) {
+      this._fetchAndSelect(uid)
+      return
+    }
+
     storage.set('current_project', this.load(uid))
 
     if (this.inited){
-      let child2 = DOM.get(`[data-uid=${this.currentUID}]`, this.$.projects.$)
-      child2.classList.add('on')
-      DOM.get('#name', child2).disabled = false
+      let child2 = DOM.get(`[data-uid=${this.currentUID}]`, searchRoot)
+      if (child2) {
+        child2.classList.add('on')
+        DOM.get('#name', child2).disabled = false
+      }
     }
 
     // Update author if changed globally
     let _username = storage.fetch('username')
     if (_username != this.current.project.author)
       this.current.project.author = _username
+  }
+  async _fetchAndSelect (uid){
+    // Preserve assignedClassId from metadata before overwriting
+    let prevCached = JSON.parse(storage.fetch(`project-${uid}`))
+    let assignedClassId = prevCached?.project?.assignedClassId || null
+    try {
+      const response = await fetch(`/api/projects/${uid}`, {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (response.ok && data.data) {
+        this.projects[uid] = data.data
+        delete this.projects[uid]._serverOnly
+        // Restore assignedClassId from metadata
+        if (this.projects[uid].project)
+          this.projects[uid].project.assignedClassId = assignedClassId
+        storage.set(`project-${uid}`, JSON.stringify(this.projects[uid]))
+      }
+    } catch (error) {
+      console.error('Failed to fetch project:', error)
+    }
+
+    storage.set('current_project', this.load(uid))
+
+    if (this.inited) {
+      let child = DOM.get(`[data-uid=${this.currentUID}]`, this.$.projects.$)
+      if (child) {
+        child.classList.add('on')
+        DOM.get('#name', child).disabled = false
+      }
+    }
   }
   deinit (){
     if(!this.inited)
@@ -514,71 +606,46 @@ class Project {
 
     let _shared_class = item.project.shared.uid != '' ? 'shared' : ''
 
-    // Build card elements
-    let cardElements = [
-      new DOM('div', {className:'row'}).append([
-        new DOM('h4', {
-          id:'name',
-          innerText: item.project.name
-        }),
-        new DOM('div', {
-          id:'sharedUID',
-          innerText:item.project.shared.uid
-        })
-      ]),
-      new DOM('div', {className:'row'}).append([
-        new DOM('div', {
-          id:'lastEdited',
-          innerText:Tool.prettyEditedAt(item.project.lastEdited)
-        })
-      ])
+    let rowItems = [
+      new DOM('div', {
+        id:'lastEdited',
+        innerText:Tool.prettyEditedAt(item.project.lastEdited)
+      })
     ]
 
-    // Add class assignment dropdown for students
-    if (session.isStudent() && this.userClasses.length > 0) {
-      const assignedClassId = item.project.assigned_class_id || null
-
-      const selectOptions = [
-        new DOM('option', {
-          value: '',
-          innerText: 'Not assigned',
-          selected: !assignedClassId
-        })
-      ]
-
-      this.userClasses.forEach(cls => {
-        selectOptions.push(
-          new DOM('option', {
-            value: cls.class_id.toString(),
-            innerText: cls.class_name,
-            selected: assignedClassId === cls.class_id
-          })
-        )
-      })
-
-      const classSelect = new DOM('select', {
-        className: 'class-assignment-select',
-        id: `class-select-${uid}`
-      }).append(selectOptions)
-        .onevent('click', this, (ev) => {
-          ev.stopPropagation() // Prevent card selection
-        })
-        .onevent('change', this, async (ev) => {
-          ev.stopPropagation()
-          const classId = ev.target.value ? parseInt(ev.target.value) : null
-          await this.assignToClass(uid, classId)
-        })
-
-      cardElements.push(
-        new DOM('div', {className:'row class-assignment'}).append([
-          new DOM('label', {innerText: 'Assign to class:'}),
-          classSelect
-        ])
-      )
+    // Show class name on the card
+    if (this.serverMode) {
+      let className = item._className ||
+        (item.project.assignedClassId ? this._classNames[item.project.assignedClassId] : null)
+      if (className) {
+        rowItems.push(new DOM('div', {
+          id:'assignedClass',
+          innerText: className
+        }))
+      }
+      // Show student name for teachers
+      if (item._studentName) {
+        rowItems.unshift(new DOM('div', {
+          id:'studentName',
+          innerText: item._studentName
+        }))
+      }
     }
 
     return new DOM('button', {className:_shared_class, uid: uid})
-      .append(cardElements)
+      .append([
+        new DOM('div', {className:'row'}).append([
+          new DOM('h4', {
+            id:'name',
+            innerText: item.project.name
+          }),
+          new DOM('div', {
+            id:'sharedUID',
+            innerText:item.project.shared.uid
+          })
+        ]),
+        new DOM('div', {className:'row'}).append(rowItems)
+     ])
      .onclick(this, this.select, [uid])
      .onevent('contextmenu', this, (ev) => {
        ev.preventDefault()
@@ -590,6 +657,11 @@ class Project {
            args:[uid]
          }
        ]
+       // Read-only projects (teacher viewing student work): download only
+       if (item._readOnly) {
+         this.contextMenu.open(actions, ev)
+         return
+       }
        if (uid == this.currentUID) {
          let obj = this.projects[uid]
          actions.unshift({
@@ -605,7 +677,7 @@ class Project {
            args:[uid]
          })
 
-         if (!navigation.isLocal) {
+         if (!navigation.isLocal && !this.serverMode) {
            if (obj.project.shared.hasOwnProperty('uid') && obj.project.shared.uid !== '')
              actions.unshift({
                id:'share',
@@ -627,6 +699,23 @@ class Project {
                args:[uid]
              })
            }
+
+         // Assign to class option for students in server mode
+         if (this.serverMode && session.isStudent()) {
+           if (obj.project.assignedClassId)
+             actions.push({
+               id:'unassign',
+               innerText:Msg['UnassignFromClass'],
+               fun:this.unassignFromClass,
+               args:[uid]
+             })
+           actions.push({
+             id:'assign',
+             innerText:Msg['AssignToClass'],
+             fun:this.assignToClass,
+             args:[uid, ev]
+           })
+         }
          }
          this.contextMenu.open(actions, ev)
        })
@@ -638,6 +727,128 @@ class Project {
   write (uid){
     uid = uid == undefined ? this.currentUID : uid
     storage.set(`project-${uid}`, JSON.stringify(this.projects[uid]))
+    if (this.serverMode)
+      this._scheduleServerSave(uid)
+  }
+  _scheduleServerSave (uid){
+    if (this._saveTimeout) clearTimeout(this._saveTimeout)
+    this._saveTimeout = setTimeout(() => {
+      this._serverSave(uid || this.currentUID)
+    }, 3000)
+  }
+  async _serverSave (uid){
+    if (!uid || !this.projects[uid]) return
+    const proj = this.projects[uid]
+    try {
+      await fetch('/api/projects/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          uid: uid,
+          name: proj.project?.name || 'Untitled',
+          data: proj
+        })
+      })
+    } catch (error) {
+      console.error('Failed to save project to server:', error)
+    }
+  }
+  async _serverDelete (uid){
+    try {
+      await fetch(`/api/projects/${uid}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+    } catch (error) {
+      console.error('Failed to delete project from server:', error)
+    }
+  }
+  async assignToClass (uid, ev){
+    this.contextMenu.close()
+    try {
+      const response = await fetch('/api/students/my-classes', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (!response.ok || !data.classes || data.classes.length === 0) {
+        notification.send(`${Msg['PageProject']}: ${Msg['NoClasses']}`)
+        return
+      }
+      // Open context menu with class options
+      const actions = data.classes.map(cls => ({
+        id: 'class-' + cls.class_id,
+        innerText: cls.class_name,
+        fun: this._doAssignToClass,
+        args: [uid, cls.class_id, cls.class_name]
+      }))
+      this.contextMenu.open(actions, ev)
+    } catch (error) {
+      console.error('Failed to fetch classes:', error)
+    }
+  }
+  async _doAssignToClass (uid, classId, className){
+    this.contextMenu.close()
+    try {
+      const response = await fetch(`/api/projects/${uid}/assign-class`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ class_id: classId })
+      })
+      if (response.ok) {
+        // Update local metadata
+        this.projects[uid].project.assignedClassId = classId
+        let cached = JSON.parse(storage.fetch(`project-${uid}`))
+        cached.project.assignedClassId = classId
+        storage.set(`project-${uid}`, JSON.stringify(cached))
+        // Update card display
+        let card = DOM.get(`[data-uid=${uid}]`, this.$.projects.$)
+        if (card) {
+          let assignedEl = DOM.get('#assignedClass', card)
+          if (assignedEl) {
+            assignedEl.innerText = `${Msg['AssignedTo']} ${className}`
+          } else {
+            let row = card.querySelector('.row:last-child')
+            if (row) {
+              let span = document.createElement('div')
+              span.id = 'assignedClass'
+              span.innerText = `${Msg['AssignedTo']} ${className}`
+              row.appendChild(span)
+            }
+          }
+        }
+        notification.send(`${Msg['PageProject']}: ${Msg['AssignedTo']} ${className}`)
+      }
+    } catch (error) {
+      console.error('Failed to assign project to class:', error)
+    }
+  }
+  async unassignFromClass (uid){
+    this.contextMenu.close()
+    try {
+      const response = await fetch(`/api/projects/${uid}/assign-class`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ class_id: null })
+      })
+      if (response.ok) {
+        this.projects[uid].project.assignedClassId = null
+        let cached = JSON.parse(storage.fetch(`project-${uid}`))
+        cached.project.assignedClassId = null
+        storage.set(`project-${uid}`, JSON.stringify(cached))
+        // Remove assigned class display from card
+        let card = DOM.get(`[data-uid=${uid}]`, this.$.projects.$)
+        if (card) {
+          let assignedEl = DOM.get('#assignedClass', card)
+          if (assignedEl) assignedEl.remove()
+        }
+        notification.send(`${Msg['PageProject']}: ${Msg['UnassignFromClass']}`)
+      }
+    } catch (error) {
+      console.error('Failed to unassign project from class:', error)
+    }
   }
   /*
    * Rename a project.

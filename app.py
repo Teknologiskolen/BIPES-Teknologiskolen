@@ -7,6 +7,7 @@ import glob
 import socket
 import re
 from configparser import ConfigParser
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app_name = 'BIPES'
 app_version = '3.0.13'
@@ -69,35 +70,73 @@ def create_app(database="sqlite"):
            'Invalid database engine "' + database + '"'
 
     app = Flask(__name__)
-    
-    # Parse server/conf.ini
-    conf = ConfigParser()
-    conf.read(os.path.join(app.root_path,'server/conf.ini'))
-    assert len(conf) > 0,\
-        'Config file server/conf.ini does not exist, do make conf to generate it'
-    assert 'flask' in conf and 'password' in conf['flask'], \
-        'No flask password provided in server/conf.ini'
+
+    # Trust proxy headers (for nginx reverse proxy)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+
+    # Get Flask secret key from environment or conf.ini
+    flask_secret = os.environ.get('FLASK_SECRET_KEY')
+
+    if not flask_secret:
+        # Parse server/conf.ini (local development)
+        conf = ConfigParser()
+        conf.read(os.path.join(app.root_path,'server/conf.ini'))
+        assert len(conf) > 0,\
+            'Config file server/conf.ini does not exist, do make conf to generate it'
+        assert 'flask' in conf and 'password' in conf['flask'], \
+            'No flask password provided in server/conf.ini'
+        flask_secret = conf['flask']['password']
+    else:
+        # Docker deployment - create minimal conf for compatibility
+        conf = ConfigParser()
+        conf.read(os.path.join(app.root_path,'server/conf.ini'))
 
     app.config.from_mapping(
-      SECRET_KEY = conf['flask']['password']
+      SECRET_KEY = flask_secret,
+      # Session cookie settings
+      SESSION_COOKIE_SECURE = True,  # Only send over HTTPS
+      SESSION_COOKIE_HTTPONLY = True,  # Not accessible via JavaScript
+      SESSION_COOKIE_SAMESITE = 'Lax',  # Prevent CSRF
+      PERMANENT_SESSION_LIFETIME = 3600,  # 1 hour session timeout
     )
 
     if database == "postgresql":
-        assert 'postgresql' in conf and \
-            set(['host','database_api','database_mqtt','user','password']) \
-                .issubset(set(conf['postgresql'])), \
-            'No postgresql host, database, user or password provided in server/conf.ini'
-        app.config.from_mapping(
-          DATABASE = 'postgresql',
-          POSTGRESQL_HOST = conf['postgresql']['host'],
-          POSTGRESQL_DATABASE_API = conf['postgresql']['database_api'],
-          POSTGRESQL_DATABASE_MQTT = conf['postgresql']['database_mqtt'],
-          POSTGRESQL_USER = conf['postgresql']['user'],
-          POSTGRESQL_PASSWORD = conf['postgresql']['password'],
-          API = 'api',
-          MQTT = 'mqtt'
-        )
-        print(' * Database: postgresql')
+        # Check for environment variables first (Docker), then fall back to conf.ini
+        pg_host = os.environ.get('POSTGRES_HOST')
+        pg_db = os.environ.get('POSTGRES_DB')
+        pg_user = os.environ.get('POSTGRES_USER')
+        pg_pass = os.environ.get('POSTGRES_PASSWORD')
+
+        if pg_host and pg_db and pg_user and pg_pass:
+            # Using environment variables (Docker deployment)
+            app.config.from_mapping(
+              DATABASE = 'postgresql',
+              POSTGRESQL_HOST = pg_host,
+              POSTGRESQL_DATABASE_API = pg_db,
+              POSTGRESQL_DATABASE_MQTT = pg_db,
+              POSTGRESQL_USER = pg_user,
+              POSTGRESQL_PASSWORD = pg_pass,
+              API = 'api',
+              MQTT = 'mqtt'
+            )
+            print(f' * Database: postgresql (host={pg_host}, db={pg_db})')
+        else:
+            # Using conf.ini (local development)
+            assert 'postgresql' in conf and \
+                set(['host','database_api','database_mqtt','user','password']) \
+                    .issubset(set(conf['postgresql'])), \
+                'No postgresql host, database, user or password provided in server/conf.ini'
+            app.config.from_mapping(
+              DATABASE = 'postgresql',
+              POSTGRESQL_HOST = conf['postgresql']['host'],
+              POSTGRESQL_DATABASE_API = conf['postgresql']['database_api'],
+              POSTGRESQL_DATABASE_MQTT = conf['postgresql']['database_mqtt'],
+              POSTGRESQL_USER = conf['postgresql']['user'],
+              POSTGRESQL_PASSWORD = conf['postgresql']['password'],
+              API = 'api',
+              MQTT = 'mqtt'
+            )
+            print(' * Database: postgresql')
     elif database == 'sqlite':
         app.config.from_mapping(
           DATABASE = 'sqlite',
@@ -106,48 +145,70 @@ def create_app(database="sqlite"):
         )
         print(' * Database: sqlite')
 
-    if database is not None:
-        from server.common import api, mqtt, auth_api
-        from datetime import timedelta
+    # Auth mode: "full" (teacher+student+guest) or "guest" (guest-only)
+    auth_mode = os.environ.get('AUTH_MODE', 'full').lower()
+    app.config['AUTH_MODE'] = auth_mode
+    print(f' * Auth mode: {auth_mode}')
 
+    if database is not None:
+        from server.common import api, mqtt
         app.register_blueprint(api.bp)
         app.register_blueprint(mqtt.bp)
-        app.register_blueprint(auth_api.bp)
 
-        # Configure session security
-        app.config.update(
-            SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
-            SESSION_COOKIE_HTTPONLY=True,
-            SESSION_COOKIE_SAMESITE='Lax',
-            PERMANENT_SESSION_LIFETIME=timedelta(hours=24)
-        )
+        if auth_mode == 'full':
+            from server.common import auth_api, auth
+            app.register_blueprint(auth_api.bp)
 
-    # Authentication routes
-    @app.route("/")
-    def landing():
-        return render_template('landing.html')
+    if auth_mode == 'full':
+        from server.common import auth
 
-    @app.route("/login/teacher")
-    def login_teacher():
-        return render_template('login.html')
+        # Authentication routes - no-cache to prevent stale auth state
+        @app.route("/")
+        def landing():
+            response = make_response(render_template('landing.html'))
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            return response
 
-    @app.route("/login/student")
-    def login_student():
-        return render_template('login.html')
+        @app.route("/login/teacher")
+        def login_teacher():
+            return render_template('login.html')
 
-    @app.route("/register")
-    def register():
-        return render_template('register.html')
+        @app.route("/login/student")
+        def login_student():
+            return render_template('login.html')
 
-    @app.route("/setup")
-    def setup():
-        return render_template('setup.html')
+        @app.route("/register")
+        def register():
+            return render_template('register.html')
 
-    # Return "compiled" html file.
-    @app.route("/ide")
-    @app.route("/ide-<lang>")
-    def call_ide(lang=None, import_type='module'):
-        return ide(lang, import_type) 
+        @app.route("/setup")
+        def setup():
+            return render_template('setup.html')
+
+        @app.route("/classes")
+        @auth.require_auth_page()
+        def classes_page():
+            return render_template('classes.html')
+
+        # Return "compiled" html file. No-cache to prevent stale auth state.
+        @app.route("/ide")
+        @app.route("/ide-<lang>")
+        def call_ide(lang=None, import_type='module'):
+            response = make_response(ide(lang, import_type))
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
+
+    else:
+        # Guest-only mode: / and /ide both go straight to the IDE
+        @app.route("/")
+        @app.route("/ide")
+        @app.route("/ide-<lang>")
+        def call_ide(lang=None, import_type='module'):
+            response = make_response(ide(lang, import_type))
+            response.headers['Cache-Control'] = 'no-store'
+            return response
         
     # Return concatanate styles.
     @app.route("/static/style.css")
@@ -180,11 +241,7 @@ def create_app(database="sqlite"):
     @app.route("/empty")
     def test(name=None):
         return render_template('empty.html')
-    
-    
-    @app.route('/')
-    def go_to_ide():
-        return redirect("/ide", code=302)
+
 
     # Return serviceworker.
     @app.route("/serviceworker.js")
@@ -197,16 +254,24 @@ def create_app(database="sqlite"):
     if database is None:
         return app
 
-    # Init mqtt subscriber
-    if 'mosquitto' in conf and 'password' in conf['mosquitto']:
-        # Run only in main process
+    # Init mqtt subscriber - check env vars first (Docker), then conf.ini
+    mosquitto_password = os.environ.get('MOSQUITTO_PASSWORD')
+    mosquitto_host = os.environ.get('MOSQUITTO_HOST', 'localhost')
+    is_main = os.environ.get("WERKZEUG_RUN_MAIN") == "true" or os.environ.get("FLASK_ENV") == "production"
+
+    if mosquitto_password and is_main:
+        try:
+            mqtt.listen(app, {'password': mosquitto_password, 'host': mosquitto_host})
+        except Exception as e:
+            app.logger.warning(f'Mosquitto connection failed: {e}')
+    elif 'mosquitto' in conf and 'password' in conf['mosquitto']:
         if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             try:
                 mqtt.listen(app, conf['mosquitto'])
-            except ConnectionRefusedError:
-                app.logger.warning('Mosquitto refused to connect')
+            except Exception as e:
+                app.logger.warning(f'Mosquitto connection failed: {e}')
     else:
-        app.logger.warning('No mosquitto password in server/conf.ini, skipping')
+        app.logger.warning('No mosquitto config found, skipping MQTT')
       
     return app
 
@@ -214,7 +279,7 @@ def add_cors(response):
     response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5001'
     response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    return respons
+    return response
 
 # Generate basic server/conf.ini file
 def conf_ini(flask_passwd=None, mosquitto_passwd=None, mosquitto_host=None):
@@ -282,13 +347,25 @@ def ide(lang=None, import_type='module'):
     lang_imports = render_lang(lang)
     page = get_files_names("static/page/*/main.js", r"^static/page/(.*)/main.js")
     imports = get_files_names("static/libs/*.umd.js", r"^static/libs/(.*).js")
-    
+
     page = preferred_page_order(page)
-  
+
+    # Filter pages based on authentication status
+    auth_mode = os.environ.get('AUTH_MODE', 'full').lower()
+    if auth_mode == 'full':
+        from server.common import auth
+        is_authenticated = auth.is_authenticated()
+        user = auth.get_current_user()
+        if not is_authenticated:
+            page = [p for p in page if p != 'classes']
+    else:
+        user = None
+        page = [p for p in page if p != 'classes']
+
     return render_template('ide.html', app_name=app_name, app_version=app_version,
                            page=page, imports=imports, explicit_imports=explicit_imports,
                            lang_imports=lang_imports, lang=lang,
-                           import_type=import_type)
+                           import_type=import_type, user=user)
 
 # Render language string imports
 def render_lang (lang):
@@ -379,6 +456,10 @@ def bipes_imports(import_type='module'):
     base = get_files_names("static/base/*.js", r"^static/base/(.*).js")
     base.remove('dom'); base.remove('tool')
     page = get_files_names("static/page/*/main.js", r"^static/page/(.*)/main.js")
+
+    # Import ALL modules regardless of authentication
+    # The project module is needed by blocks, dashboard, device, and files modules
+    # Navigation tabs are filtered separately in ide() function
 
     return render_template('libs/bipes.js', base=base,
                            page=page, import_type=import_type,

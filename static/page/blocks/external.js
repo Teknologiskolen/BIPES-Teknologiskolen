@@ -114,7 +114,40 @@ export const knownLibs = {
   neopixel:{
     hostname:'./static/page/blocks/libraries',
     file:'neopixel.py'
+  },
+  ble_advertising:{
+    hostname:'./static/page/blocks/libraries',
+    file:'BLEPeripheral.py'
+  },
+  stepper:{
+    hostname:'./static/page/blocks/libraries',
+    file:'stepper.py'
+  },
+  ZerroStepper:{
+    hostname:'./static/page/blocks/libraries',
+    file:'ZerroStepper.py'
+  },
+  sand_table_robot:{
+    hostname:'./static/page/blocks/libraries',
+    file:'sand_table_robot.py'
+  },
+  Buttons:{
+    hostname:'./static/page/blocks/libraries',
+    file:'buttons.py'
+  },
+  Displaytest:{
+    hostname:'./static/page/blocks/libraries',
+    file:'displaytest.py'
+  },
+  ds1302:{
+    hostname:'./static/page/blocks/libraries',
+    file:'ds1302.py'
+  },
+  st7735s:{
+    hostname:'./static/page/blocks/libraries',
+    file:'st7735s.py'
   }
+
 }
 
 const defautlDocsHostname = 'https://docs.google.com/document/d/e/2PACX-1vSk-9T56hP9K9EOhkF5SoNzsYl4TzDk-GEDnMssaFP_m-LEfI6IU-uRkkLP_HoONK0QmMrZVo_f27Fw'

@@ -28,7 +28,10 @@ export default function Bipes (){
 
   bipes.navigation = navigation
 
-  bipes.page.project._init()
+  // Initialize project page only if it's available (for guests)
+  if (bipes.page.project) {
+    bipes.page.project._init()
+  }
 
   bipes.navigation.init(languages)
 }

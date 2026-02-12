@@ -16,6 +16,11 @@ class SessionManager {
      * Call this on page load
      */
     async init() {
+        // Skip session management in guest mode (no user-info element means no auth)
+        if (!document.getElementById('user-info')) {
+            this.clearSession();
+            return;
+        }
         await this.checkSession();
         // Check session every 5 minutes
         this.checkInterval = setInterval(() => this.checkSession(), 5 * 60 * 1000);

@@ -1,56 +1,70 @@
 Blockly.Python["bluetooth_init"] = function(block) {
-	Blockly.Python.definitions_['from_BLEPeripheral_import_BLEPeripheral'] = 'from BLEPeripheral import BLEPeripheral';
-	var message = Blockly.Python.nameDB_.getName(block.getFieldValue('message'), Blockly.Variables.NAME_TYPE);
-	var onConnect = Blockly.Python.statementToCode(block, 'OC');
-	var onDisconnect = Blockly.Python.statementToCode(block, 'OD');
-	var onMessageReveived = Blockly.Python.statementToCode(block, 'OR');
+  Blockly.Python.definitions_['from_BLEPeripheral_import_BLEPeripheral'] =
+    'from BLEPeripheral import BLEPeripheral';
 
-	// Automatically extract variable names
-	var variableNames = [];
-	var workspaceVariables = block.workspace.getAllVariables();
-		workspaceVariables.forEach(variable => {
-		variableNames.push(variable.name);
-	});
+  const INDENT = Blockly.Python.INDENT || '  ';
 
-  	// Create global declaration line
- 	var globalLine = `  global ${variableNames.join(', ')}\n`;
+  // ✅ Use the variable NAME (not ID) so it becomes "Message"
+  const msgVarModel = block.getField('message').getVariable();
+  const rawMsgName = msgVarModel ? msgVarModel.name : "Message";
 
-	var onConnectFunction = `def on_connect(): \n${Blockly.Python.prefixLines(globalLine + onConnect, '')}`;
-	var onDisconnectFunction = `def on_disconnect(): \n${Blockly.Python.prefixLines(globalLine + onDisconnect, '')}`;
-	var onMessageRevievedFunction = `def on_message_received(${message}): \n${Blockly.Python.prefixLines(globalLine + onMessageReveived, '')}`;
+  // If available, use Blockly's safeName; otherwise fall back to a simple sanitizer.
+  const msgGlobal = (Blockly.Python.nameDB_ && Blockly.Python.nameDB_.safeName_)
+    ? Blockly.Python.nameDB_.safeName_(rawMsgName)
+    : rawMsgName.replace(/[^A-Za-z0-9_]/g, "_");
 
-	var code = `def send_message(msg: str):\n  if ble_peripheral.connected:\n    ble_peripheral.send(msg)\n\n`;
+  // Ensure ONLY Message exists globally
+  Blockly.Python.definitions_[`var_${msgGlobal}`] = `${msgGlobal} = None`;
 
-	if (!onConnect.trim()) {
-		code += onConnectFunction + "  pass\n\n";
-  	}
-	else
-	{
-		code += onConnectFunction + "\n";
-	}
+  const onConnect = Blockly.Python.statementToCode(block, 'OC');
+  const onDisconnect = Blockly.Python.statementToCode(block, 'OD');
+  const onMessageReveived = Blockly.Python.statementToCode(block, 'OR');
 
-	if (!onDisconnect.trim()) {
-		code += onDisconnectFunction + "   pass\n\n";
-  	}
-	else
-	{
-		code += onDisconnectFunction + "\n";
-	}
+  const globalLine = `global ${msgGlobal}`;
 
-	if (!onMessageReveived.trim()) {
-		code += onMessageRevievedFunction + "  pass\n\n";
-  	}
-	else
-	{
-		code += onMessageRevievedFunction + "\n";
-	}
+  function emitHandler(defLine, bodyCode, extraTopLines) {
+    const hasBody = (bodyCode || '').trim().length > 0;
 
-	code += "ble_peripheral = BLEPeripheral()\n";
-	code += "ble_peripheral.on_write(on_message_received)\n";
-	code += "ble_peripheral.on_connect(on_connect)\n";
-	code += "ble_peripheral.on_disconnect(on_disconnect)\n\n";
+    let out = `${defLine}\n`;
+    out += `${INDENT}${globalLine}\n`;
 
-	return code;
+    if (extraTopLines && extraTopLines.length) {
+      for (const l of extraTopLines) out += `${INDENT}${l}\n`;
+    }
+
+    if (hasBody) {
+      // statementToCode() is already indented correctly — don't indent again
+      out += bodyCode;
+      if (!out.endsWith('\n')) out += '\n';
+      out += '\n';
+    } else {
+      out += `${INDENT}pass\n\n`;
+    }
+    return out;
+  }
+
+  let code =
+    `def send_message(msg: str):\n` +
+    `${INDENT}if ble_peripheral.connected:\n` +
+    `${INDENT}${INDENT}ble_peripheral.send(msg)\n\n`;
+
+  code += emitHandler('def on_connect():', onConnect, []);
+  code += emitHandler('def on_disconnect():', onDisconnect, []);
+
+  // ✅ Only Message is global, and Message = __ble_msg
+  const PARAM = "__ble_msg";
+  code += emitHandler(
+    `def on_message_received(${PARAM}):`,
+    onMessageReveived,
+    [`${msgGlobal} = ${PARAM}`]
+  );
+
+  code += "ble_peripheral = BLEPeripheral()\n";
+  code += "ble_peripheral.on_write(on_message_received)\n";
+  code += "ble_peripheral.on_connect(on_connect)\n";
+  code += "ble_peripheral.on_disconnect(on_disconnect)\n\n";
+
+  return code;
 };
 
 Blockly.Python["bluetooth_send_msg"] = function(block) {

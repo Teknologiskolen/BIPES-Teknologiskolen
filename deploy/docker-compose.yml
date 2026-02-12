@@ -1,0 +1,108 @@
+# BIPES Deployment - Docker Compose
+# Uses pre-built image from Docker Hub: akris19/bipes:latest
+#
+# Guest mode (no login):  docker compose up -d
+# Full auth mode:         docker compose --profile auth up -d
+
+services:
+  # PostgreSQL Database (only needed in full auth mode)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: always
+    profiles: ["auth"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bipes}
+      POSTGRES_USER: ${POSTGRES_USER:-bipes_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - bipes_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bipes_user} -d ${POSTGRES_DB:-bipes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Mosquitto MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: broker
+    restart: always
+    ports:
+      - "1884:1883"
+      - "9002:9001"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./config/mosquitto_passwd:/mosquitto/config/mosquitto_passwd:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+    networks:
+      - bipes_network
+
+  # Flask Application (pre-built from Docker Hub)
+  web:
+    image: akris19/bipes:latest
+    container_name: bipes_web
+    restart: always
+    environment:
+      - FLASK_ENV=production
+      - AUTH_MODE=${AUTH_MODE:-full}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-bipes}
+      - POSTGRES_USER=${POSTGRES_USER:-bipes_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - MOSQUITTO_HOST=broker
+      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD:-changeme}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
+    volumes:
+      - web_logs:/app/logs
+      - static_files:/app/static-shared
+    depends_on:
+      mosquitto:
+        condition: service_started
+    networks:
+      - bipes_network
+    expose:
+      - "5000"
+    # Copy static files to shared volume, then start gunicorn
+    entrypoint: ["sh", "-c", "cp -r /app/static/* /app/static-shared/ && if [ \"$AUTH_MODE\" = 'guest' ]; then exec gunicorn --config /app/docker/gunicorn_config.py 'app:create_app(\"sqlite\")'; else exec gunicorn --config /app/docker/gunicorn_config.py 'app:create_app(\"postgresql\")'; fi"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Nginx Reverse Proxy with HTTPS
+  nginx:
+    image: nginx:alpine
+    container_name: bipes_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - static_files:/usr/share/nginx/html/static:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - bipes_network
+
+networks:
+  bipes_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_logs:
+  web_logs:
+  nginx_logs:
+  static_files:

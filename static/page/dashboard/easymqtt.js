@@ -32,11 +32,11 @@ class MQTTDatabase {
           for (const key in obj.easyMQTT){
             easyMQTT[key] = obj.easyMQTT[key]
           }
-          // Port 9001 for WebSockets
+          // WebSocket connection (path is /wss when behind HTTPS proxy)
           this.client = new Paho.MQTT.Client(
             easyMQTT.host,
             easyMQTT.ws_port,
-            '',
+            easyMQTT.path || '',
             `bipes${new Date()}`)
           this.client.onConnectionLost = () => {this.onConnectionLost()}
           this.client.onMessageArrived = (message) => {this.onMessageArrived(message)}
@@ -103,7 +103,7 @@ class MQTTDatabase {
     this.init(this.ref)
   }
   async do (url){
-    const response = await fetch(`${window.location.href.match('^(.*)/ide')[1]}/mqtt/${url}`, {
+    const response = await fetch(`${window.location.origin}/mqtt/${url}`, {
       method:'Post',
       headers:{
         'Content-Type':'application/json'

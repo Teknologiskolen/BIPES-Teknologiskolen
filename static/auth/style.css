@@ -394,23 +394,14 @@ body {
     }
 }
 
-/* Back Link */
-.back-link {
-    display: inline-block;
-    margin-bottom: 20px;
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
+/* Back button centered at bottom of form */
+.auth-back {
+    text-align: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
 }
 
-.back-link:hover {
-    text-decoration: underline;
-}
-
-.back-link-dark {
-    color: #667eea;
-}
-
-.back-link-dark:hover {
-    color: #5568d3;
+.auth-back .btn {
+    min-width: 160px;
 }

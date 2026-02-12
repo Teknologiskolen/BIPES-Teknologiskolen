@@ -385,6 +385,64 @@ button#range:before {
 button#gauge:before {
   background-position: left calc(-1.5rem*49) top;
 }
+button#coordinate:before {
+  background-position: left calc(-1.5rem*50) top;
+}
+button#drawing:before {
+  background-position: left calc(-1.5rem*51) top;
+}
+nav #user-info {
+  text-align: center;
+  font-weight: normal;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: .125s ease opacity;
+  transition-delay: .25s;
+  border-top: 1px solid rgba(125,125,125,.3);
+  margin-top: auto;
+}
+nav.on #user-info {
+  opacity: 1;
+}
+nav #user-info #user-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 0.15rem 0;
+}
+nav #user-info #user-role {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  text-transform: capitalize;
+  padding-bottom: 0.15rem;
+}
+nav #user-info #logout-link {
+  display: inline-block;
+  margin-top: 0.3rem;
+  color: #4499cc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: none;
+  border: 1px solid #4499cc;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  text-align: center;
+  justify-content: center;
+  height: auto;
+}
+nav #user-info #logout-link::before {
+  display: none;
+}
+nav #user-info #logout-link:hover {
+  background: rgba(68,153,204,.2);
+}
 nav #app-version {
   text-align: center;
   font-weight: normal;

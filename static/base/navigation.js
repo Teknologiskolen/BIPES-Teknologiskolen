@@ -187,6 +187,8 @@ class Navigation {
   init (languages){
     for (let module in bipes.page) {
       let a = DOM.get(`a#${module}`, this.$.panels)
+      // Skip modules that don't have navigation elements (filtered based on auth)
+      if (!a) continue
       a.innerText = Msg[`Page${Tool.firstUpper(module)}`]
       a.title = Msg[`Page${Tool.firstUpper(module)}`]
       a.onauxclick = (ev) => {

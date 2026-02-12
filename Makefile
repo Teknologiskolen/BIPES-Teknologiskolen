@@ -397,4 +397,48 @@ docker_build_webapp_mosquitto:
 	exit
 	@bash -c 'printf  "allow_anonymous false\nlistener 1883\n\nlistener 9001\nprotocol websockets\npassword_file /etc/mosquitto/conf.d/passwd" > docker/mosquitto.conf'
 
+#------------------------------------------------------------------------------
+# Production deployment
+#------------------------------------------------------------------------------
+
+deploy-prod: deploy-check deploy-ssl deploy-up
+	@printf "$(PURPLE)BIPES$(NC) production deployment complete!\n"
+	@printf "Access at: https://localhost\n"
+
+deploy-check:
+	@printf "$(BLUE)Checking deployment prerequisites...$(NC)\n"
+	@if [ ! -f .env ]; then \
+		printf "$(RED)Error: .env file not found!$(NC)\n"; \
+		printf "Copy .env.example to .env and configure:\n"; \
+		printf "  cp .env.example .env\n"; \
+		printf "  nano .env\n"; \
+		exit 1; \
+	fi
+	@printf "✅ Environment file found\n"
+
+deploy-ssl:
+	@if [ ! -f docker/ssl/cert.pem ] || [ ! -f docker/ssl/key.pem ]; then \
+		printf "$(BLUE)Generating SSL certificates...$(NC)\n"; \
+		./docker/generate-ssl.sh; \
+	else \
+		printf "✅ SSL certificates found\n"; \
+	fi
+
+deploy-up:
+	@printf "$(BLUE)Starting production containers...$(NC)\n"
+	@docker compose up -d --build
+	@printf "$(BLUE)Waiting for services to be ready...$(NC)\n"
+	@sleep 5
+	@docker compose ps
+
+deploy-down:
+	@printf "$(BLUE)Stopping production containers...$(NC)\n"
+	@docker compose down
+
+deploy-logs:
+	@docker compose logs -f
+
+deploy-restart:
+	@docker compose restart
+
 

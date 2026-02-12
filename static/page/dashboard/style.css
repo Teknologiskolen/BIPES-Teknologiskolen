@@ -73,11 +73,13 @@ section#dashboard #header #add {
 section#dashboard #grid {
   width: 100%;
   height: calc(100% - 2.5rem);
+  position: relative;
 }
 section#dashboard #grid #add {
   position: absolute;
   right: 1rem;
   bottom: 1rem;
+  z-index: 2;
   background-image: linear-gradient(90deg,rgba(110,84,255,.5),rgba(110,84,255,.5));
   box-shadow: 0 0.25rem .5rem rgba(0,0,0,.25);
   width: 3rem;
@@ -101,7 +103,7 @@ section#dashboard #addMenu > div {
   margin-left: auto;
 }
 section#dashboard #addMenu.on > div {
-  margin-top: calc(100vh - 11.5rem);
+  margin-top: calc(100vh - 15rem);
 }
 section#dashboard #addMenu button {
   padding: .5em;
@@ -111,17 +113,17 @@ section#dashboard #addMenu button {
 }
 @media screen and (max-width:39.99rem) {
   section#dashboard #addMenu.on > div {
-    margin-top: calc(100vh - 10.5rem - 3rem);
+    margin-top: calc(100vh - 14rem - 3rem);
   }
 }
 @media screen and (min-width:40rem) and (orientation:portrait) {
   section#dashboard.pos1 #addMenu.on > div {
-    margin-top: calc(50vh - 7rem);
+    margin-top: calc(50vh - 10rem);
   }
 }
 @media screen and (max-width:39.99rem) and (orientation:portrait) {
   section#dashboard.pos1 #addMenu.on > div {
-    margin-top: calc(50vh - 8rem);
+    margin-top: calc(50vh - 11rem);
   }
 }
 @media screen and (orientation:landscape) {
@@ -548,4 +550,84 @@ div#status-bar button#mqtt:before {
 }
 div#status-bar button#mqtt.off:before {
   background-position: left calc(-1.25rem*40) bottom;
+}
+
+/* Coordinate */
+section#dashboard #grid .muuri-item.coordinate span {
+  display: block;
+  text-align: center;
+  padding: 0.5rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+section#dashboard #grid .muuri-item.coordinate h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+section#dashboard #grid .muuri-item.coordinate canvas {
+  border-radius: 0.5rem;
+  cursor: crosshair;
+  display: block;
+  margin: 0.25rem auto 0;
+}
+/* Coordinate sizes - square containers */
+section#dashboard #grid .muuri-item.coordinate.coord-small {
+  width: 150px !important;
+  height: 150px !important;
+}
+section#dashboard #grid .muuri-item.coordinate.coord-medium {
+  width: 250px !important;
+  height: 250px !important;
+}
+section#dashboard #grid .muuri-item.coordinate.coord-large {
+  width: 400px !important;
+  height: 400px !important;
+}
+
+/* Drawing */
+section#dashboard #grid .muuri-item.drawing span {
+  display: block;
+  text-align: center;
+  padding: 0.5rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+section#dashboard #grid .muuri-item.drawing h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+section#dashboard #grid .muuri-item.drawing canvas {
+  border-radius: 0.5rem;
+  cursor: crosshair;
+  display: block;
+  margin: 0.25rem auto 0;
+}
+section#dashboard #grid .muuri-item.drawing .drawing-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+section#dashboard #grid .muuri-item.drawing .drawing-buttons button {
+  font-size: 0.6rem;
+  padding: 0.2rem 0.4rem;
+  min-width: auto;
+}
+/* Drawing sizes - square containers */
+section#dashboard #grid .muuri-item.drawing.drawing-small {
+  width: 200px !important;
+  height: 200px !important;
+}
+section#dashboard #grid .muuri-item.drawing.drawing-medium {
+  width: 300px !important;
+  height: 300px !important;
+}
+section#dashboard #grid .muuri-item.drawing.drawing-large {
+  width: 450px !important;
+  height: 450px !important;
 }
