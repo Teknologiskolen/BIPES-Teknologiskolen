@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BIPES DSL Files</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { font-family: Arial, sans-serif; color: #111; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  .intro { color: #444; margin: 0 0 18px; }
+  h2 { font-size: 14px; margin: 0 0 8px; color: #0b4f6c; }
+  .file-section { page-break-before: always; }
+  .file-section:first-of-type { page-break-before: auto; }
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid #d0d7de;
+    background: #f6f8fa;
+    padding: 10px;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+</style>
+</head>
+<body>
+<h1>BIPES Generated DSL Files</h1>
+<p class="intro">Combined export of generated block definitions, Python generators, and toolbox definitions.</p>
+<section class="file-section">
+<h2>static/page/blocks/blocks/clock_helpers_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;create_spi&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create Spi&quot;);
+    this.appendValueInput(&quot;spi_id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Spi Id&quot;);
+    this.appendValueInput(&quot;sck_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Sck Pin&quot;);
+    this.appendValueInput(&quot;mosi_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Mosi Pin&quot;);
+    this.appendValueInput(&quot;baudrate&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Baudrate&quot;);
+    this.appendValueInput(&quot;polarity&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Polarity&quot;);
+    this.appendValueInput(&quot;phase&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Phase&quot;);
+    this.setOutput(true, null);
+    this.setColour(200);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create an SPI object for display and device wrappers.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/blocks/dfplayer_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;dfplayer__create&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create DF Player&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;uart_id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;UART ID&quot;);
+    this.appendValueInput(&quot;tx_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;TX Pin&quot;);
+    this.appendValueInput(&quot;rx_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;RX Pin&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create a DFPlayer instance.&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__play&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Play&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;track&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Track&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__play_folder&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Play Folder&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;folder&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Folder&quot;);
+    this.appendValueInput(&quot;track&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Track&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__play_mp3&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Play Mp 3&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;track&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Track&quot;);
+    this.appendValueInput(&quot;loop&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Loop&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__pause&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Pause&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__resume&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Resume&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__stop&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Stop&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__loop_current&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Loop Current&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;enable&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Enable&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__next&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Next&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__prev&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Prev&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__volume&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Volume&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;level&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Level&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__volume_up&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Volume Up&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__volume_down&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Volume Down&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__eq&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Eq&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendDummyInput().appendField(&quot;Mode&quot;).appendField(new Blockly.FieldDropdown([[&quot;Normal&quot;, &quot;0&quot;], [&quot;Pop&quot;, &quot;1&quot;], [&quot;Rock&quot;, &quot;2&quot;], [&quot;Jazz&quot;, &quot;3&quot;], [&quot;Classic&quot;, &quot;4&quot;], [&quot;Bass&quot;, &quot;5&quot;]]), &quot;mode&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__reset&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Reset&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__sleep&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Sleep&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;dfplayer__wake&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Wake&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(300);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/mannbro/PicoDFPlayer&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/blocks/ds1302_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;ds1302__create&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create DS1302&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;clk_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;CLK Pin&quot;);
+    this.appendValueInput(&quot;dat_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;DAT Pin&quot;);
+    this.appendValueInput(&quot;rst_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;RST Pin&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create a DS1302 RTC instance.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_time&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Time&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current time tuple from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_year&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Year&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current year from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_month&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Month&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current month from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_day&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Day&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current day from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_hour&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Hour&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current hour from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_minute&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Minute&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current minute from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_second&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Second&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Read the current second from the RTC.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_time_text&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Time Text&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;show_seconds&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Show Seconds&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Format the current time as text.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__get_date_text&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Get Date Text&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setOutput(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Format the current date as text.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;ds1302__set_time&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Set Time&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;year&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Year&quot;);
+    this.appendValueInput(&quot;month&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Month&quot;);
+    this.appendValueInput(&quot;day&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Day&quot;);
+    this.appendValueInput(&quot;hour&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Hour&quot;);
+    this.appendValueInput(&quot;minute&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Minute&quot;);
+    this.appendValueInput(&quot;second&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Second&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(35);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Set the RTC date and time.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/blocks/roboticsboard_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;kitronik_pico_robotics__create&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create Kitronik Pico Robotics&quot;);
+    this.appendValueInput(&quot;I2CAddress&quot;).setCheck(&quot;Number&quot;).appendField(&quot;I2C Address&quot;);
+    this.appendValueInput(&quot;sda&quot;).setCheck(&quot;Number&quot;).appendField(&quot;SDA&quot;);
+    this.appendValueInput(&quot;scl&quot;).setCheck(&quot;Number&quot;).appendField(&quot;SCL&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create and initialize the Kitronik Pico Robotics board.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__adjust_servos&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Adjust Servos&quot;);
+    this.appendValueInput(&quot;change&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Change&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Adjust the global servo calibration by a small amount.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__servo_write&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Servo Write&quot;);
+    this.appendValueInput(&quot;servo&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Servo&quot;);
+    this.appendValueInput(&quot;degrees&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Degrees&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Turn a servo motor to the requested angle in degrees.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__servo_write_radians&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Servo Write Radians&quot;);
+    this.appendValueInput(&quot;servo&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Servo&quot;);
+    this.appendValueInput(&quot;radians&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Radians&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Turn a servo motor to the requested angle in radians.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__motor_on&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Motor On&quot;);
+    this.appendValueInput(&quot;motor&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Motor&quot;);
+    this.appendDummyInput().appendField(&quot;Direction&quot;).appendField(new Blockly.FieldDropdown([[&quot;Forward&quot;, &quot;f&quot;], [&quot;Reverse&quot;, &quot;r&quot;]]), &quot;direction&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Start a DC motor with direction and speed control.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__motor_off&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Motor Off&quot;);
+    this.appendValueInput(&quot;motor&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Motor&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Stop a DC motor.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__step&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Step&quot;);
+    this.appendValueInput(&quot;motor&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Motor&quot;);
+    this.appendDummyInput().appendField(&quot;Direction&quot;).appendField(new Blockly.FieldDropdown([[&quot;Forward&quot;, &quot;f&quot;], [&quot;Reverse&quot;, &quot;r&quot;]]), &quot;direction&quot;);
+    this.appendValueInput(&quot;steps&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Steps&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.appendValueInput(&quot;holdPosition&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Hold Position&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Step a motor a fixed number of full steps.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;kitronik_pico_robotics__step_angle&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Step Angle&quot;);
+    this.appendValueInput(&quot;motor&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Motor&quot;);
+    this.appendDummyInput().appendField(&quot;Direction&quot;).appendField(new Blockly.FieldDropdown([[&quot;Forward&quot;, &quot;f&quot;], [&quot;Reverse&quot;, &quot;r&quot;]]), &quot;direction&quot;);
+    this.appendValueInput(&quot;angle&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Angle&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.appendValueInput(&quot;holdPosition&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Hold Position&quot;);
+    this.appendValueInput(&quot;stepsPerRev&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Steps Per Rev&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Step a motor by a requested angle.&quot;);
+    this.setHelpUrl(&quot;https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/blocks/sand_table_robot_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;sand_table_robot__create&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create Sand Table Robot&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;motor1_pins&quot;).appendField(&quot;Motor 1 Pins&quot;);
+    this.appendValueInput(&quot;motor2_pins&quot;).appendField(&quot;Motor 2 Pins&quot;);
+    this.appendValueInput(&quot;sensor_shoulder_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Sensor Shoulder Pin&quot;);
+    this.appendValueInput(&quot;sensor_elbow_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Sensor Elbow Pin&quot;);
+    this.appendValueInput(&quot;L1&quot;).setCheck(&quot;Number&quot;).appendField(&quot;L1&quot;);
+    this.appendValueInput(&quot;L2&quot;).setCheck(&quot;Number&quot;).appendField(&quot;L2&quot;);
+    this.appendValueInput(&quot;steps_per_rev&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Steps Per Rev&quot;);
+    this.appendValueInput(&quot;backlash_deg_m1&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Backlash Deg M 1&quot;);
+    this.appendValueInput(&quot;backlash_deg_m2&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Backlash Deg M 2&quot;);
+    this.appendValueInput(&quot;homing_dir_shoulder&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Homing Dir Shoulder&quot;);
+    this.appendValueInput(&quot;homing_dir_elbow&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Homing Dir Elbow&quot;);
+    this.appendValueInput(&quot;homing_clear_steps&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Homing Clear Steps&quot;);
+    this.appendValueInput(&quot;default_speed_ms&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Default Speed Ms&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create a sand table robot instance.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__off&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Off&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Turn off both motors for a selected robot instance.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__home&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Home&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Home the selected sand robot.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__move_line&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Move Line&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;target_x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Target X&quot;);
+    this.appendValueInput(&quot;target_y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Target Y&quot;);
+    this.appendValueInput(&quot;segments&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Segments&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Move the robot in a straight line to the target point.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__move_arc&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Move Arc&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;center_x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Center X&quot;);
+    this.appendValueInput(&quot;center_y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Center Y&quot;);
+    this.appendValueInput(&quot;radius&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Radius&quot;);
+    this.appendValueInput(&quot;start_angle&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Start Angle&quot;);
+    this.appendValueInput(&quot;end_angle&quot;).setCheck(&quot;Number&quot;).appendField(&quot;End Angle&quot;);
+    this.appendValueInput(&quot;segments&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Segments&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Draw an arc on the sand table.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__draw_spiral&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Draw Spiral&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;max_radius&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Max Radius&quot;);
+    this.appendValueInput(&quot;vindinger&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Vindinger&quot;);
+    this.appendValueInput(&quot;segments_pr_omgang&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Segments Pr Omgang&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Draw a spiral pattern.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__draw_flower&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Draw Flower&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;max_radius&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Max Radius&quot;);
+    this.appendValueInput(&quot;petals&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Petals&quot;);
+    this.appendValueInput(&quot;speed&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Speed&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Draw a flower pattern.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__run_gcode_text&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Run Gcode Text&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;gcode_text&quot;).appendField(&quot;Gcode Text&quot;);
+    this.appendValueInput(&quot;segments&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Segments&quot;);
+    this.appendValueInput(&quot;draw_speed_ms&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Draw Speed Ms&quot;);
+    this.appendValueInput(&quot;travel_speed_ms&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Travel Speed Ms&quot;);
+    this.appendValueInput(&quot;reset_modal&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Reset Modal&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Run G-code from a text string.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;sand_table_robot__run_gcode_file&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Run Gcode File&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;path&quot;).appendField(&quot;Path&quot;);
+    this.appendValueInput(&quot;segments&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Segments&quot;);
+    this.appendValueInput(&quot;draw_speed_ms&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Draw Speed Ms&quot;);
+    this.appendValueInput(&quot;travel_speed_ms&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Travel Speed Ms&quot;);
+    this.appendValueInput(&quot;reset_modal&quot;).setCheck(&quot;Boolean&quot;).appendField(&quot;Reset Modal&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Run G-code from a file path.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/blocks/st7735s_dsl.js</h2>
+<pre>Blockly.Blocks[&quot;color565&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Color 565&quot;);
+    this.appendValueInput(&quot;r&quot;).setCheck(&quot;Number&quot;).appendField(&quot;R&quot;);
+    this.appendValueInput(&quot;g&quot;).setCheck(&quot;Number&quot;).appendField(&quot;G&quot;);
+    this.appendValueInput(&quot;b&quot;).setCheck(&quot;Number&quot;).appendField(&quot;B&quot;);
+    this.setOutput(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Convert RGB888 values into a 16-bit display color.&quot;);
+    this.setHelpUrl(&quot;&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__create&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Create ST7735S&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendDummyInput().appendField(&quot;SPI&quot;).appendField(new Blockly.FieldVariable(&quot;spi&quot;), &quot;spi&quot;);
+    this.appendValueInput(&quot;dc_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;DC Pin&quot;);
+    this.appendValueInput(&quot;rst_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;RST Pin&quot;);
+    this.appendValueInput(&quot;cs_pin&quot;).setCheck(&quot;Number&quot;).appendField(&quot;CS Pin&quot;);
+    this.appendValueInput(&quot;width&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Width&quot;);
+    this.appendValueInput(&quot;height&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Height&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;Create an ST7735S display instance.&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__fill&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Fill&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__fill_rect&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Fill Rect&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;w&quot;).setCheck(&quot;Number&quot;).appendField(&quot;W&quot;);
+    this.appendValueInput(&quot;h&quot;).setCheck(&quot;Number&quot;).appendField(&quot;H&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__pixel&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Pixel&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__hline&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Hline&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;w&quot;).setCheck(&quot;Number&quot;).appendField(&quot;W&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__vline&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Vline&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;h&quot;).setCheck(&quot;Number&quot;).appendField(&quot;H&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__rect&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Rect&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;w&quot;).setCheck(&quot;Number&quot;).appendField(&quot;W&quot;);
+    this.appendValueInput(&quot;h&quot;).setCheck(&quot;Number&quot;).appendField(&quot;H&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__line&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Line&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;x0&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X 0&quot;);
+    this.appendValueInput(&quot;y0&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y 0&quot;);
+    this.appendValueInput(&quot;x1&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X 1&quot;);
+    this.appendValueInput(&quot;y1&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y 1&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+
+Blockly.Blocks[&quot;st7735_s__text&quot;] = {
+  init: function() {
+    this.appendDummyInput().appendField(&quot;Text&quot;);
+    this.appendValueInput(&quot;id&quot;).setCheck(&quot;Number&quot;).appendField(&quot;ID #&quot;);
+    this.appendValueInput(&quot;string&quot;).appendField(&quot;String&quot;);
+    this.appendValueInput(&quot;x&quot;).setCheck(&quot;Number&quot;).appendField(&quot;X&quot;);
+    this.appendValueInput(&quot;y&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Y&quot;);
+    this.appendValueInput(&quot;color&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Color&quot;);
+    this.appendValueInput(&quot;size&quot;).setCheck(&quot;Number&quot;).appendField(&quot;Size&quot;);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(210);
+    this.setInputsInline(false);
+    this.setTooltip(&quot;&quot;);
+    this.setHelpUrl(&quot;https://github.com/micropython/micropython&quot;);
+  }
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/clock_helpers_dsl.js</h2>
+<pre>Blockly.Python[&quot;create_spi&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_clock_helpers&quot;] = &quot;import clock_helpers&quot;;
+  var spi_id = Blockly.Python.valueToCode(block, &quot;spi_id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var sck_pin = Blockly.Python.valueToCode(block, &quot;sck_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var mosi_pin = Blockly.Python.valueToCode(block, &quot;mosi_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var baudrate = Blockly.Python.valueToCode(block, &quot;baudrate&quot;, Blockly.Python.ORDER_ATOMIC);
+  var polarity = Blockly.Python.valueToCode(block, &quot;polarity&quot;, Blockly.Python.ORDER_ATOMIC);
+  var phase = Blockly.Python.valueToCode(block, &quot;phase&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;create_spi(&quot; + spi_id + &quot;, &quot; + sck_pin + &quot;, &quot; + mosi_pin + &quot;, &quot; + baudrate + &quot;, &quot; + polarity + &quot;, &quot; + phase + &quot;)&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/dfplayer_dsl.js</h2>
+<pre>Blockly.Python[&quot;dfplayer__create&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var uart_id = Blockly.Python.valueToCode(block, &quot;uart_id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var tx_pin = Blockly.Python.valueToCode(block, &quot;tx_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var rx_pin = Blockly.Python.valueToCode(block, &quot;rx_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;] = dfplayer.DFPlayer(&quot; + id + &quot;, &quot; + uart_id + &quot;, &quot; + tx_pin + &quot;, &quot; + rx_pin + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__play&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var track = Blockly.Python.valueToCode(block, &quot;track&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].play(&quot; + track + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__play_folder&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var folder = Blockly.Python.valueToCode(block, &quot;folder&quot;, Blockly.Python.ORDER_ATOMIC);
+  var track = Blockly.Python.valueToCode(block, &quot;track&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].play_folder(&quot; + folder + &quot;, &quot; + track + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__play_mp3&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var track = Blockly.Python.valueToCode(block, &quot;track&quot;, Blockly.Python.ORDER_ATOMIC);
+  var loop = Blockly.Python.valueToCode(block, &quot;loop&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].play_mp3(&quot; + track + &quot;, &quot; + loop + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__pause&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].pause()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__resume&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].resume()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__stop&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].stop()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__loop_current&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var enable = Blockly.Python.valueToCode(block, &quot;enable&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].loop_current(&quot; + enable + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__next&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].next()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__prev&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].prev()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__volume&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var level = Blockly.Python.valueToCode(block, &quot;level&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].volume(&quot; + level + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__volume_up&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].volume_up()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__volume_down&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].volume_down()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__eq&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var mode = String(Number(block.getFieldValue(&quot;mode&quot;)));
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].eq(&quot; + mode + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__reset&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].reset()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__sleep&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].sleep()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;dfplayer__wake&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_dfplayer&quot;] = &quot;import dfplayer&quot;;
+  Blockly.Python.definitions_[&quot;registry_dfplayer_instances&quot;] = &quot;dfplayer_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;dfplayer_instances[&quot; + id + &quot;].wake()&quot; + &quot;\n&quot;;
+  return code;
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/ds1302_dsl.js</h2>
+<pre>Blockly.Python[&quot;ds1302__create&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var clk_pin = Blockly.Python.valueToCode(block, &quot;clk_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var dat_pin = Blockly.Python.valueToCode(block, &quot;dat_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var rst_pin = Blockly.Python.valueToCode(block, &quot;rst_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;] = ds1302.DS1302(&quot; + id + &quot;, &quot; + clk_pin + &quot;, &quot; + dat_pin + &quot;, &quot; + rst_pin + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;ds1302__get_time&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_time()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_year&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_year()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_month&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_month()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_day&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_day()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_hour&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_hour()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_minute&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_minute()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_second&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_second()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_time_text&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var show_seconds = Blockly.Python.valueToCode(block, &quot;show_seconds&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_time_text(&quot; + show_seconds + &quot;)&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__get_date_text&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].get_date_text()&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;ds1302__set_time&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_ds1302&quot;] = &quot;import ds1302&quot;;
+  Blockly.Python.definitions_[&quot;registry_ds1302_instances&quot;] = &quot;ds1302_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var year = Blockly.Python.valueToCode(block, &quot;year&quot;, Blockly.Python.ORDER_ATOMIC);
+  var month = Blockly.Python.valueToCode(block, &quot;month&quot;, Blockly.Python.ORDER_ATOMIC);
+  var day = Blockly.Python.valueToCode(block, &quot;day&quot;, Blockly.Python.ORDER_ATOMIC);
+  var hour = Blockly.Python.valueToCode(block, &quot;hour&quot;, Blockly.Python.ORDER_ATOMIC);
+  var minute = Blockly.Python.valueToCode(block, &quot;minute&quot;, Blockly.Python.ORDER_ATOMIC);
+  var second = Blockly.Python.valueToCode(block, &quot;second&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;ds1302_instances[&quot; + id + &quot;].set_time(&quot; + year + &quot;, &quot; + month + &quot;, &quot; + day + &quot;, &quot; + hour + &quot;, &quot; + minute + &quot;, &quot; + second + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/roboticsboard_dsl.js</h2>
+<pre>Blockly.Python[&quot;kitronik_pico_robotics__create&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var I2CAddress = Blockly.Python.valueToCode(block, &quot;I2CAddress&quot;, Blockly.Python.ORDER_ATOMIC);
+  var sda = Blockly.Python.valueToCode(block, &quot;sda&quot;, Blockly.Python.ORDER_ATOMIC);
+  var scl = Blockly.Python.valueToCode(block, &quot;scl&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board = PicoRobotics.KitronikPicoRobotics(&quot; + I2CAddress + &quot;, &quot; + sda + &quot;, &quot; + scl + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__adjust_servos&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var change = Blockly.Python.valueToCode(block, &quot;change&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.adjustServos(&quot; + change + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__servo_write&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var servo = Blockly.Python.valueToCode(block, &quot;servo&quot;, Blockly.Python.ORDER_ATOMIC);
+  var degrees = Blockly.Python.valueToCode(block, &quot;degrees&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.servoWrite(&quot; + servo + &quot;, &quot; + degrees + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__servo_write_radians&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var servo = Blockly.Python.valueToCode(block, &quot;servo&quot;, Blockly.Python.ORDER_ATOMIC);
+  var radians = Blockly.Python.valueToCode(block, &quot;radians&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.servoWriteRadians(&quot; + servo + &quot;, &quot; + radians + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__motor_on&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var motor = Blockly.Python.valueToCode(block, &quot;motor&quot;, Blockly.Python.ORDER_ATOMIC);
+  var direction = JSON.stringify(block.getFieldValue(&quot;direction&quot;));
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.motorOn(&quot; + motor + &quot;, &quot; + direction + &quot;, &quot; + speed + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__motor_off&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var motor = Blockly.Python.valueToCode(block, &quot;motor&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.motorOff(&quot; + motor + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__step&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var motor = Blockly.Python.valueToCode(block, &quot;motor&quot;, Blockly.Python.ORDER_ATOMIC);
+  var direction = JSON.stringify(block.getFieldValue(&quot;direction&quot;));
+  var steps = Blockly.Python.valueToCode(block, &quot;steps&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var holdPosition = Blockly.Python.valueToCode(block, &quot;holdPosition&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.step(&quot; + motor + &quot;, &quot; + direction + &quot;, &quot; + steps + &quot;, &quot; + speed + &quot;, &quot; + holdPosition + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;kitronik_pico_robotics__step_angle&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_PicoRobotics&quot;] = &quot;import PicoRobotics&quot;;
+  var motor = Blockly.Python.valueToCode(block, &quot;motor&quot;, Blockly.Python.ORDER_ATOMIC);
+  var direction = JSON.stringify(block.getFieldValue(&quot;direction&quot;));
+  var angle = Blockly.Python.valueToCode(block, &quot;angle&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var holdPosition = Blockly.Python.valueToCode(block, &quot;holdPosition&quot;, Blockly.Python.ORDER_ATOMIC);
+  var stepsPerRev = Blockly.Python.valueToCode(block, &quot;stepsPerRev&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;board.stepAngle(&quot; + motor + &quot;, &quot; + direction + &quot;, &quot; + angle + &quot;, &quot; + speed + &quot;, &quot; + holdPosition + &quot;, &quot; + stepsPerRev + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/sand_table_robot_dsl.js</h2>
+<pre>Blockly.Python[&quot;sand_table_robot__create&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var motor1_pins = Blockly.Python.valueToCode(block, &quot;motor1_pins&quot;, Blockly.Python.ORDER_ATOMIC);
+  var motor2_pins = Blockly.Python.valueToCode(block, &quot;motor2_pins&quot;, Blockly.Python.ORDER_ATOMIC);
+  var sensor_shoulder_pin = Blockly.Python.valueToCode(block, &quot;sensor_shoulder_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var sensor_elbow_pin = Blockly.Python.valueToCode(block, &quot;sensor_elbow_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var L1 = Blockly.Python.valueToCode(block, &quot;L1&quot;, Blockly.Python.ORDER_ATOMIC);
+  var L2 = Blockly.Python.valueToCode(block, &quot;L2&quot;, Blockly.Python.ORDER_ATOMIC);
+  var steps_per_rev = Blockly.Python.valueToCode(block, &quot;steps_per_rev&quot;, Blockly.Python.ORDER_ATOMIC);
+  var backlash_deg_m1 = Blockly.Python.valueToCode(block, &quot;backlash_deg_m1&quot;, Blockly.Python.ORDER_ATOMIC);
+  var backlash_deg_m2 = Blockly.Python.valueToCode(block, &quot;backlash_deg_m2&quot;, Blockly.Python.ORDER_ATOMIC);
+  var homing_dir_shoulder = Blockly.Python.valueToCode(block, &quot;homing_dir_shoulder&quot;, Blockly.Python.ORDER_ATOMIC);
+  var homing_dir_elbow = Blockly.Python.valueToCode(block, &quot;homing_dir_elbow&quot;, Blockly.Python.ORDER_ATOMIC);
+  var homing_clear_steps = Blockly.Python.valueToCode(block, &quot;homing_clear_steps&quot;, Blockly.Python.ORDER_ATOMIC);
+  var default_speed_ms = Blockly.Python.valueToCode(block, &quot;default_speed_ms&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;] = sand_table_robot.SandTableRobot(&quot; + id + &quot;, &quot; + motor1_pins + &quot;, &quot; + motor2_pins + &quot;, &quot; + sensor_shoulder_pin + &quot;, &quot; + sensor_elbow_pin + &quot;, &quot; + L1 + &quot;, &quot; + L2 + &quot;, &quot; + steps_per_rev + &quot;, &quot; + backlash_deg_m1 + &quot;, &quot; + backlash_deg_m2 + &quot;, &quot; + homing_dir_shoulder + &quot;, &quot; + homing_dir_elbow + &quot;, &quot; + homing_clear_steps + &quot;, &quot; + default_speed_ms + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__off&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].off()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__home&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].home()&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__move_line&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var target_x = Blockly.Python.valueToCode(block, &quot;target_x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var target_y = Blockly.Python.valueToCode(block, &quot;target_y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var segments = Blockly.Python.valueToCode(block, &quot;segments&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].move_line(&quot; + target_x + &quot;, &quot; + target_y + &quot;, &quot; + segments + &quot;, &quot; + speed + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__move_arc&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var center_x = Blockly.Python.valueToCode(block, &quot;center_x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var center_y = Blockly.Python.valueToCode(block, &quot;center_y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var radius = Blockly.Python.valueToCode(block, &quot;radius&quot;, Blockly.Python.ORDER_ATOMIC);
+  var start_angle = Blockly.Python.valueToCode(block, &quot;start_angle&quot;, Blockly.Python.ORDER_ATOMIC);
+  var end_angle = Blockly.Python.valueToCode(block, &quot;end_angle&quot;, Blockly.Python.ORDER_ATOMIC);
+  var segments = Blockly.Python.valueToCode(block, &quot;segments&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].move_arc(&quot; + center_x + &quot;, &quot; + center_y + &quot;, &quot; + radius + &quot;, &quot; + start_angle + &quot;, &quot; + end_angle + &quot;, &quot; + segments + &quot;, &quot; + speed + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__draw_spiral&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var max_radius = Blockly.Python.valueToCode(block, &quot;max_radius&quot;, Blockly.Python.ORDER_ATOMIC);
+  var vindinger = Blockly.Python.valueToCode(block, &quot;vindinger&quot;, Blockly.Python.ORDER_ATOMIC);
+  var segments_pr_omgang = Blockly.Python.valueToCode(block, &quot;segments_pr_omgang&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].draw_spiral(&quot; + max_radius + &quot;, &quot; + vindinger + &quot;, &quot; + segments_pr_omgang + &quot;, &quot; + speed + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__draw_flower&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var max_radius = Blockly.Python.valueToCode(block, &quot;max_radius&quot;, Blockly.Python.ORDER_ATOMIC);
+  var petals = Blockly.Python.valueToCode(block, &quot;petals&quot;, Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, &quot;speed&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].draw_flower(&quot; + max_radius + &quot;, &quot; + petals + &quot;, &quot; + speed + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__run_gcode_text&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var gcode_text = Blockly.Python.valueToCode(block, &quot;gcode_text&quot;, Blockly.Python.ORDER_ATOMIC);
+  var segments = Blockly.Python.valueToCode(block, &quot;segments&quot;, Blockly.Python.ORDER_ATOMIC);
+  var draw_speed_ms = Blockly.Python.valueToCode(block, &quot;draw_speed_ms&quot;, Blockly.Python.ORDER_ATOMIC);
+  var travel_speed_ms = Blockly.Python.valueToCode(block, &quot;travel_speed_ms&quot;, Blockly.Python.ORDER_ATOMIC);
+  var reset_modal = Blockly.Python.valueToCode(block, &quot;reset_modal&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].run_gcode_text(&quot; + gcode_text + &quot;, &quot; + segments + &quot;, &quot; + draw_speed_ms + &quot;, &quot; + travel_speed_ms + &quot;, &quot; + reset_modal + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;sand_table_robot__run_gcode_file&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_sand_table_robot&quot;] = &quot;import sand_table_robot&quot;;
+  Blockly.Python.definitions_[&quot;registry_sand_table_robot_instances&quot;] = &quot;sand_table_robot_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var path = Blockly.Python.valueToCode(block, &quot;path&quot;, Blockly.Python.ORDER_ATOMIC);
+  var segments = Blockly.Python.valueToCode(block, &quot;segments&quot;, Blockly.Python.ORDER_ATOMIC);
+  var draw_speed_ms = Blockly.Python.valueToCode(block, &quot;draw_speed_ms&quot;, Blockly.Python.ORDER_ATOMIC);
+  var travel_speed_ms = Blockly.Python.valueToCode(block, &quot;travel_speed_ms&quot;, Blockly.Python.ORDER_ATOMIC);
+  var reset_modal = Blockly.Python.valueToCode(block, &quot;reset_modal&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;sand_table_robot_instances[&quot; + id + &quot;].run_gcode_file(&quot; + path + &quot;, &quot; + segments + &quot;, &quot; + draw_speed_ms + &quot;, &quot; + travel_speed_ms + &quot;, &quot; + reset_modal + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+</pre>
+</section><section class="file-section">
+<h2>static/page/blocks/pythonic/st7735s_dsl.js</h2>
+<pre>Blockly.Python[&quot;color565&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  var r = Blockly.Python.valueToCode(block, &quot;r&quot;, Blockly.Python.ORDER_ATOMIC);
+  var g = Blockly.Python.valueToCode(block, &quot;g&quot;, Blockly.Python.ORDER_ATOMIC);
+  var b = Blockly.Python.valueToCode(block, &quot;b&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;color565(&quot; + r + &quot;, &quot; + g + &quot;, &quot; + b + &quot;)&quot; + &quot;\n&quot;;
+  return [code.trimEnd(), Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python[&quot;st7735_s__create&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  $ = Blockly.internal_;
+  var spi = $.Blockly.Python.nameDB_.getName(block.getFieldValue(&quot;spi&quot;), $.module$exports$Blockly$Names.NameType.VARIABLE);
+  var dc_pin = Blockly.Python.valueToCode(block, &quot;dc_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var rst_pin = Blockly.Python.valueToCode(block, &quot;rst_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var cs_pin = Blockly.Python.valueToCode(block, &quot;cs_pin&quot;, Blockly.Python.ORDER_ATOMIC);
+  var width = Blockly.Python.valueToCode(block, &quot;width&quot;, Blockly.Python.ORDER_ATOMIC);
+  var height = Blockly.Python.valueToCode(block, &quot;height&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;] = st7735s.ST7735S(&quot; + id + &quot;, &quot; + spi + &quot;, &quot; + dc_pin + &quot;, &quot; + rst_pin + &quot;, &quot; + cs_pin + &quot;, &quot; + width + &quot;, &quot; + height + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__fill&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].fill(&quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__fill_rect&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var w = Blockly.Python.valueToCode(block, &quot;w&quot;, Blockly.Python.ORDER_ATOMIC);
+  var h = Blockly.Python.valueToCode(block, &quot;h&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].fill_rect(&quot; + x + &quot;, &quot; + y + &quot;, &quot; + w + &quot;, &quot; + h + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__pixel&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].pixel(&quot; + x + &quot;, &quot; + y + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__hline&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var w = Blockly.Python.valueToCode(block, &quot;w&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].hline(&quot; + x + &quot;, &quot; + y + &quot;, &quot; + w + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__vline&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var h = Blockly.Python.valueToCode(block, &quot;h&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].vline(&quot; + x + &quot;, &quot; + y + &quot;, &quot; + h + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__rect&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var w = Blockly.Python.valueToCode(block, &quot;w&quot;, Blockly.Python.ORDER_ATOMIC);
+  var h = Blockly.Python.valueToCode(block, &quot;h&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].rect(&quot; + x + &quot;, &quot; + y + &quot;, &quot; + w + &quot;, &quot; + h + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__line&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x0 = Blockly.Python.valueToCode(block, &quot;x0&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y0 = Blockly.Python.valueToCode(block, &quot;y0&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x1 = Blockly.Python.valueToCode(block, &quot;x1&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y1 = Blockly.Python.valueToCode(block, &quot;y1&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].line(&quot; + x0 + &quot;, &quot; + y0 + &quot;, &quot; + x1 + &quot;, &quot; + y1 + &quot;, &quot; + color + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+
+Blockly.Python[&quot;st7735_s__text&quot;] = function(block) {
+  Blockly.Python.definitions_[&quot;import_st7735s&quot;] = &quot;import st7735s&quot;;
+  Blockly.Python.definitions_[&quot;registry_st7735_s_instances&quot;] = &quot;st7735_s_instances = {}&quot;;
+  var id = Blockly.Python.valueToCode(block, &quot;id&quot;, Blockly.Python.ORDER_ATOMIC);
+  var string = Blockly.Python.valueToCode(block, &quot;string&quot;, Blockly.Python.ORDER_ATOMIC);
+  var x = Blockly.Python.valueToCode(block, &quot;x&quot;, Blockly.Python.ORDER_ATOMIC);
+  var y = Blockly.Python.valueToCode(block, &quot;y&quot;, Blockly.Python.ORDER_ATOMIC);
+  var color = Blockly.Python.valueToCode(block, &quot;color&quot;, Blockly.Python.ORDER_ATOMIC);
+  var size = Blockly.Python.valueToCode(block, &quot;size&quot;, Blockly.Python.ORDER_ATOMIC);
+  var code = &quot;st7735_s_instances[&quot; + id + &quot;].text(&quot; + string + &quot;, &quot; + x + &quot;, &quot; + y + &quot;, &quot; + color + &quot;, &quot; + size + &quot;)&quot; + &quot;\n&quot;;
+  return code;
+};
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/clock_helpers_dsl.md</h2>
+<pre># Clock Helpers
+&lt;category name=&quot;Clock Helpers&quot;&gt;
+&lt;label text=&quot;Clock Helpers&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: clock_helpers&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# create_spi
+&lt;block type=&quot;create_spi&quot;&gt;
+  &lt;value name=&quot;spi_id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;sck_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;18&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;mosi_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;19&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;baudrate&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;40000000&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;polarity&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;phase&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/dfplayer_dsl.md</h2>
+<pre># DFPlayer
+&lt;category name=&quot;DFPlayer&quot;&gt;
+&lt;label text=&quot;DFPlayer&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: dfplayer&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# dfplayer__create
+&lt;block type=&quot;dfplayer__create&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;uart_id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;tx_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;4&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;rx_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;5&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__play
+&lt;block type=&quot;dfplayer__play&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;track&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__play_folder
+&lt;block type=&quot;dfplayer__play_folder&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;folder&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;track&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__play_mp3
+&lt;block type=&quot;dfplayer__play_mp3&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;track&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;loop&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;FALSE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__pause
+&lt;block type=&quot;dfplayer__pause&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__resume
+&lt;block type=&quot;dfplayer__resume&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__stop
+&lt;block type=&quot;dfplayer__stop&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__loop_current
+&lt;block type=&quot;dfplayer__loop_current&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;enable&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;TRUE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__next
+&lt;block type=&quot;dfplayer__next&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__prev
+&lt;block type=&quot;dfplayer__prev&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__volume
+&lt;block type=&quot;dfplayer__volume&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;level&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__volume_up
+&lt;block type=&quot;dfplayer__volume_up&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__volume_down
+&lt;block type=&quot;dfplayer__volume_down&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__eq
+&lt;block type=&quot;dfplayer__eq&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__reset
+&lt;block type=&quot;dfplayer__reset&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__sleep
+&lt;block type=&quot;dfplayer__sleep&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# dfplayer__wake
+&lt;block type=&quot;dfplayer__wake&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/ds1302_dsl.md</h2>
+<pre># DS1302
+&lt;category name=&quot;DS1302&quot;&gt;
+&lt;label text=&quot;DS1302&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: ds1302&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# ds1302__create
+&lt;block type=&quot;ds1302__create&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;clk_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;dat_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;rst_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_time
+&lt;block type=&quot;ds1302__get_time&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_year
+&lt;block type=&quot;ds1302__get_year&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_month
+&lt;block type=&quot;ds1302__get_month&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_day
+&lt;block type=&quot;ds1302__get_day&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_hour
+&lt;block type=&quot;ds1302__get_hour&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_minute
+&lt;block type=&quot;ds1302__get_minute&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_second
+&lt;block type=&quot;ds1302__get_second&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_time_text
+&lt;block type=&quot;ds1302__get_time_text&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;show_seconds&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;TRUE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__get_date_text
+&lt;block type=&quot;ds1302__get_date_text&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# ds1302__set_time
+&lt;block type=&quot;ds1302__set_time&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;year&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;month&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;day&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;hour&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;minute&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;second&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/roboticsboard_dsl.md</h2>
+<pre># Robotics Board
+&lt;category name=&quot;Robotics Board&quot;&gt;
+&lt;label text=&quot;Robotics Board&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: PicoRobotics&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# kitronik_pico_robotics__create
+&lt;block type=&quot;kitronik_pico_robotics__create&quot;&gt;
+  &lt;value name=&quot;I2CAddress&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;108&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;sda&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;8&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;scl&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;9&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__adjust_servos
+&lt;block type=&quot;kitronik_pico_robotics__adjust_servos&quot;&gt;
+  &lt;value name=&quot;change&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__servo_write
+&lt;block type=&quot;kitronik_pico_robotics__servo_write&quot;&gt;
+  &lt;value name=&quot;servo&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;degrees&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__servo_write_radians
+&lt;block type=&quot;kitronik_pico_robotics__servo_write_radians&quot;&gt;
+  &lt;value name=&quot;servo&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;radians&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__motor_on
+&lt;block type=&quot;kitronik_pico_robotics__motor_on&quot;&gt;
+  &lt;value name=&quot;motor&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__motor_off
+&lt;block type=&quot;kitronik_pico_robotics__motor_off&quot;&gt;
+  &lt;value name=&quot;motor&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__step
+&lt;block type=&quot;kitronik_pico_robotics__step&quot;&gt;
+  &lt;value name=&quot;motor&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;steps&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;20&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;holdPosition&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;FALSE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# kitronik_pico_robotics__step_angle
+&lt;block type=&quot;kitronik_pico_robotics__step_angle&quot;&gt;
+  &lt;value name=&quot;motor&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;angle&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;20&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;holdPosition&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;FALSE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;stepsPerRev&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;200&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/sand_table_robot_dsl.md</h2>
+<pre># Sand Drawing Machine
+&lt;category name=&quot;Sand Drawing Machine&quot;&gt;
+&lt;label text=&quot;Sand Drawing Machine&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: sandRobot&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: stepper&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# sand_table_robot__create
+&lt;block type=&quot;sand_table_robot__create&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;motor1_pins&quot;&gt;
+    &lt;shadow type=&quot;lists_create_with&quot;&gt;
+      &lt;mutation items=&quot;4&quot;&gt;&lt;/mutation&gt;
+      &lt;value name=&quot;ADD0&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;17&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD1&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;16&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD2&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;15&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD3&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;14&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;motor2_pins&quot;&gt;
+    &lt;shadow type=&quot;lists_create_with&quot;&gt;
+      &lt;mutation items=&quot;4&quot;&gt;&lt;/mutation&gt;
+      &lt;value name=&quot;ADD0&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;21&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD1&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;20&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD2&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;19&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+      &lt;value name=&quot;ADD3&quot;&gt;
+        &lt;shadow type=&quot;pinout&quot;&gt;
+          &lt;field name=&quot;PIN&quot;&gt;18&lt;/field&gt;
+        &lt;/shadow&gt;
+      &lt;/value&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;sensor_shoulder_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;sensor_elbow_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;L1&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;31.0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;L2&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;31.0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;steps_per_rev&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;4096.0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;backlash_deg_m1&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;3.2&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;backlash_deg_m2&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;3.0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;homing_dir_shoulder&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;homing_dir_elbow&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;homing_clear_steps&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;500&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;default_speed_ms&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;2&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__off
+&lt;block type=&quot;sand_table_robot__off&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__home
+&lt;block type=&quot;sand_table_robot__home&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__move_line
+&lt;block type=&quot;sand_table_robot__move_line&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;target_x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;target_y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;segments&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;500&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__move_arc
+&lt;block type=&quot;sand_table_robot__move_arc&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;center_x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;center_y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;radius&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;start_angle&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;end_angle&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;segments&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;50&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__draw_spiral
+&lt;block type=&quot;sand_table_robot__draw_spiral&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;max_radius&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;vindinger&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;10&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;segments_pr_omgang&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;60&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__draw_flower
+&lt;block type=&quot;sand_table_robot__draw_flower&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;max_radius&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;petals&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;5&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;speed&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__run_gcode_text
+&lt;block type=&quot;sand_table_robot__run_gcode_text&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;gcode_text&quot;&gt;
+    &lt;shadow type=&quot;text&quot;&gt;
+      &lt;field name=&quot;TEXT&quot;&gt;&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;segments&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;40&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;draw_speed_ms&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;travel_speed_ms&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;reset_modal&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;TRUE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# sand_table_robot__run_gcode_file
+&lt;block type=&quot;sand_table_robot__run_gcode_file&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;path&quot;&gt;
+    &lt;shadow type=&quot;text&quot;&gt;
+      &lt;field name=&quot;TEXT&quot;&gt;&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;segments&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;40&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;draw_speed_ms&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;travel_speed_ms&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;reset_modal&quot;&gt;
+    &lt;shadow type=&quot;logic_boolean&quot;&gt;
+      &lt;field name=&quot;BOOL&quot;&gt;TRUE&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section><section class="file-section">
+<h2>templates/page/blocks/definitions/st7735s_dsl.md</h2>
+<pre># ST7735S
+&lt;category name=&quot;ST7735S&quot;&gt;
+&lt;label text=&quot;ST7735S&quot;&gt;&lt;/label&gt;
+&lt;button text=&quot;%{INSTALL_LIBRARY}: st7735s&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;
+
+# color565
+&lt;block type=&quot;color565&quot;&gt;
+  &lt;value name=&quot;r&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;g&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;b&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__create
+&lt;block type=&quot;st7735_s__create&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;dc_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;rst_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;cs_pin&quot;&gt;
+    &lt;shadow type=&quot;pinout&quot;&gt;
+      &lt;field name=&quot;PIN&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;width&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;160&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;height&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;128&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__fill
+&lt;block type=&quot;st7735_s__fill&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__fill_rect
+&lt;block type=&quot;st7735_s__fill_rect&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;w&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;h&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__pixel
+&lt;block type=&quot;st7735_s__pixel&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__hline
+&lt;block type=&quot;st7735_s__hline&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;w&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__vline
+&lt;block type=&quot;st7735_s__vline&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;h&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__rect
+&lt;block type=&quot;st7735_s__rect&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;w&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;h&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__line
+&lt;block type=&quot;st7735_s__line&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x0&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y0&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x1&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y1&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+
+# st7735_s__text
+&lt;block type=&quot;st7735_s__text&quot;&gt;
+  &lt;value name=&quot;id&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;string&quot;&gt;
+    &lt;shadow type=&quot;text&quot;&gt;
+      &lt;field name=&quot;TEXT&quot;&gt;&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;x&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;y&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;color&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;0&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+  &lt;value name=&quot;size&quot;&gt;
+    &lt;shadow type=&quot;math_number&quot;&gt;
+      &lt;field name=&quot;NUM&quot;&gt;1&lt;/field&gt;
+    &lt;/shadow&gt;
+  &lt;/value&gt;
+&lt;/block&gt;
+</pre>
+</section>
+</body>
+</html>

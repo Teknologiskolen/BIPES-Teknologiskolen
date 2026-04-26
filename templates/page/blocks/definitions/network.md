@@ -394,7 +394,6 @@
 # mqtt_set_callback
 <block type="mqtt_set_callback">
   <field name="BLOCK_MQTT_SET_CALLBACK">Set Callback to MQTT Messages</field>
-  <field name="MQTT_CALLBACK">Callback Function</field>
 </block>
 
 # mqtt_subscribe
@@ -409,11 +408,11 @@
 
 # mqtt_check_msg
 <block type="mqtt_check_msg">
-  <field name="BLOCK_MQTT_CHECK_MSG">Check for MQTT Server messages</field>
+  <field name="BLOCK_MQTT_CHECK_Msg">Check for MQTT Server messages</field>
 </block>
 # mqtt_wait_msg
 <block type="mqtt_wait_msg">
-  <field name="BLOCK_MQTT_WAIT_MSG">Wait for MQTT Server messages</field>
+  <field name="BLOCK_MQTT_WAIT_Msg">Wait for MQTT Server messages</field>
 </block>
 
 # mqtt_disconnect

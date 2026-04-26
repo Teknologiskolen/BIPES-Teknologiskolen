@@ -819,6 +819,7 @@ Blockly.Python["machine.ADCWiPy_adcchannel.deinit"] = function(block) {
 	var code = "machine.ADCWiPy.adcchannel.deinit()\n";
 	return code;
 };
+/* Legacy duplicate machine.I2C generators kept for reference.
 Blockly.Python["machine.I2C_I2C.init"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "machine.I2C.I2C.init(" + value_pIn + ")\n";
@@ -889,6 +890,7 @@ Blockly.Python["machine.I2C_I2C.writeto_mem"] = function(block) {
 	var code = "machine.I2C.I2C.writeto_mem(" + value_pIn + ")\n";
 	return code;
 };
+*/
 Blockly.Python["machine.Pin_Pin.init"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "machine.Pin.Pin.init(" + value_pIn + ")\n";
@@ -1059,6 +1061,7 @@ Blockly.Python["machine.Signal_Signal.off"] = function(block) {
 	var code = "machine.Signal.Signal.off()\n";
 	return code;
 };
+/* Legacy duplicate machine.SPI generators kept for reference.
 Blockly.Python["machine.SPI_SPI.init"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "machine.SPI.SPI.init(" + value_pIn + ")\n";
@@ -1089,6 +1092,7 @@ Blockly.Python["machine.SPI_SPI.write_readinto"] = function(block) {
 	var code = "machine.SPI.SPI.write_readinto(" + value_pIn + ")\n";
 	return code;
 };
+*/
 Blockly.Python["machine.Timer_Timer.init"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "machine.Timer.Timer.init(" + value_pIn + ")\n";
@@ -1134,6 +1138,7 @@ Blockly.Python["machine.TimerWiPy_timerchannel.duty_cycle"] = function(block) {
 	var code = "machine.TimerWiPy.timerchannel.duty_cycle(" + value_pIn + ")\n";
 	return code;
 };
+/* Legacy duplicate machine.UART generators kept for reference.
 Blockly.Python["machine.UART_UART.init"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "machine.UART.UART.init(" + value_pIn + ")\n";
@@ -1179,6 +1184,7 @@ Blockly.Python["machine.UART_UART.irq"] = function(block) {
 	var code = "machine.UART.UART.irq(" + value_pIn + ")\n";
 	return code;
 };
+*/
 Blockly.Python["machine.WDT_wdt.feed"] = function(block) {
 		Blockly.Python.definitions_['import_machine.WDT'] = 'import machine.WDT';
 	var code = "machine.WDT.wdt.feed()\n";
@@ -1207,11 +1213,6 @@ Blockly.Python["math_asinh"] = function(block) {
 Blockly.Python["math_atan"] = function(block) {
 		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
 	var code = "math.atan(" + value_pIn + ")\n";
-	return [code, Blockly.Python.ORDER_NONE];
-};
-Blockly.Python["math_atan2"] = function(block) {
-		var value_pIn = Blockly.Python.valueToCode(block, 'pIn', Blockly.Python.ORDER_ATOMIC);
-	var code = "math.atan2(" + value_pIn + ")\n";
 	return [code, Blockly.Python.ORDER_NONE];
 };
 Blockly.Python["math_atanh"] = function(block) {

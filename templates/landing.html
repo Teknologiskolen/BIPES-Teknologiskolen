@@ -1,43 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIPES - Block based Integrated Platform for Embedded Systems</title>
+    <title>BIPES - {{ t.app_title }}</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body class="landing-page">
+<body class="landing-page {{ theme }}">
     <div class="landing-container">
         <div class="landing-header">
-            <h1>Welcome to BIPES</h1>
-            <p class="subtitle">Block based Integrated Platform for Embedded Systems</p>
+            <img class="auth-logo" src="/static/media/icon/icon-192x192.png" alt="BIPES logo">
+            <h1>{{ t.welcome }}</h1>
+            <p class="subtitle">{{ t.app_title }}</p>
         </div>
 
         <div class="landing-content">
             <div class="login-options">
-                <a href="/login/teacher" class="login-option teacher-option">
+                <a href="/login/teacher" class="login-option teacher-option" data-auth-preserve>
                     <div class="option-icon">👨‍🏫</div>
-                    <h2>Teacher Login</h2>
-                    <p>Manage classes and view student projects</p>
+                    <h2>{{ t.teacher_login }}</h2>
+                    <p>{{ t.teacher_login_help }}</p>
                 </a>
 
-                <a href="/login/student" class="login-option student-option">
+                <a href="/login/student" class="login-option student-option" data-auth-preserve>
                     <div class="option-icon">👨‍🎓</div>
-                    <h2>Student Login</h2>
-                    <p>Access your projects from any device</p>
+                    <h2>{{ t.student_login }}</h2>
+                    <p>{{ t.student_login_help }}</p>
                 </a>
 
-                <a href="/ide" class="login-option guest-option">
+                <a href="/ide" class="login-option guest-option" data-auth-ide>
                     <div class="option-icon">🚀</div>
-                    <h2>Continue as Guest</h2>
-                    <p>Start coding without an account</p>
+                    <h2>{{ t.guest_login }}</h2>
+                    <p>{{ t.guest_login_help }}</p>
                 </a>
             </div>
 
-            <div class="landing-footer">
-                <p>Don't have a teacher account? <a href="/register">Register here</a></p>
-            </div>
         </div>
     </div>
+    <div id="status-bar" class="auth-status-bar">
+        <div id="extra">
+            <button id="forum" class="status-icon" type="button" title="{{ t.forum }}">{{ t.forum }}</button>
+            <button id="theme" class="status-icon" type="button" title="{{ t.change_theme }}">{{ t.mode }}</button>
+            <span id="language" class="status-icon">{{ t.language }}
+                <select id="auth-language" title="{{ t.language }}">
+                    {% for key, value in available_lang.items() -%}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div id="globals"></div>
+    </div>
+    <script>window.authText = {{ t|tojson }};</script>
+    <script src="/static/auth/preferences.js"></script>
 </body>
 </html>

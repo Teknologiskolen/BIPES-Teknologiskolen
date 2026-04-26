@@ -41,6 +41,8 @@ class BLEPeripheral:
 
         self.connected = False
         self.conn_handle = None
+        self.last_message = None
+        self.message_queue = []
 
         self._on_write_callback = None
         self._on_connect_callback = None
@@ -83,6 +85,8 @@ class BLEPeripheral:
             if attr_handle == self.rx_handle:
                 rx_data = self.ble.gatts_read(self.rx_handle)
                 msg = rx_data.decode().strip()
+                self.last_message = msg
+                self.message_queue.append(msg)
                 print("RX:", msg)
                 if self._on_write_callback:
                     self._on_write_callback(msg)
@@ -105,3 +109,14 @@ class BLEPeripheral:
 
     def on_disconnect(self, callback):
         self._on_disconnect_callback = callback
+
+    def has_message(self):
+        return len(self.message_queue) > 0
+
+    def pop_message(self):
+        if not self.message_queue:
+            return None
+        return self.message_queue.pop(0)
+
+    def clear_messages(self):
+        self.message_queue = []

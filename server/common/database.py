@@ -15,6 +15,10 @@ def get_db(__db):
         import psycopg
         return __db if isinstance(__db, psycopg.Connection) else connect(__db)
 
+def _is_closed_connection(db):
+    closed = getattr(db, "closed", False)
+    return closed is True or closed == 1
+
 # Replace %s with ? if sqlite
 def _s(sql):
     if current_app.config['DATABASE'] == 'sqlite':
@@ -32,6 +36,9 @@ def unixtime(cols):
 
 # Connect to db
 def connect(database):
+    if 'db' in g and _is_closed_connection(g.db):
+        g.pop('db', None)
+
     if 'db' not in g:
         if current_app.config['DATABASE'] == 'sqlite':
             import sqlite3
@@ -54,7 +61,7 @@ def connect(database):
 
 # Close db
 def close(e=None):
-    if g.db is not None:
+    if hasattr(g, 'db') and g.db is not None:
         g.db.close()
 
     g.pop('db', None)

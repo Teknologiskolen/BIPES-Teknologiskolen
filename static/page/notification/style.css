@@ -22,9 +22,6 @@ section#notification .listy h4 {
 section#notification .listy > span {
   padding: .5rem;
 }
-div#status-bar button#forum:before {
-  background-position: left calc(-1.25rem*45) top;
-}
 
 section#notification #splash {
   background-color: rgba(84,190,255,0.05);

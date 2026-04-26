@@ -41,7 +41,11 @@ class DataStorage {
       match_ = this.buffer.match(re)
       if (match_.length == 3) {
         if (bridgeEasyMQTT === true){
-          databaseMQTT.client.send(`${easyMQTT.session}/${match_[1]}`, match_[2], 0, false)
+          if (easyMQTT.serverBridge === true)
+            databaseMQTT.publish(match_[1], match_[2])
+              .catch((error) => console.warn('EasyMQTT bridge publish failed.', error))
+          else if (databaseMQTT.client)
+            databaseMQTT.client.send(`${easyMQTT.session}/${match_[1]}`, match_[2], 0, false)
         } else {
           let coordinates = match_[2].split(',').map((item)=>item = parseFloat(item))
           if (coordinates.every((item) => !isNaN(item)) && coordinates.length > 1){
@@ -149,4 +153,3 @@ class DataStorage {
 }
 
 export let dataStorage = new DataStorage()
-

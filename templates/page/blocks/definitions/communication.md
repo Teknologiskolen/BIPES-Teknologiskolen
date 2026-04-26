@@ -8,6 +8,12 @@
 # uart_init
 <block type="uart_init"></block>
 
+# uart_deinit
+<block type="uart_deinit"></block>
+
+# uart_any
+<block type="uart_any"></block>
+
 # uart_write
 <block type="uart_write"></block>
 

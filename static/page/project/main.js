@@ -12,6 +12,7 @@ import {notification} from '../notification/main.js'
 class Project {
   constructor (){
     this.name = 'project'
+    this.guestMode = !document.getElementById('user-info')
     this.currentUID = undefined
     this.current = undefined      // Reference current project
     this.projects = {}
@@ -99,8 +100,12 @@ class Project {
       this.projects[key] = undefined
     })
 
-    // Init shared projects if server mode
-    if (!navigation.isLocal)
+    if (this.guestMode)
+      this._enforceSingleGuestProject()
+
+    // Shared projects are server/user features. Guests can still use local
+    // projects, ML, and Vision without seeing sharing controls.
+    if (!navigation.isLocal && !this.guestMode)
       this.shared = new SharedProject(this, $.wrapper)
 
     // Enable server mode when session confirms authentication
@@ -112,6 +117,34 @@ class Project {
           this._initServerMode()
       }
     })
+  }
+  _normalizeProjectAuthor (projectData){
+    if (!projectData?.project)
+      return projectData
+
+    const user = session.getCurrentUser()
+    if (user && projectData.project.author == 'a user')
+      projectData.project.author = user.name
+
+    return projectData
+  }
+  _enforceSingleGuestProject (){
+    const keys = Object.keys(this.projects)
+    if (keys.length <= 1)
+      return
+
+    const keep = storage.has('current_project') && this.projects.hasOwnProperty(storage.fetch('current_project')) ?
+      storage.fetch('current_project') :
+      keys[0]
+
+    keys.forEach((key) => {
+      if (key !== keep) {
+        delete this.projects[key]
+        storage.remove(`project-${key}`)
+      }
+    })
+
+    storage.set('current_project', keep)
   }
   _init (){
     if (Object.keys(this.projects).length == 0){
@@ -145,6 +178,14 @@ class Project {
    * @param {Object/string} obj - Existing project, as parsed object or string.
    */
   new (ev, obj){
+    if (this.guestMode && obj == undefined && Object.keys(this.projects).length >= 1) {
+      const uid = storage.has('current_project') && this.projects.hasOwnProperty(storage.fetch('current_project')) ?
+        storage.fetch('current_project') :
+        Object.keys(this.projects)[0]
+      this.select(uid)
+      return uid
+    }
+
     let uid = Tool.UID(),
         project = obj == undefined ? this._emptyProject() :
                   obj instanceof Object ? obj : JSON.parse(obj)
@@ -217,7 +258,7 @@ class Project {
   }
   load (uid){
     this.currentUID = uid
-    this.current = this.projects[uid]
+    this.current = this._normalizeProjectAuthor(this.projects[uid])
     for (const key in bipes.page) {
       if (typeof window.bipes.page[key].load === "function" && this.projects.hasOwnProperty(uid) && key != 'project') {
         // If don't exist, create empty
@@ -247,7 +288,9 @@ class Project {
         author: this.username,
         shared:{
           uid:'',
-          token:''
+          token:'',
+          public:false,
+          classId:null
         },
         createdAt: +new Date()/1000,
         lastEdited: +new Date()/1000
@@ -278,7 +321,7 @@ class Project {
       child.classList.add('on')
       DOM.get('#name', child).disabled = false
     }
-    if (this.hasOwnProperty('shared'))
+    if (this.hasOwnProperty('shared') && session.isLoggedIn())
       this.shared.init()
 
     this.inited = true
@@ -290,6 +333,7 @@ class Project {
     const user = session.getCurrentUser()
     if (user) {
       this.username = user.name
+      storage.set('username', user.name)
       this.$.username.$.value = user.name
       this.$.username.$.disabled = true
     }
@@ -299,35 +343,28 @@ class Project {
     else if (session.isTeacher())
       await this._initTeacherProjects(user)
 
-    // Render project cards — split own vs student for teachers
+    for (const uid in this.projects) {
+      if (storage.has(`project-${uid}`)) {
+        const item = JSON.parse(storage.fetch(`project-${uid}`))
+        if (item?._readOnly) {
+          delete this.projects[uid]
+          storage.remove(`project-${uid}`)
+        }
+      }
+    }
+
+    if (this.hasOwnProperty('shared'))
+      this.shared.init()
+
+    // Render project cards
     this.$.projects.$.innerHTML = ''
     let ownCards = []
-    let studentCards = []
     for (const uid in this.projects) {
-      const item = JSON.parse(storage.fetch(`project-${uid}`))
-      if (item._readOnly)
-        studentCards.unshift(this.$Card(uid))
-      else
-        ownCards.unshift(this.$Card(uid))
+      const item = this._normalizeProjectAuthor(JSON.parse(storage.fetch(`project-${uid}`)))
+      storage.set(`project-${uid}`, JSON.stringify(item))
+      ownCards.unshift(this.$Card(uid))
     }
     this.$.projects.append(ownCards)
-
-    // Create "Student Projects" section if there are any
-    if (studentCards.length > 0) {
-      // Remove old student section if re-initing
-      const oldSection = this.$.wrapper?.$.querySelector('#student-projects-section')
-      if (oldSection) oldSection.remove()
-
-      const studentList = new DOM('span', {className:'listy'})
-      studentList.append(studentCards)
-      const studentSection = new DOM('div', {id:'student-projects-section'})
-        .append([
-          new DOM('div', {className:'header'})
-            .append([new DOM('h3', {innerText: Msg['StudentProjects']})]),
-          studentList
-        ])
-      this.$.wrapper.append(studentSection)
-    }
 
     // Select a project if available
     if (Object.keys(this.projects).length > 0) {
@@ -345,10 +382,6 @@ class Project {
       }
       this.select(key)
     }
-
-    // Hide shared projects for authenticated users
-    const sharedEl = this.$.section?.$.querySelector('#shared-projects')
-    if (sharedEl) sharedEl.style.display = 'none'
 
     this.inited = true
     this._serverInited = true
@@ -400,7 +433,12 @@ class Project {
               project: {
                 name: proj.name,
                 author: user?.name || 'a user',
-                shared: { uid: '', token: '' },
+                shared: {
+                  uid: proj.share_uid || '',
+                  token: proj.share_token || '',
+                  public: !!proj.shared_public,
+                  classId: proj.shared_class_id || null
+                },
                 createdAt: proj.created_at,
                 lastEdited: proj.last_edited,
                 assignedClassId: proj.assigned_class_id || null
@@ -408,8 +446,14 @@ class Project {
               _serverOnly: true
             }))
           } else {
-            let cached = JSON.parse(storage.fetch(`project-${proj.uid}`))
+            let cached = this._normalizeProjectAuthor(JSON.parse(storage.fetch(`project-${proj.uid}`)))
             cached.project.assignedClassId = proj.assigned_class_id || null
+            cached.project.shared = {
+              uid: proj.share_uid || '',
+              token: proj.share_token || '',
+              public: !!proj.shared_public,
+              classId: proj.shared_class_id || null
+            }
             storage.set(`project-${proj.uid}`, JSON.stringify(cached))
           }
         }
@@ -445,6 +489,35 @@ class Project {
       })
       const data = await response.json()
       if (response.ok) {
+        const serverUids = new Set(data.projects.map(p => p.uid))
+
+        const localToMigrate = []
+        for (const uid in this.projects) {
+          if (!serverUids.has(uid) && storage.has(`project-${uid}`)) {
+            const projData = JSON.parse(storage.fetch(`project-${uid}`))
+            if (!projData._serverOnly && !projData._readOnly) {
+              localToMigrate.push({
+                uid: uid,
+                name: projData.project?.name || 'Untitled',
+                data: projData
+              })
+            }
+          }
+        }
+
+        if (localToMigrate.length > 0) {
+          try {
+            await fetch('/api/projects/migrate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ projects: localToMigrate })
+            })
+          } catch (e) {
+            console.error('Teacher project migration failed:', e)
+          }
+        }
+
         const mergedProjects = {}
         for (const proj of data.projects) {
           mergedProjects[proj.uid] = this.projects[proj.uid]
@@ -453,67 +526,38 @@ class Project {
               project: {
                 name: proj.name,
                 author: user?.name || 'a user',
-                shared: { uid: '', token: '' },
+                shared: {
+                  uid: proj.share_uid || '',
+                  token: proj.share_token || '',
+                  public: !!proj.shared_public,
+                  classId: proj.shared_class_id || null
+                },
                 createdAt: proj.created_at,
                 lastEdited: proj.last_edited
               },
               _serverOnly: true
             }))
+          } else {
+            let cached = this._normalizeProjectAuthor(JSON.parse(storage.fetch(`project-${proj.uid}`)))
+            cached.project.shared = {
+              uid: proj.share_uid || '',
+              token: proj.share_token || '',
+              public: !!proj.shared_public,
+              classId: proj.shared_class_id || null
+            }
+            storage.set(`project-${proj.uid}`, JSON.stringify(cached))
           }
         }
+
+        for (const proj of localToMigrate) {
+          if (!mergedProjects.hasOwnProperty(proj.uid))
+            mergedProjects[proj.uid] = this.projects[proj.uid]
+        }
+
         this.projects = mergedProjects
       }
     } catch (error) {
       console.error('Failed to sync teacher projects:', error)
-    }
-
-    // 2. Fetch student projects from all classes
-    try {
-      const clsResponse = await fetch('/api/classes/my-classes', {
-        credentials: 'include'
-      })
-      const clsData = await clsResponse.json()
-      if (clsResponse.ok && clsData.classes) {
-        for (const cls of clsData.classes) {
-          this._classNames[cls.class_id] = cls.class_name
-
-          const projResponse = await fetch(`/api/projects/class/${cls.class_id}`, {
-            credentials: 'include'
-          })
-          const projData = await projResponse.json()
-          if (projResponse.ok && projData.projects) {
-            for (const proj of projData.projects) {
-              const projObj = proj.data ? (typeof proj.data === 'string' ? JSON.parse(proj.data) : proj.data) : {
-                project: {
-                  name: proj.name,
-                  author: proj.student_name,
-                  shared: { uid: '', token: '' },
-                  createdAt: proj.created_at,
-                  lastEdited: proj.last_edited
-                }
-              }
-              if (!projObj.project) {
-                projObj.project = {
-                  name: proj.name,
-                  author: proj.student_name,
-                  shared: { uid: '', token: '' },
-                  createdAt: proj.created_at,
-                  lastEdited: proj.last_edited
-                }
-              }
-              projObj.project.assignedClassId = cls.class_id
-              projObj._studentName = proj.student_name
-              projObj._className = cls.class_name
-              projObj._readOnly = true
-
-              storage.set(`project-${proj.uid}`, JSON.stringify(projObj))
-              this.projects[proj.uid] = undefined
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch student projects:', error)
     }
   }
   select (uid){
@@ -562,6 +606,7 @@ class Project {
     // Preserve assignedClassId from metadata before overwriting
     let prevCached = JSON.parse(storage.fetch(`project-${uid}`))
     let assignedClassId = prevCached?.project?.assignedClassId || null
+    let sharedState = prevCached?.project?.shared || {uid:'', token:'', public:false, classId:null}
     try {
       const response = await fetch(`/api/projects/${uid}`, {
         credentials: 'include'
@@ -573,6 +618,13 @@ class Project {
         // Restore assignedClassId from metadata
         if (this.projects[uid].project)
           this.projects[uid].project.assignedClassId = assignedClassId
+        if (this.projects[uid].project)
+          this.projects[uid].project.shared = {
+            uid: data.share_uid || sharedState.uid || '',
+            token: data.share_token || sharedState.token || '',
+            public: data.shared_public ?? sharedState.public ?? false,
+            classId: data.shared_class_id || sharedState.classId || null
+          }
         storage.set(`project-${uid}`, JSON.stringify(this.projects[uid]))
       }
     } catch (error) {
@@ -602,7 +654,9 @@ class Project {
    * @param {string} uid - Project UID.
    */
   $Card (uid){
-    let item = JSON.parse(storage.fetch(`project-${uid}`))
+    let item = this._normalizeProjectAuthor(JSON.parse(storage.fetch(`project-${uid}`)))
+    if (!item.project.shared)
+      item.project.shared = {uid:'', token:'', public:false, classId:null}
 
     let _shared_class = item.project.shared.uid != '' ? 'shared' : ''
 
@@ -621,13 +675,6 @@ class Project {
         rowItems.push(new DOM('div', {
           id:'assignedClass',
           innerText: className
-        }))
-      }
-      // Show student name for teachers
-      if (item._studentName) {
-        rowItems.unshift(new DOM('div', {
-          id:'studentName',
-          innerText: item._studentName
         }))
       }
     }
@@ -677,44 +724,41 @@ class Project {
            args:[uid]
          })
 
-         if (!navigation.isLocal && !this.serverMode) {
-           if (obj.project.shared.hasOwnProperty('uid') && obj.project.shared.uid !== '')
+         if (this.serverMode && session.isTeacher()) {
+           const shared = {
+             uid: obj.project.shared?.uid || '',
+             token: obj.project.shared?.token || '',
+             public: !!obj.project.shared?.public,
+             classId: obj.project.shared?.classId || null
+           }
+           actions.unshift({
+             id:'share-public',
+             innerText: shared.public ? Msg['StopPublicSharing'] : Msg['SharePublicly'],
+             fun:this.togglePublicShare,
+             args:[uid]
+           })
+           actions.unshift({
+             id:'share-class',
+             innerText: shared.classId ? Msg['ChangeSharedClass'] : Msg['ShareWithClass'],
+             fun:this.openClassShareMenu,
+             args:[uid, ev]
+           })
+           if (shared.classId) {
              actions.unshift({
-               id:'share',
-               innerText:Msg['UpdateShared'],
-               fun:this.updateShared,
+               id:'stop-class-share',
+               innerText:Msg['StopClassSharing'],
+               fun:this.clearClassShare,
                args:[uid]
-             },
-             {
+             })
+           }
+           if (shared.uid) {
+             actions.unshift({
                id:'unshare',
                innerText:Msg['Unshare'],
                fun:this.unshare,
                args:[uid]
              })
-           else
-             actions.unshift({
-               id:'share',
-               innerText:Msg['Share'],
-               fun:this.share,
-               args:[uid]
-             })
            }
-
-         // Assign to class option for students in server mode
-         if (this.serverMode && session.isStudent()) {
-           if (obj.project.assignedClassId)
-             actions.push({
-               id:'unassign',
-               innerText:Msg['UnassignFromClass'],
-               fun:this.unassignFromClass,
-               args:[uid]
-             })
-           actions.push({
-             id:'assign',
-             innerText:Msg['AssignToClass'],
-             fun:this.assignToClass,
-             args:[uid, ev]
-           })
          }
          }
          this.contextMenu.open(actions, ev)
@@ -736,11 +780,32 @@ class Project {
       this._serverSave(uid || this.currentUID)
     }, 3000)
   }
+  _forkProjectUid (uid){
+    if (!uid || !this.projects[uid])
+      return null
+
+    const newUid = Tool.UID()
+    this.projects[newUid] = this.projects[uid]
+    delete this.projects[uid]
+
+    if (storage.has(`project-${uid}`)) {
+      storage.set(`project-${newUid}`, storage.fetch(`project-${uid}`))
+      storage.remove(`project-${uid}`)
+    }
+
+    if (this.currentUID === uid)
+      this.currentUID = newUid
+
+    if (storage.fetch('current_project') === uid)
+      storage.set('current_project', newUid)
+
+    return newUid
+  }
   async _serverSave (uid){
     if (!uid || !this.projects[uid]) return
     const proj = this.projects[uid]
     try {
-      await fetch('/api/projects/save', {
+      const response = await fetch('/api/projects/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -750,6 +815,27 @@ class Project {
           data: proj
         })
       })
+      if (!response.ok) {
+        let message = `${response.status} ${response.statusText}`
+        let errorCode = ''
+        try {
+          const data = await response.json()
+          if (data?.error) {
+            message = data.error
+            errorCode = data.error
+          }
+        } catch (e) {}
+
+        if (response.status === 403 && errorCode === 'Unauthorized') {
+          const newUid = this._forkProjectUid(uid)
+          if (newUid) {
+            await this._serverSave(newUid)
+            return
+          }
+        }
+
+        console.error('Failed to save project to server:', message)
+      }
     } catch (error) {
       console.error('Failed to save project to server:', error)
     }
@@ -823,6 +909,99 @@ class Project {
     } catch (error) {
       console.error('Failed to assign project to class:', error)
     }
+  }
+  async updateShareSettings (uid, patch){
+    const item = this.projects[uid]
+    if (!item || !item.project)
+      return
+
+    let shared = {
+      uid: item.project.shared?.uid || '',
+      token: item.project.shared?.token || '',
+      public: !!item.project.shared?.public,
+      classId: item.project.shared?.classId || null
+    }
+    shared = {...shared, ...patch}
+    if (!shared.public && !shared.classId) {
+      await this.unshare(uid)
+      return
+    }
+
+    try {
+      const obj = await API.do('project/w', {
+        project_uid: uid,
+        shared_public: shared.public,
+        shared_class_id: shared.classId,
+        data: item,
+        name: item.project.name
+      })
+      let proj = {...item.project}
+      const previousSharedUid = proj.shared?.uid || ''
+      proj.author = this.username
+      proj.shared = {
+        uid: obj.uid || '',
+        token: obj.token || '',
+        public: !!obj.shared_public,
+        classId: obj.shared_class_id || null
+      }
+      if (this.hasOwnProperty('shared')) {
+        if (proj.shared.public) {
+          this.shared.upsert({
+            uid: proj.shared.uid,
+            name: proj.name,
+            author: proj.author,
+            lastEdited: proj.lastEdited
+          })
+        } else if (previousSharedUid) {
+          this.shared.remove(previousSharedUid)
+        }
+      }
+      let _obj = {name:proj.name, shared:proj.shared, lastEdited:proj.lastEdited}
+      command.dispatch(this, 'lazyUpdate', [uid, _obj])
+      this.update({project:proj}, uid)
+    } catch(e) {
+      console.error(e)
+    }
+  }
+  async togglePublicShare (uid){
+    this.contextMenu.close()
+    const shared = this.projects[uid]?.project?.shared || {}
+    const nextPublic = !shared.public
+    if (!nextPublic && !shared.classId) {
+      await this.unshare(uid)
+      return
+    }
+    await this.updateShareSettings(uid, {public: nextPublic})
+  }
+  async openClassShareMenu (uid, ev){
+    this.contextMenu.close()
+    try {
+      const response = await fetch('/api/classes/my-classes', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (!response.ok || !data.classes || data.classes.length === 0) {
+        notification.send(`${Msg['PageProject']}: ${Msg['NoClasses']}`)
+        return
+      }
+      const actions = data.classes.map(cls => ({
+        id: 'share-class-' + cls.class_id,
+        innerText: cls.class_name,
+        fun: this._doShareWithClass,
+        args: [uid, cls.class_id]
+      }))
+      this.contextMenu.open(actions, ev)
+    } catch (error) {
+      console.error('Failed to fetch classes for sharing:', error)
+    }
+  }
+  async _doShareWithClass (uid, classId){
+    this.contextMenu.close()
+    await this.updateShareSettings(uid, {classId: classId})
+  }
+  async clearClassShare (uid){
+    this.contextMenu.close()
+    await this.updateShareSettings(uid, {classId: null})
   }
   async unassignFromClass (uid){
     this.contextMenu.close()
@@ -958,110 +1137,48 @@ class Project {
    * @param {string} uid - Project uid
    */
   download (uid){
-    let proj = storage.fetch(`project-${uid}`)
-    // Strip shared metadata.
-    proj = proj.replace(/("shared":{"uid":")(.*?)(","token":")(.*?)("})/g,'$1$3$5')
-    // Get name
-    let name = proj.match(/{"project":{"name":"(.*?)"/)[1]
-    DOM.prototypeDownload(`${name}.bipes.json`,proj)
+    let proj = JSON.parse(storage.fetch(`project-${uid}`))
+    if (proj?.project) {
+      proj.project.shared = {
+        uid:'',
+        token:'',
+        public:false,
+        classId:null
+      }
+    }
+    let name = proj?.project?.name || 'project'
+    DOM.prototypeDownload(`${name}.bipes.json`, JSON.stringify(proj))
     this.contextMenu.close()
   }
   /**
    * Share a local project.
    * @param {string} uid - Project uid
    */
-  share (uid){
+  async unshare (uid){
     this.contextMenu.close()
-    if (!this.hasOwnProperty('shared'))
-      return
-
     let item = this.projects[uid]
-    API.do('project/cp', {
-      cors_token:this.cors_token,
-      data:item
-      }).then(obj => {
-      let proj = {...item.project}
-      proj.shared = {
-        uid:obj.uid,
-        token:obj.token
+    if (!item)
+      return
+    const previousSharedUid = item.project?.shared?.uid || ''
+    try {
+      await API.do('project/rm', {
+        project_uid: uid
+      })
+      let _proj = {...item.project}
+      _proj.shared = {
+        uid:'',
+        token:'',
+        public:false,
+        classId:null
       }
-      // Update outside the update context, since soft affects the project list
-      let _obj = {name:proj.name, shared:proj.shared, lastEdited:proj.lastEdited}
+      if (this.hasOwnProperty('shared') && previousSharedUid)
+        this.shared.remove(previousSharedUid)
+      let _obj = {name:_proj.name, shared:_proj.shared, lastEdited:_proj.lastEdited}
       command.dispatch(this, 'lazyUpdate', [uid, _obj])
-      // Now send actual update action
-      this.update({project:proj}, uid)
-      this.shared.$.projects.$.insertBefore(
-        this.shared.$Card({
-          uid:obj.uid,
-          name:proj.name,
-          author: proj.author == 'a user' ? Msg['AUser'] : proj.author,
-          lastEdited:proj.lastEdited,
-        }).$,
-        this.shared.$.projects.$.firstChild
-      )
-     }).catch(e => {console.error(e)})
-  }
-  /**
-   * Update a shared project with the local project.
-   * @param {string} uid - Project UID.
-   */
-  updateShared (uid){
-    this.contextMenu.close()
-    let item = this.projects[uid]
-    let proj = item.project
-    if (!this.hasOwnProperty('shared'))
-      return
-
-    API.do('project/w', {
-      cors_token:this.cors_token,
-      data:item
-    }).then(obj => {
-      // Server returns uid
-      if (obj.uid !== proj.shared.uid)
-        return
-      // Update outside the update context, since soft affects the project list
-      // Note: this updates "Your project" list, not "Shared projects".
-      // There is no dynamic update in "Shared projects".
-      let _obj = {name:proj.name, author:proj.author, shared:proj.shared, lastEdited:proj.lastEdited}
-      command.dispatch(this, 'lazyUpdate', [uid, _obj])
-      // Now send actual update action
-      this.update({project:proj}, uid)
-    }).catch(e => {console.error(e)})
-  }
-  /**
-   * Unshare a local project.
-   * @param {string} uid - Project UID.
-   */
-  unshare (uid){
-    this.contextMenu.close()
-    let item = this.projects[uid]
-    let proj = item.project
-    if (!this.hasOwnProperty('shared'))
-      return
-    API.do('project/rm', {
-      uid:proj.shared.uid,
-      token:proj.shared.token,
-      cors_token:this.cors_token
-    }).then(obj => {
-      // Server returns uid
-      if (obj.uid !== proj.shared.uid)
-        return
-      try {
-        let _proj = {...item.project}
-        _proj.shared = {
-          uid:'',
-          token:''
-        }
-        // Update outside the update context, since soft affects the project list
-        let _obj = {name:_proj.name, shared:_proj.shared, lastEdited:_proj.lastEdited}
-        command.dispatch(this, 'lazyUpdate', [uid, _obj])
-        // Now send actual update action
-        this.update({project:_proj}, uid)
-      } catch(e){}
-      let dom = DOM.get(`[data-uid='${obj.uid}']`, this.shared.$.projects)
-      if (dom !== null)
-        dom.remove()
-    }).catch(e => {console.error(e)})
+      this.update({project:_proj}, uid)
+    } catch (e) {
+      console.error(e)
+    }
   }
   /*
    * Upload a project to the platform.
@@ -1159,9 +1276,7 @@ class SharedProject {
     if (this.inited)
       return
 
-    let doms = []
-    this.projects.forEach(proj => doms.unshift(this.$Card(proj)))
-    this.$.projects.append(doms)
+    this.render()
 
     this.inited = true
   }
@@ -1170,6 +1285,63 @@ class SharedProject {
       return
 
     this.inited = false
+  }
+  upsert (item){
+    const existing = this.projects.find(proj => proj.uid == item.uid)
+    if (existing)
+      Object.assign(existing, item)
+    else
+      this.projects.unshift(item)
+
+    if (!this.inited)
+      return
+    this.render()
+  }
+  remove (uid){
+    this.projects = this.projects.filter(proj => proj.uid != uid)
+    if (!this.inited)
+      return
+    this.render()
+  }
+  render (){
+    this.$.projects.$.innerHTML = ''
+
+    if (session.isStudent()) {
+      const groups = new Map()
+      this.projects.forEach((proj) => {
+        const key = proj.class_id || 'ungrouped'
+        if (!groups.has(key)) {
+          groups.set(key, {
+            label: proj.class_name ?
+              `${proj.class_name}${proj.class_code ? ` (${proj.class_code})` : ''}` :
+              'Shared Projects',
+            teacher: proj.teacher_name || proj.author || '',
+            items: []
+          })
+        }
+        groups.get(key).items.push(proj)
+      })
+
+      const fragments = []
+      groups.forEach((group) => {
+        fragments.push(
+          new DOM('div', {className:'shared-group'}).append([
+            new DOM('div', {className:'shared-group-header'}).append([
+              new DOM('h4', {innerText: group.label}),
+              new DOM('span', {innerText: group.teacher ? `${Msg['By']} ${group.teacher}` : ''})
+            ]),
+            new DOM('span', {className:'listy shared-group-list'})
+              .append(group.items.map(item => this.$Card(item)))
+          ])
+        )
+      })
+      this.$.projects.append(fragments)
+      return
+    }
+
+    let doms = []
+    this.projects.forEach(proj => doms.unshift(this.$Card(proj)))
+    this.$.projects.append(doms)
   }
   /*
    * Fetch some shared projects.
@@ -1180,12 +1352,11 @@ class SharedProject {
   async fetchSome (args, notify){
     API.do('project/ls', args)
       .then(obj => {
-        let doms = []
         // Push unique values and also return an array of these unique
         Tool.pushUnique(this.projects, obj.projects, 'uid')
-          .forEach(unique => doms.unshift(this.$Card(unique)))
-        this.$.projects.append(doms)
-        if (doms.length == 0 && notify === true)
+        if (this.inited)
+          this.render()
+        if (obj.projects.length == 0 && notify === true)
           notification.send(`${Msg['PageProject']}: ${Msg['NoOlderProjects']}.`)
       })
       .catch(e => {console.error(e)})
@@ -1197,8 +1368,18 @@ class SharedProject {
   async clone (uid){
    API.do('project/o', {uid:uid})
     .then(obj => {
-      if (obj.hasOwnProperty('projects'))
-        this.parent.new(undefined, obj.projects[0].data)
+      if (obj.hasOwnProperty('projects')) {
+        const data = obj.projects[0].data || {}
+        if (data.project) {
+          data.project.shared = {
+            uid:'',
+            token:'',
+            public:false,
+            classId:null
+          }
+        }
+        this.parent.new(undefined, data)
+      }
       else
         notification.send(`${Msg['PageProject']}: ${Msg['SharedProjectDoesNotExist']}.`)
     })
@@ -1219,6 +1400,10 @@ class SharedProject {
    * Creates a DOM shared project card
    */
   $Card (item){
+    const metaLine = item.class_name && !session.isTeacher() ?
+      `${item.class_name}${item.class_code ? ` (${item.class_code})` : ''}` :
+      `${Msg['By']} ${item.author}`
+
     return new DOM('button', {uid: item.uid})
       .append([
         new DOM('div', {className:'row'}).append([
@@ -1234,11 +1419,17 @@ class SharedProject {
         new DOM('div', {className:'row'}).append([
           new DOM('span', {
             id:'author',
-            innerText: `${Msg['By']} ${item.author == 'a user' ? Msg['AUser'] : item.author}`
+            innerText: metaLine
           }),
           new DOM('div', {
             id:'lastEdited',
             innerText: Tool.prettyEditedAt(item.lastEdited)
+          })
+        ]),
+        new DOM('div', {className:'row'}).append([
+          new DOM('span', {
+            id:'teacherName',
+            innerText: item.teacher_name && item.teacher_name !== item.author ? `${Msg['By']} ${item.teacher_name}` : ''
           })
         ])
       ])

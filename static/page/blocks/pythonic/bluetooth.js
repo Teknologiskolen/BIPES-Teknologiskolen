@@ -4,29 +4,14 @@ Blockly.Python["bluetooth_init"] = function(block) {
 
   const INDENT = Blockly.Python.INDENT || '  ';
 
-  // ✅ Use the variable NAME (not ID) so it becomes "Message"
-  const msgVarModel = block.getField('message').getVariable();
-  const rawMsgName = msgVarModel ? msgVarModel.name : "Message";
-
-  // If available, use Blockly's safeName; otherwise fall back to a simple sanitizer.
-  const msgGlobal = (Blockly.Python.nameDB_ && Blockly.Python.nameDB_.safeName_)
-    ? Blockly.Python.nameDB_.safeName_(rawMsgName)
-    : rawMsgName.replace(/[^A-Za-z0-9_]/g, "_");
-
-  // Ensure ONLY Message exists globally
-  Blockly.Python.definitions_[`var_${msgGlobal}`] = `${msgGlobal} = None`;
-
   const onConnect = Blockly.Python.statementToCode(block, 'OC');
   const onDisconnect = Blockly.Python.statementToCode(block, 'OD');
   const onMessageReveived = Blockly.Python.statementToCode(block, 'OR');
-
-  const globalLine = `global ${msgGlobal}`;
 
   function emitHandler(defLine, bodyCode, extraTopLines) {
     const hasBody = (bodyCode || '').trim().length > 0;
 
     let out = `${defLine}\n`;
-    out += `${INDENT}${globalLine}\n`;
 
     if (extraTopLines && extraTopLines.length) {
       for (const l of extraTopLines) out += `${INDENT}${l}\n`;
@@ -51,12 +36,11 @@ Blockly.Python["bluetooth_init"] = function(block) {
   code += emitHandler('def on_connect():', onConnect, []);
   code += emitHandler('def on_disconnect():', onDisconnect, []);
 
-  // ✅ Only Message is global, and Message = __ble_msg
   const PARAM = "__ble_msg";
   code += emitHandler(
     `def on_message_received(${PARAM}):`,
     onMessageReveived,
-    [`${msgGlobal} = ${PARAM}`]
+    []
   );
 
   code += "ble_peripheral = BLEPeripheral()\n";
@@ -67,8 +51,23 @@ Blockly.Python["bluetooth_init"] = function(block) {
   return code;
 };
 
+Blockly.Python["bluetooth_last_msg"] = function(block) {
+  var code = "ble_peripheral.last_message";
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python["bluetooth_has_msg"] = function(block) {
+  var code = "ble_peripheral.has_message()";
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python["bluetooth_pop_msg"] = function(block) {
+  var code = "ble_peripheral.pop_message()";
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
 Blockly.Python["bluetooth_send_msg"] = function(block) {
 	var message = Blockly.Python.valueToCode(block, 'message', Blockly.Python.ORDER_ATOMIC);
-	var code = `send_message(${message})`;
+	var code = `send_message(${message})\n`;
 	return code;
 };

@@ -5,6 +5,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    mosquitto-clients \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
@@ -12,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir Flask gunicorn flask-mqtt paho-mqtt psycopg psycopg-binary
+RUN pip install --no-cache-dir Flask gunicorn flask-mqtt paho-mqtt psycopg psycopg-binary argon2-cffi
 
 # Create logs directory
 RUN mkdir -p /app/logs

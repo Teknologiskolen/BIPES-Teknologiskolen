@@ -1,18 +1,43 @@
 """ST7735S TFT Display Driver for MicroPython (128x160, SPI, 16-bit color)"""
 
 import time
+from machine import Pin
 
 
+# @block {
+#   "category": "ST7735S DSL",
+#   "color": 210,
+#   "url": "https://github.com/micropython/micropython",
+#   "instanceMode": "multiple",
+#   "methodInstanceMode": "key_input"
+# }
+# ST7735S display blocks generated from the Python library.
 class ST7735S:
-    def __init__(self, spi, dc, rst, cs, width=160, height=128):
+    # @block {
+    #   "params": {
+    #     "id": {"checkType": "Number", "defaultValue": 1},
+    #     "spi": {"inputKind": "variable"},
+    #     "dc_pin": {"checkType": "Number"},
+    #     "rst_pin": {"checkType": "Number"},
+    #     "cs_pin": {"checkType": "Number"},
+    #     "width": {"checkType": "Number", "defaultValue": 160},
+    #     "height": {"checkType": "Number", "defaultValue": 128}
+    #   }
+    # }
+    # Create an ST7735S display instance.
+    def __init__(self, id, spi, dc_pin, rst_pin, cs_pin, width=160, height=128):
+        self.id = id
         self.spi = spi
-        self.dc = dc
-        self.rst = rst
-        self.cs = cs
+        self.dc = self._ensure_output_pin(dc_pin)
+        self.rst = self._ensure_output_pin(rst_pin)
+        self.cs = self._ensure_output_pin(cs_pin)
         self.width = width
         self.height = height
         self.line_buffer = bytearray(self.width * 2)
         self.init_display()
+
+    def _ensure_output_pin(self, value):
+        return value if isinstance(value, Pin) else Pin(int(value), Pin.OUT)
 
     def write_cmd(self, cmd):
         self.cs.value(0)
@@ -61,6 +86,11 @@ class ST7735S:
         self.write_data(bytearray([0x00, y0, 0x00, y1]))
         self.write_cmd(0x2C)
 
+    # @block {
+    #   "params": {
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def fill(self, color):
         self.set_window(0, 0, self.width - 1, self.height - 1)
         for i in range(0, self.width * 2, 2):
@@ -72,6 +102,15 @@ class ST7735S:
             self.spi.write(self.line_buffer)
         self.cs.value(1)
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "w": {"checkType": "Number"},
+    #     "h": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def fill_rect(self, x, y, w, h, color):
         if x < 0 or y < 0 or x + w > self.width or y + h > self.height:
             return
@@ -86,24 +125,65 @@ class ST7735S:
             self.spi.write(line_buf)
         self.cs.value(1)
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def pixel(self, x, y, color):
         if x < 0 or y < 0 or x >= self.width or y >= self.height:
             return
         self.set_window(x, y, x, y)
         self.write_data(bytearray([color >> 8, color & 0xFF]))
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "w": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def hline(self, x, y, w, color):
         self.fill_rect(x, y, w, 1, color)
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "h": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def vline(self, x, y, h, color):
         self.fill_rect(x, y, 1, h, color)
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "w": {"checkType": "Number"},
+    #     "h": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def rect(self, x, y, w, h, color):
         self.hline(x, y, w, color)
         self.hline(x, y + h - 1, w, color)
         self.vline(x, y, h, color)
         self.vline(x + w - 1, y, h, color)
 
+    # @block {
+    #   "params": {
+    #     "x0": {"checkType": "Number"},
+    #     "y0": {"checkType": "Number"},
+    #     "x1": {"checkType": "Number"},
+    #     "y1": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"}
+    #   }
+    # }
     def line(self, x0, y0, x1, y1, color):
         dx = abs(x1 - x0)
         dy = abs(y1 - y0)
@@ -122,6 +202,14 @@ class ST7735S:
                 err += dx
                 y0 += sy
 
+    # @block {
+    #   "params": {
+    #     "x": {"checkType": "Number"},
+    #     "y": {"checkType": "Number"},
+    #     "color": {"checkType": "Number"},
+    #     "size": {"checkType": "Number", "defaultValue": 1}
+    #   }
+    # }
     def text(self, string, x, y, color, size=1):
         for i, char in enumerate(string):
             self.draw_char(char, x + i * 8 * size, y, color, size)
@@ -196,6 +284,17 @@ class ST7735S:
             return fonts.get(char_code, [0xFF] * 8)
 
 
+# @block {
+#   "category": "ST7735S DSL",
+#   "color": 210,
+#   "kind": "value",
+#   "params": {
+#     "r": {"checkType": "Number"},
+#     "g": {"checkType": "Number"},
+#     "b": {"checkType": "Number"}
+#   }
+# }
+# Convert RGB888 values into a 16-bit display color.
 def color565(r, g, b):
     """Convert RGB888 to RGB565 color format."""
     return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
@@ -212,4 +311,3 @@ CYAN = color565(0, 255, 255)
 MAGENTA = color565(255, 0, 255)
 ORANGE = color565(255, 165, 0)
 GRAY = color565(128, 128, 128)
-

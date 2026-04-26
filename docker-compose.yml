@@ -22,18 +22,36 @@ services:
       retries: 5
 
   # Mosquitto MQTT Broker
+  mosquitto-dynsec-init:
+    image: eclipse-mosquitto:2.0
+    container_name: broker_dynsec_init
+    restart: "no"
+    environment:
+      - MOSQUITTO_DYNSEC_ADMIN_USERNAME=${MOSQUITTO_DYNSEC_ADMIN_USERNAME:-admin}
+      - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}
+    volumes:
+      - mosquitto_data:/mosquitto/data
+    command: >
+      sh -c 'if [ ! -f /mosquitto/data/dynamic-security.json ]; then
+        printf "%s\n%s\n" "$$MOSQUITTO_DYNSEC_ADMIN_PASSWORD" "$$MOSQUITTO_DYNSEC_ADMIN_PASSWORD" |
+          mosquitto_ctrl dynsec init /mosquitto/data/dynamic-security.json "$$MOSQUITTO_DYNSEC_ADMIN_USERNAME";
+      fi'
+    networks:
+      - bipes_network
+
   mosquitto:
     image: eclipse-mosquitto:2.0
     container_name: broker
     restart: always
     ports:
       - "1884:1883"
-      - "9002:9001"
     volumes:
       - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./docker/mosquitto_passwd:/mosquitto/config/mosquitto_passwd:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
+    depends_on:
+      mosquitto-dynsec-init:
+        condition: service_completed_successfully
     networks:
       - bipes_network
 
@@ -52,8 +70,14 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-bipes_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - MOSQUITTO_HOST=broker
+      - MOSQUITTO_PORT=1883
+      - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME:-bipes-server}
       - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD:-changeme}
+      - MOSQUITTO_DYNSEC_ENABLED=${MOSQUITTO_DYNSEC_ENABLED:-true}
+      - MOSQUITTO_DYNSEC_ADMIN_USERNAME=${MOSQUITTO_DYNSEC_ADMIN_USERNAME:-admin}
+      - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:?Set PASSWORD_PEPPER in .env}
     volumes:
       - web_logs:/app/logs
     depends_on:

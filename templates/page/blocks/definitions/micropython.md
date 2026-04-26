@@ -187,6 +187,7 @@
 <block type="machine.ADCWiPy_adcchannel.deinit"></block>
 </category>
 <category name="machine.I2C">
+<!-- Legacy machine.I2C blocks commented out.
 <block type="machine.I2C_I2C.init"></block>
 <block type="machine.I2C_I2C.deinit"></block>
 <block type="machine.I2C_I2C.scan"></block>
@@ -201,6 +202,7 @@
 <block type="machine.I2C_I2C.readfrom_mem"></block>
 <block type="machine.I2C_I2C.readfrom_mem_into"></block>
 <block type="machine.I2C_I2C.writeto_mem"></block>
+-->
 </category>
 <category name="machine.Pin">
 <block type="machine.Pin_Pin.init"></block>
@@ -249,12 +251,14 @@
 <block type="machine.Signal_Signal.off"></block>
 </category>
 <category name="machine.SPI">
+<!-- Legacy machine.SPI blocks commented out.
 <block type="machine.SPI_SPI.init"></block>
 <block type="machine.SPI_SPI.deinit"></block>
 <block type="machine.SPI_SPI.read"></block>
 <block type="machine.SPI_SPI.readinto"></block>
 <block type="machine.SPI_SPI.write"></block>
 <block type="machine.SPI_SPI.write_readinto"></block>
+-->
 </category>
 <category name="machine.Timer">
 <block type="machine.Timer_Timer.init"></block>
@@ -270,6 +274,7 @@
 <block type="machine.TimerWiPy_timerchannel.duty_cycle"></block>
 </category>
 <category name="machine.UART">
+<!-- Legacy machine.UART blocks commented out.
 <block type="machine.UART_UART.init"></block>
 <block type="machine.UART_UART.deinit"></block>
 <block type="machine.UART_UART.any"></block>
@@ -279,6 +284,7 @@
 <block type="machine.UART_UART.write"></block>
 <block type="machine.UART_UART.sendbreak"></block>
 <block type="machine.UART_UART.irq"></block>
+-->
 </category>
 <category name="machine.WDT">
 <block type="machine.WDT_wdt.feed"></block>

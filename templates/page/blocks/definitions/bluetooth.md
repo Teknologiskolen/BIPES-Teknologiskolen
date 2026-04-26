@@ -7,6 +7,15 @@
 # bluetooth_init
 <block type="bluetooth_init"></block>
 
+# bluetooth_last_msg
+<block type="bluetooth_last_msg"></block>
+
+# bluetooth_has_msg
+<block type="bluetooth_has_msg"></block>
+
+# bluetooth_pop_msg
+<block type="bluetooth_pop_msg"></block>
+
 # bluetooth_send_msg
 <block type="bluetooth_send_msg">
   <value name="message">

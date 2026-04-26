@@ -1,62 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - BIPES</title>
+    <title>{{ t.register_title }} - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
 <body>
     <div class="auth-container">
         <div class="auth-header">
-            <h1>Teacher Registration</h1>
-            <p>Create your teacher account to manage classes</p>
+            <h1>{{ t.register_title }}</h1>
+            <p>{{ t.register_subtitle }}</p>
         </div>
 
         <div id="alert-container"></div>
 
         <form id="register-form" class="auth-form">
             <div class="form-group">
-                <label for="full-name">Full Name</label>
+                <label for="full-name">{{ t.full_name }}</label>
                 <input type="text" id="full-name" name="full_name" required placeholder="John Doe">
             </div>
 
             <div class="form-group">
-                <label for="email">Email</label>
+                <label for="email">{{ t.email }}</label>
                 <input type="email" id="email" name="email" required placeholder="teacher@school.com">
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{ t.password }}</label>
                 <input type="password" id="password" name="password" required placeholder="••••••••" minlength="8">
                 <div id="password-strength" class="password-strength"></div>
-                <small style="color: #666; font-size: 0.85rem;">Minimum 8 characters</small>
+                <small style="color: #666; font-size: 0.85rem;">{{ t.minimum_password }}</small>
             </div>
 
             <div class="form-group">
-                <label for="confirm-password">Confirm Password</label>
+                <label for="confirm-password">{{ t.confirm_password }}</label>
                 <input type="password" id="confirm-password" name="confirm_password" required placeholder="••••••••">
             </div>
 
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="terms" name="terms" required>
-                <label for="terms">I agree to the <a href="#" style="color: #667eea;">Terms of Service</a></label>
+                <label for="terms">{{ t.terms }}</label>
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <span class="btn-text">Create Account</span>
+                <span class="btn-text">{{ t.create_account }}</span>
             </button>
         </form>
 
         <div class="auth-links">
-            <p>Already have an account? <a href="/login/teacher">Login here</a></p>
+            <p>{{ t.already_account }} <a href="/login" data-auth-preserve>{{ t.login_here }}</a></p>
         </div>
 
         <div class="auth-back">
-            <a href="/" class="btn btn-secondary">Back to Home</a>
+            <a href="/" class="btn btn-secondary" data-auth-preserve>{{ t.back_home }}</a>
         </div>
     </div>
 
+    <script>window.authText = {{ t|tojson }};</script>
+    <script src="/static/auth/preferences.js"></script>
     <script src="/static/auth/register.js"></script>
 </body>
 </html>

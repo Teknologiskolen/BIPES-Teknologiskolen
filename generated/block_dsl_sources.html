@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BIPES block_dsl Sources</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { font-family: Arial, sans-serif; color: #111; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  .intro { color: #444; margin: 0 0 18px; }
+  h2 { font-size: 14px; margin: 0 0 8px; color: #0b4f6c; }
+  .file-section { page-break-before: always; }
+  .file-section:first-of-type { page-break-before: auto; }
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid #d0d7de;
+    background: #f6f8fa;
+    padding: 10px;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+</style>
+</head>
+<body>
+<h1>BIPES block_dsl Source Files</h1>
+<p class="intro">Python sources from server/block_dsl.</p>
+<section class="file-section">
+<h2>server/block_dsl/__init__.py</h2>
+<pre>&quot;&quot;&quot;DSL pipeline for generating Blockly blocks from annotated Python.&quot;&quot;&quot;
+
+from .pipeline import DefaultPipeline
+from .integrate import generate_default_artifacts
+
+__all__ = [&quot;DefaultPipeline&quot;, &quot;generate_default_artifacts&quot;]
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/builder.py</h2>
+<pre>from __future__ import annotations
+
+from .model import (
+    BlockKind,
+    BlockSpec,
+    InputKind,
+    InputSpec,
+    InstanceMode,
+    InstanceReferenceSpec,
+    MethodInstanceMode,
+    ModuleSource,
+)
+
+
+def snake_case(name: str) -&gt; str:
+    out: list[str] = []
+    for i, ch in enumerate(name):
+        if i &gt; 0 and ch.isupper() and not name[i - 1].isupper():
+            out.append(&quot;_&quot;)
+        out.append(ch.lower())
+    return &quot;&quot;.join(out)
+
+
+def humanize_identifier(name: str) -&gt; str:
+    acronym_words = {
+        &quot;adc&quot;: &quot;ADC&quot;,
+        &quot;clk&quot;: &quot;CLK&quot;,
+        &quot;cs&quot;: &quot;CS&quot;,
+        &quot;dat&quot;: &quot;DAT&quot;,
+        &quot;dc&quot;: &quot;DC&quot;,
+        &quot;i2c&quot;: &quot;I2C&quot;,
+        &quot;id&quot;: &quot;ID&quot;,
+        &quot;led&quot;: &quot;LED&quot;,
+        &quot;miso&quot;: &quot;MISO&quot;,
+        &quot;mosi&quot;: &quot;MOSI&quot;,
+        &quot;pwm&quot;: &quot;PWM&quot;,
+        &quot;rgb&quot;: &quot;RGB&quot;,
+        &quot;rst&quot;: &quot;RST&quot;,
+        &quot;rtc&quot;: &quot;RTC&quot;,
+        &quot;scl&quot;: &quot;SCL&quot;,
+        &quot;sck&quot;: &quot;SCK&quot;,
+        &quot;sda&quot;: &quot;SDA&quot;,
+        &quot;spi&quot;: &quot;SPI&quot;,
+        &quot;tx&quot;: &quot;TX&quot;,
+        &quot;rx&quot;: &quot;RX&quot;,
+        &quot;uart&quot;: &quot;UART&quot;,
+    }
+    normalized = name.replace(&quot;_&quot;, &quot; &quot;).replace(&quot;-&quot;, &quot; &quot;)
+    out: list[str] = []
+    for i, ch in enumerate(normalized):
+        next_ch = normalized[i + 1] if i + 1 &lt; len(normalized) else &quot;&quot;
+        if (
+            i &gt; 0
+            and ch.isupper()
+            and not normalized[i - 1].isspace()
+            and (
+                normalized[i - 1].islower()
+                or (normalized[i - 1].isupper() and next_ch.islower())
+            )
+        ):
+            out.append(&quot; &quot;)
+        elif i &gt; 0 and ch.isdigit() and normalized[i - 1].isalpha() and normalized[i - 1].islower():
+            out.append(&quot; &quot;)
+        out.append(ch)
+
+    words = &quot;&quot;.join(out).split()
+    result_words: list[str] = []
+    for word in words:
+        mapped = acronym_words.get(word.lower())
+        if mapped is not None:
+            result_words.append(mapped)
+        else:
+            result_words.append(word[:1].upper() + word[1:])
+    return &quot; &quot;.join(result_words)
+
+
+class BlockModelBuilder:
+    def build_blocks(self, module: ModuleSource) -&gt; list[BlockSpec]:
+        blocks: list[BlockSpec] = []
+
+        for fn in module.functions:
+            if fn.is_public_block:
+                blocks.append(self._build_block(fn))
+
+        for cls in module.classes:
+            constructor = next((m for m in cls.methods if m.is_constructor), None)
+            ordered_methods = []
+            if constructor is not None:
+                ordered_methods.append(constructor)
+            ordered_methods.extend(m for m in cls.methods if not m.is_constructor)
+            for method in ordered_methods:
+                if method.is_public_block:
+                    blocks.append(self._build_block(method, constructor=constructor))
+
+        return blocks
+
+    def _build_block(self, fn, constructor=None) -&gt; BlockSpec:
+        md = fn.metadata
+        assert md is not None
+
+        inputs: list[InputSpec] = []
+
+        if (
+            fn.parent_class_name
+            and (md.instance_mode or InstanceMode.SINGLETON) == InstanceMode.MULTIPLE
+            and md.method_instance_mode == MethodInstanceMode.KEY_INPUT
+            and not fn.is_constructor
+        ):
+            key_name = &quot;id&quot;
+            key_param = None
+            key_cfg = None
+            if constructor is not None:
+                key_param = next((p for p in constructor.parameters if p.name == key_name), None)
+                if constructor.metadata is not None:
+                    key_cfg = constructor.metadata.param_configs.get(key_name)
+            inputs.append(
+                InputSpec(
+                    name=key_name,
+                    input_kind=(
+                        key_cfg.input_kind
+                        if key_cfg and key_cfg.input_kind
+                        else InputKind.INPUT_VALUE
+                    ),
+                    check_type=(
+                        key_cfg.check_type
+                        if key_cfg and key_cfg.check_type
+                        else self._infer_check_type(key_param.type_hint if key_param else None, key_name)
+                    ),
+                    default_value=(
+                        key_cfg.default_value
+                        if key_cfg and key_cfg.default_value is not None
+                        else key_param.default_value if key_param else 1
+                    ),
+                    is_instance_selector=True,
+                    options=key_cfg.options if key_cfg else [],
+                )
+            )
+
+        for p in fn.parameters:
+            cfg = md.param_configs.get(p.name)
+            inputs.append(
+                InputSpec(
+                    name=p.name,
+                    input_kind=cfg.input_kind if cfg and cfg.input_kind else InputKind.INPUT_VALUE,
+                    check_type=(
+                        cfg.check_type
+                        if cfg and cfg.check_type
+                        else self._infer_check_type(p.type_hint, p.name)
+                    ),
+                    default_value=(
+                        cfg.default_value
+                        if cfg and cfg.default_value is not None
+                        else p.default_value
+                    ),
+                    options=cfg.options if cfg else [],
+                )
+            )
+
+        inputs = self._order_inputs(inputs)
+
+        kind = BlockKind.STATEMENT if fn.is_constructor else (md.kind or BlockKind.STATEMENT)
+        return BlockSpec(
+            type=self._block_type(fn),
+            label=self._label_for(fn, inputs),
+            category=md.category or &quot;Uncategorized&quot;,
+            color=md.color,
+            tooltip=fn.tooltip,
+            help_url=md.url,
+            kind=kind,
+            is_constructor_block=fn.is_constructor,
+            inputs_inline=bool(md.inputs_inline) if md.inputs_inline is not None else False,
+            inputs=inputs,
+            source_module_name=fn.source_module_name or &quot;library&quot;,
+            source_function_name=fn.name,
+            source_class_name=fn.parent_class_name,
+            instance_ref=self._build_instance_ref(fn),
+        )
+
+    def _order_inputs(self, inputs: list[InputSpec]) -&gt; list[InputSpec]:
+        id_inputs = [inp for inp in inputs if inp.name == &quot;id&quot;]
+        other_inputs = [inp for inp in inputs if inp.name != &quot;id&quot;]
+        return id_inputs + other_inputs
+
+    def _block_type(self, fn) -&gt; str:
+        if fn.parent_class_name:
+            suffix = &quot;create&quot; if fn.is_constructor else snake_case(fn.name)
+            return f&quot;{snake_case(fn.parent_class_name)}__{suffix}&quot;
+        return snake_case(fn.name)
+
+    def _label_for(self, fn, inputs: list[InputSpec]) -&gt; str:
+        if fn.is_constructor and fn.parent_class_name:
+            return f&quot;Create {humanize_identifier(fn.parent_class_name)}&quot;
+        return humanize_identifier(fn.name)
+
+    def _infer_check_type(self, type_hint: str | None, param_name: str | None = None) -&gt; str | None:
+        if param_name:
+            lower_name = param_name.lower()
+            if lower_name == &quot;id&quot;:
+                return &quot;Number&quot;
+            if &quot;pin&quot; in lower_name and &quot;pins&quot; not in lower_name:
+                return &quot;Number&quot;
+        if type_hint in {&quot;int&quot;, &quot;float&quot;}:
+            return &quot;Number&quot;
+        if type_hint == &quot;str&quot;:
+            return &quot;String&quot;
+        if type_hint == &quot;bool&quot;:
+            return &quot;Boolean&quot;
+        return None
+
+    def _build_instance_ref(self, fn) -&gt; InstanceReferenceSpec | None:
+        md = fn.metadata
+        assert md is not None
+
+        if not fn.parent_class_name:
+            return None
+
+        instance_mode = md.instance_mode or InstanceMode.SINGLETON
+        if instance_mode == InstanceMode.SINGLETON:
+            return InstanceReferenceSpec(
+                mode=MethodInstanceMode.FIXED_NAME,
+                fixed_instance_name=md.instance_name or &quot;board&quot;,
+            )
+
+        if md.method_instance_mode == MethodInstanceMode.KEY_INPUT:
+            return InstanceReferenceSpec(
+                mode=MethodInstanceMode.KEY_INPUT,
+                key_parameter_name=&quot;id&quot;,
+                key_input_name=&quot;id&quot;,
+            )
+
+        if md.method_instance_mode == MethodInstanceMode.OBJECT_INPUT:
+            return InstanceReferenceSpec(mode=MethodInstanceMode.OBJECT_INPUT)
+
+        return None
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/emitters.py</h2>
+<pre>from __future__ import annotations
+
+import json
+import re
+
+from .builder import humanize_identifier, snake_case
+from .model import BlockKind, BlockSpec, GeneratorSpec, InputKind, InputSpec
+from .model import MethodInstanceMode
+
+_PLACEHOLDER_RE = re.compile(r&quot;\{([A-Za-z_][A-Za-z0-9_]*)\}&quot;)
+
+
+def emit_blockly_blocks_js(blocks: list[BlockSpec]) -&gt; str:
+    chunks: list[str] = []
+    for block in blocks:
+        body = _emit_block_definition(block)
+        chunks.append(
+            f&#x27;Blockly.Blocks[&quot;{block.type}&quot;] = {{\n&#x27;
+            f&#x27;  init: function() {{\n{body}&#x27;
+            f&#x27;  }}\n&#x27;
+            f&#x27;}};\n&#x27;
+        )
+    return &quot;\n&quot;.join(chunks)
+
+
+def emit_python_generators_js(generators: list[GeneratorSpec], blocks_by_type: dict[str, BlockSpec]) -&gt; str:
+    chunks: list[str] = []
+    for generator in generators:
+        block = blocks_by_type[generator.block_type]
+        chunks.append(_emit_python_generator(block, generator))
+    return &quot;\n\n&quot;.join(chunks) + (&quot;\n&quot; if chunks else &quot;&quot;)
+
+
+def emit_definition_markdown(
+    category_name: str,
+    library_name: str,
+    blocks: list[BlockSpec],
+    extra_library_names: tuple[str, ...] = (),
+) -&gt; str:
+    library_names = (library_name, *extra_library_names)
+    lines = [
+        f&quot;# {category_name}&quot;,
+        f&#x27;&lt;category name=&quot;{category_name}&quot;&gt;&#x27;,
+        f&#x27;&lt;label text=&quot;{category_name}&quot;&gt;&lt;/label&gt;&#x27;,
+    ]
+    for name in library_names:
+        lines.append(f&#x27;&lt;button text=&quot;%{{INSTALL_LIBRARY}}: {name}&quot; callbackKey=&quot;installPyLib&quot;&gt;&lt;/button&gt;&#x27;)
+    lines.append(&quot;&quot;)
+    for block in blocks:
+        lines.append(f&quot;# {block.type}&quot;)
+        lines.append(f&#x27;&lt;block type=&quot;{block.type}&quot;&gt;&#x27;)
+        for input_spec in block.inputs:
+            shadow = _shadow_for_input(input_spec)
+            if shadow:
+                lines.extend([
+                    f&#x27;  &lt;value name=&quot;{input_spec.name}&quot;&gt;&#x27;,
+                    shadow,
+                    &#x27;  &lt;/value&gt;&#x27;,
+                ])
+        lines.append(&quot;&lt;/block&gt;&quot;)
+        lines.append(&quot;&quot;)
+    return &quot;\n&quot;.join(lines).strip() + &quot;\n&quot;
+
+
+def _emit_block_definition(block: BlockSpec) -&gt; str:
+    lines: list[str] = []
+    for snippet in _emit_label_inputs(block):
+        lines.append(f&quot;    {snippet}&quot;)
+
+    if block.kind == BlockKind.VALUE:
+        lines.append(&quot;    this.setOutput(true, null);&quot;)
+    else:
+        lines.append(&quot;    this.setPreviousStatement(true, null);&quot;)
+        lines.append(&quot;    this.setNextStatement(true, null);&quot;)
+
+    lines.append(f&quot;    this.setColour({block.color if block.color is not None else 230});&quot;)
+    lines.append(f&quot;    this.setInputsInline({str(block.inputs_inline).lower()});&quot;)
+    lines.append(f&quot;    this.setTooltip({json.dumps(block.tooltip)});&quot;)
+    lines.append(f&quot;    this.setHelpUrl({json.dumps(block.help_url or &#x27;&#x27;)});&quot;)
+    return &quot;\n&quot;.join(lines) + &quot;\n&quot;
+
+
+def _emit_label_inputs(block: BlockSpec) -&gt; list[str]:
+    inputs_by_name = {inp.name: inp for inp in block.inputs}
+    used_inputs: set[str] = set()
+    tokens: list[tuple[str, str]] = []
+    cursor = 0
+    for match in _PLACEHOLDER_RE.finditer(block.label):
+        if match.start() &gt; cursor:
+            tokens.append((&quot;text&quot;, block.label[cursor:match.start()]))
+        tokens.append((&quot;placeholder&quot;, match.group(1)))
+        cursor = match.end()
+    if cursor &lt; len(block.label):
+        tokens.append((&quot;text&quot;, block.label[cursor:]))
+
+    emitted: list[str] = []
+    pending_text = &quot;&quot;
+    for token_type, value in tokens:
+        if token_type == &quot;text&quot;:
+            pending_text += value
+            continue
+
+        input_spec = inputs_by_name[value]
+        used_inputs.add(input_spec.name)
+        if input_spec.input_kind == InputKind.INPUT_VALUE:
+            stmt = f&#x27;this.appendValueInput(&quot;{input_spec.name}&quot;)&#x27;
+            if input_spec.check_type:
+                stmt += f&#x27;.setCheck(&quot;{input_spec.check_type}&quot;)&#x27;
+            if pending_text.strip():
+                stmt += f&#x27;.appendField({json.dumps(pending_text.strip())})&#x27;
+            emitted.append(stmt + &quot;;&quot;)
+        elif input_spec.input_kind == InputKind.FIELD_DROPDOWN:
+            options = json.dumps([[label, val] for label, val in input_spec.options])
+            label = pending_text.strip() + (&quot; &quot; if pending_text.strip() else &quot;&quot;)
+            emitted.append(
+                &#x27;this.appendDummyInput()&#x27;
+                + (f&#x27;.appendField({json.dumps(label)})&#x27; if label else &quot;&quot;)
+                + f&#x27;.appendField(new Blockly.FieldDropdown({options}), &quot;{input_spec.name}&quot;);&#x27;
+            )
+        elif input_spec.input_kind == InputKind.VARIABLE:
+            label = pending_text.strip() + (&quot; &quot; if pending_text.strip() else &quot;&quot;)
+            default_name = input_spec.name
+            emitted.append(
+                &#x27;this.appendDummyInput()&#x27;
+                + (f&#x27;.appendField({json.dumps(label)})&#x27; if label else &quot;&quot;)
+                + f&#x27;.appendField(new Blockly.FieldVariable({json.dumps(default_name)}), &quot;{input_spec.name}&quot;);&#x27;
+            )
+        else:
+            label = pending_text.strip() + (&quot; &quot; if pending_text.strip() else &quot;&quot;)
+            default_value = &quot;&quot; if input_spec.default_value is None else str(input_spec.default_value)
+            emitted.append(
+                &#x27;this.appendDummyInput()&#x27;
+                + (f&#x27;.appendField({json.dumps(label)})&#x27; if label else &quot;&quot;)
+                + f&#x27;.appendField(new Blockly.FieldTextInput({json.dumps(default_value)}), &quot;{input_spec.name}&quot;);&#x27;
+            )
+        pending_text = &quot;&quot;
+
+    if pending_text.strip():
+        emitted.append(f&#x27;this.appendDummyInput().appendField({json.dumps(pending_text.strip())});&#x27;)
+
+    for input_spec in block.inputs:
+        if input_spec.name in used_inputs:
+            continue
+        emitted.append(_emit_unplaced_input(input_spec))
+
+    if not emitted:
+        emitted.append(f&#x27;this.appendDummyInput().appendField({json.dumps(block.label)});&#x27;)
+    return emitted
+
+
+def _emit_unplaced_input(input_spec: InputSpec) -&gt; str:
+    field_label = &quot;ID #&quot; if input_spec.name == &quot;id&quot; else humanize_identifier(input_spec.name)
+    if input_spec.input_kind == InputKind.INPUT_VALUE:
+        stmt = f&#x27;this.appendValueInput(&quot;{input_spec.name}&quot;)&#x27;
+        if input_spec.check_type:
+            stmt += f&#x27;.setCheck(&quot;{input_spec.check_type}&quot;)&#x27;
+        stmt += f&#x27;.appendField({json.dumps(field_label)})&#x27;
+        return stmt + &quot;;&quot;
+
+    if input_spec.input_kind == InputKind.FIELD_DROPDOWN:
+        options = json.dumps([[label, val] for label, val in input_spec.options])
+        return (
+            &#x27;this.appendDummyInput()&#x27;
+            + f&#x27;.appendField({json.dumps(field_label)})&#x27;
+            + f&#x27;.appendField(new Blockly.FieldDropdown({options}), &quot;{input_spec.name}&quot;);&#x27;
+        )
+
+    if input_spec.input_kind == InputKind.VARIABLE:
+        default_name = input_spec.name
+        return (
+            &#x27;this.appendDummyInput()&#x27;
+            + f&#x27;.appendField({json.dumps(field_label)})&#x27;
+            + f&#x27;.appendField(new Blockly.FieldVariable({json.dumps(default_name)}), &quot;{input_spec.name}&quot;);&#x27;
+        )
+
+    default_value = &quot;&quot; if input_spec.default_value is None else str(input_spec.default_value)
+    return (
+        &#x27;this.appendDummyInput()&#x27;
+        + f&#x27;.appendField({json.dumps(field_label)})&#x27;
+        + f&#x27;.appendField(new Blockly.FieldTextInput({json.dumps(default_value)}), &quot;{input_spec.name}&quot;);&#x27;
+    )
+
+
+def _emit_python_generator(block: BlockSpec, generator: GeneratorSpec) -&gt; str:
+    lines = [
+        f&#x27;Blockly.Python[&quot;{block.type}&quot;] = function(block) {{&#x27;,
+        f&#x27;  Blockly.Python.definitions_[{json.dumps(&quot;import_&quot; + generator.source_module_name)}] = {json.dumps(&quot;import &quot; + generator.source_module_name)};&#x27;,
+    ]
+    if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.KEY_INPUT:
+        registry_name = f&#x27;{snake_case(block.source_class_name or &quot;instance&quot;)}_instances&#x27;
+        lines.append(
+            f&#x27;  Blockly.Python.definitions_[{json.dumps(&quot;registry_&quot; + registry_name)}] = {json.dumps(registry_name + &quot; = {}&quot;)};&#x27;
+        )
+
+    for input_spec in block.inputs:
+        lines.extend(_emit_python_input_read(input_spec))
+
+    code_expression = _template_to_js_expression(generator.template, block.inputs) + &#x27; + &quot;\\n&quot;&#x27;
+    lines.append(f&quot;  var code = {code_expression};&quot;)
+
+    if block.kind == BlockKind.VALUE:
+        lines.append(&quot;  return [code.trimEnd(), Blockly.Python.ORDER_NONE];&quot;)
+    else:
+        lines.append(&quot;  return code;&quot;)
+    lines.append(&quot;};&quot;)
+    return &quot;\n&quot;.join(lines)
+
+
+def _template_to_js_expression(template: str, inputs: list[InputSpec]) -&gt; str:
+    names = {inp.name for inp in inputs}
+    parts: list[str] = []
+    cursor = 0
+    for match in _PLACEHOLDER_RE.finditer(template):
+        if match.start() &gt; cursor:
+            parts.append(json.dumps(template[cursor:match.start()]))
+        placeholder = match.group(1)
+        parts.append(placeholder if placeholder in names else json.dumps(match.group(0)))
+        cursor = match.end()
+    if cursor &lt; len(template):
+        parts.append(json.dumps(template[cursor:]))
+    return &quot; + &quot;.join(parts) if parts else json.dumps(template)
+
+
+def _emit_python_input_read(input_spec) -&gt; list[str]:
+    if input_spec.input_kind == InputKind.INPUT_VALUE:
+        return [
+            f&#x27;  var {input_spec.name} = Blockly.Python.valueToCode(block, {json.dumps(input_spec.name)}, Blockly.Python.ORDER_ATOMIC);&#x27;
+        ]
+    if input_spec.input_kind == InputKind.FIELD_DROPDOWN:
+        value = f&#x27;block.getFieldValue({json.dumps(input_spec.name)})&#x27;
+        if input_spec.check_type == &quot;Number&quot;:
+            return [f&quot;  var {input_spec.name} = String(Number({value}));&quot;]
+        return [f&quot;  var {input_spec.name} = JSON.stringify({value});&quot;]
+    if input_spec.input_kind == InputKind.VARIABLE:
+        return [
+            &quot;  $ = Blockly.internal_;&quot;,
+            f&quot;  var {input_spec.name} = $.Blockly.Python.nameDB_.getName(block.getFieldValue({json.dumps(input_spec.name)}), $.module$exports$Blockly$Names.NameType.VARIABLE);&quot;,
+        ]
+    raw = f&#x27;block.getFieldValue({json.dumps(input_spec.name)})&#x27;
+    if input_spec.check_type == &quot;Number&quot;:
+        return [f&quot;  var {input_spec.name} = String(Number({raw}));&quot;]
+    return [f&quot;  var {input_spec.name} = JSON.stringify({raw});&quot;]
+
+
+def _shadow_for_input(input_spec) -&gt; str | None:
+    if input_spec.input_kind != InputKind.INPUT_VALUE:
+        return None
+
+    if _is_pin_sequence_input(input_spec):
+        values = input_spec.default_value if isinstance(input_spec.default_value, (list, tuple)) else [None, None, None, None]
+        return _shadow_for_sequence(values, pin_items=True)
+
+    if _is_pin_input(input_spec):
+        return _shadow_for_pin(input_spec.default_value)
+
+    if input_spec.check_type == &quot;Boolean&quot; or isinstance(input_spec.default_value, bool):
+        field = &quot;TRUE&quot; if bool(input_spec.default_value) else &quot;FALSE&quot;
+        return (
+            &#x27;    &lt;shadow type=&quot;logic_boolean&quot;&gt;\n&#x27;
+            f&#x27;      &lt;field name=&quot;BOOL&quot;&gt;{field}&lt;/field&gt;\n&#x27;
+            &#x27;    &lt;/shadow&gt;&#x27;
+        )
+
+    if isinstance(input_spec.default_value, (list, tuple)):
+        return _shadow_for_sequence(input_spec.default_value)
+
+    if input_spec.check_type == &quot;Number&quot; or isinstance(input_spec.default_value, (int, float)):
+        value = 0 if input_spec.default_value is None else input_spec.default_value
+        return (
+            &#x27;    &lt;shadow type=&quot;math_number&quot;&gt;\n&#x27;
+            f&#x27;      &lt;field name=&quot;NUM&quot;&gt;{value}&lt;/field&gt;\n&#x27;
+            &#x27;    &lt;/shadow&gt;&#x27;
+        )
+
+    text = &quot;&quot; if input_spec.default_value is None else str(input_spec.default_value)
+    return (
+        &#x27;    &lt;shadow type=&quot;text&quot;&gt;\n&#x27;
+        f&#x27;      &lt;field name=&quot;TEXT&quot;&gt;{text}&lt;/field&gt;\n&#x27;
+        &#x27;    &lt;/shadow&gt;&#x27;
+    )
+
+
+def _shadow_for_sequence(values, pin_items: bool = False) -&gt; str:
+    lines = [
+        &#x27;    &lt;shadow type=&quot;lists_create_with&quot;&gt;&#x27;,
+        f&#x27;      &lt;mutation items=&quot;{len(values)}&quot;&gt;&lt;/mutation&gt;&#x27;,
+    ]
+    for idx, value in enumerate(values):
+        lines.append(f&#x27;      &lt;value name=&quot;ADD{idx}&quot;&gt;&#x27;)
+        if pin_items:
+            pin_value = &quot;0&quot; if value is None else str(value)
+            lines.extend([
+                &#x27;        &lt;shadow type=&quot;pinout&quot;&gt;&#x27;,
+                f&#x27;          &lt;field name=&quot;PIN&quot;&gt;{pin_value}&lt;/field&gt;&#x27;,
+                &#x27;        &lt;/shadow&gt;&#x27;,
+            ])
+        elif isinstance(value, bool):
+            field = &quot;TRUE&quot; if value else &quot;FALSE&quot;
+            lines.extend([
+                &#x27;        &lt;shadow type=&quot;logic_boolean&quot;&gt;&#x27;,
+                f&#x27;          &lt;field name=&quot;BOOL&quot;&gt;{field}&lt;/field&gt;&#x27;,
+                &#x27;        &lt;/shadow&gt;&#x27;,
+            ])
+        elif isinstance(value, (int, float)):
+            lines.extend([
+                &#x27;        &lt;shadow type=&quot;math_number&quot;&gt;&#x27;,
+                f&#x27;          &lt;field name=&quot;NUM&quot;&gt;{value}&lt;/field&gt;&#x27;,
+                &#x27;        &lt;/shadow&gt;&#x27;,
+            ])
+        else:
+            lines.extend([
+                &#x27;        &lt;shadow type=&quot;text&quot;&gt;&#x27;,
+                f&#x27;          &lt;field name=&quot;TEXT&quot;&gt;{value}&lt;/field&gt;&#x27;,
+                &#x27;        &lt;/shadow&gt;&#x27;,
+            ])
+        lines.append(&#x27;      &lt;/value&gt;&#x27;)
+    lines.append(&#x27;    &lt;/shadow&gt;&#x27;)
+    return &quot;\n&quot;.join(lines)
+
+
+def _shadow_for_pin(default_value=None) -&gt; str:
+    pin_value = &quot;0&quot; if default_value is None else str(default_value)
+    return (
+        &#x27;    &lt;shadow type=&quot;pinout&quot;&gt;\n&#x27;
+        f&#x27;      &lt;field name=&quot;PIN&quot;&gt;{pin_value}&lt;/field&gt;\n&#x27;
+        &#x27;    &lt;/shadow&gt;&#x27;
+    )
+
+
+def _is_pin_input(input_spec: InputSpec) -&gt; bool:
+    name = input_spec.name.lower()
+    pin_aliases = {&quot;sda&quot;, &quot;scl&quot;}
+    return (&quot;pin&quot; in name and &quot;pins&quot; not in name) or name in pin_aliases
+
+
+def _is_pin_sequence_input(input_spec: InputSpec) -&gt; bool:
+    return &quot;pins&quot; in input_spec.name.lower()
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/errors.py</h2>
+<pre>class BlockDslError(Exception):
+    &quot;&quot;&quot;Base exception for block DSL failures.&quot;&quot;&quot;
+
+
+class AnnotationSyntaxError(BlockDslError):
+    &quot;&quot;&quot;Raised when # @block annotations cannot be parsed.&quot;&quot;&quot;
+
+
+class ValidationError(BlockDslError):
+    &quot;&quot;&quot;Raised when resolved metadata is inconsistent.&quot;&quot;&quot;
+
+
+class UnknownMetadataKeyError(ValidationError):
+    &quot;&quot;&quot;Raised when metadata contains unsupported keys.&quot;&quot;&quot;
+
+
+class LabelPlaceholderError(ValidationError):
+    &quot;&quot;&quot;Raised when a block label references an unknown placeholder.&quot;&quot;&quot;
+
+
+class InstanceConfigError(ValidationError):
+    &quot;&quot;&quot;Raised when class instance configuration is incomplete or invalid.&quot;&quot;&quot;
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/extractor.py</h2>
+<pre>from __future__ import annotations
+
+import ast
+from pathlib import Path
+from typing import Any
+
+from .model import (
+    ClassBlockSource,
+    FunctionBlockSource,
+    ModuleSource,
+    ParameterSpec,
+    module_name_from_path,
+)
+
+
+def _expr_to_type_name(node: ast.expr | None) -&gt; str | None:
+    if node is None:
+        return None
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return None
+
+
+def _literal_or_none(node: ast.expr | None) -&gt; Any:
+    if node is None:
+        return None
+    try:
+        return ast.literal_eval(node)
+    except Exception:
+        try:
+            return ast.unparse(node)
+        except Exception:
+            return None
+
+
+class PythonAstSourceExtractor:
+    def extract(self, source: str, path: str | Path = &quot;&lt;memory&gt;&quot;) -&gt; ModuleSource:
+        tree = ast.parse(source, filename=str(path))
+        module_name = module_name_from_path(path)
+        module = ModuleSource(name=module_name, path=str(path))
+
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                module.classes.append(self._extract_class(node, module_name))
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                module.functions.append(
+                    self._extract_function(node, parent_class_name=None, module_name=module_name)
+                )
+
+        return module
+
+    def _extract_class(self, node: ast.ClassDef, module_name: str) -&gt; ClassBlockSource:
+        cls = ClassBlockSource(name=node.name, lineno=node.lineno, source_module_name=module_name)
+        for child in node.body:
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                cls.methods.append(
+                    self._extract_function(child, parent_class_name=node.name, module_name=module_name)
+                )
+        return cls
+
+    def _extract_function(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        parent_class_name: str | None,
+        module_name: str,
+    ) -&gt; FunctionBlockSource:
+        fn = FunctionBlockSource(
+            name=node.name,
+            is_constructor=(node.name == &quot;__init__&quot;),
+            parent_class_name=parent_class_name,
+            return_type=_expr_to_type_name(node.returns),
+            source_module_name=module_name,
+            lineno=node.lineno,
+        )
+        fn.parameters = self._extract_parameters(node, is_method=parent_class_name is not None)
+        return fn
+
+    def _extract_parameters(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        is_method: bool,
+    ) -&gt; list[ParameterSpec]:
+        args = list(node.args.args)
+        defaults = list(node.args.defaults)
+        default_offset = len(args) - len(defaults)
+        default_map: dict[str, Any] = {}
+
+        for idx, arg in enumerate(args):
+            if idx &gt;= default_offset:
+                default_map[arg.arg] = _literal_or_none(defaults[idx - default_offset])
+
+        params: list[ParameterSpec] = []
+        for idx, arg in enumerate(args):
+            if is_method and idx == 0 and arg.arg in {&quot;self&quot;, &quot;cls&quot;}:
+                continue
+            params.append(
+                ParameterSpec(
+                    name=arg.arg,
+                    type_hint=_expr_to_type_name(arg.annotation),
+                    default_value=default_map.get(arg.arg),
+                )
+            )
+        return params
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/integrate.py</h2>
+<pre>from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from .emitters import emit_blockly_blocks_js, emit_definition_markdown, emit_python_generators_js
+from .pipeline import DefaultPipeline
+
+
+@dataclass(slots=True)
+class DslTarget:
+    source: str
+    category_name: str
+    library_name: str
+    output_block_js: str
+    output_generator_js: str
+    output_definition_md: str
+    extra_library_names: tuple[str, ...] = ()
+
+
+DEFAULT_TARGETS = [
+    DslTarget(
+        source=&quot;static/page/blocks/libraries/PicoRobotics.py&quot;,
+        category_name=&quot;Robotics Board&quot;,
+        library_name=&quot;PicoRobotics&quot;,
+        extra_library_names=(),
+        output_block_js=&quot;static/page/blocks/blocks/roboticsboard_dsl.js&quot;,
+        output_generator_js=&quot;static/page/blocks/pythonic/roboticsboard_dsl.js&quot;,
+        output_definition_md=&quot;templates/page/blocks/definitions/roboticsboard_dsl.md&quot;,
+    ),
+    DslTarget(
+        source=&quot;static/page/blocks/libraries/sand_table_robot.py&quot;,
+        category_name=&quot;Sand Drawing Machine&quot;,
+        library_name=&quot;sandRobot&quot;,
+        extra_library_names=(&quot;stepper&quot;,),
+        output_block_js=&quot;static/page/blocks/blocks/sand_table_robot_dsl.js&quot;,
+        output_generator_js=&quot;static/page/blocks/pythonic/sand_table_robot_dsl.js&quot;,
+        output_definition_md=&quot;templates/page/blocks/definitions/sand_table_robot_dsl.md&quot;,
+    ),
+    DslTarget(
+        source=&quot;static/page/blocks/libraries/ds1302.py&quot;,
+        category_name=&quot;DS1302&quot;,
+        library_name=&quot;ds1302&quot;,
+        output_block_js=&quot;static/page/blocks/blocks/ds1302_dsl.js&quot;,
+        output_generator_js=&quot;static/page/blocks/pythonic/ds1302_dsl.js&quot;,
+        output_definition_md=&quot;templates/page/blocks/definitions/ds1302_dsl.md&quot;,
+    ),
+    DslTarget(
+        source=&quot;static/page/blocks/libraries/dfplayer.py&quot;,
+        category_name=&quot;DFPlayer&quot;,
+        library_name=&quot;dfplayer&quot;,
+        output_block_js=&quot;static/page/blocks/blocks/dfplayer_dsl.js&quot;,
+        output_generator_js=&quot;static/page/blocks/pythonic/dfplayer_dsl.js&quot;,
+        output_definition_md=&quot;templates/page/blocks/definitions/dfplayer_dsl.md&quot;,
+    ),
+    DslTarget(
+        source=&quot;static/page/blocks/libraries/st7735s.py&quot;,
+        category_name=&quot;ST7735S&quot;,
+        library_name=&quot;st7735s&quot;,
+        output_block_js=&quot;static/page/blocks/blocks/st7735s_dsl.js&quot;,
+        output_generator_js=&quot;static/page/blocks/pythonic/st7735s_dsl.js&quot;,
+        output_definition_md=&quot;templates/page/blocks/definitions/st7735s_dsl.md&quot;,
+    ),
+    # Deprecated in favor of the shared SPI communication blocks.
+    # DslTarget(
+    #     source=&quot;static/page/blocks/libraries/clock_helpers.py&quot;,
+    #     category_name=&quot;Clock Helpers&quot;,
+    #     library_name=&quot;clock_helpers&quot;,
+    #     output_block_js=&quot;static/page/blocks/blocks/clock_helpers_dsl.js&quot;,
+    #     output_generator_js=&quot;static/page/blocks/pythonic/clock_helpers_dsl.js&quot;,
+    #     output_definition_md=&quot;templates/page/blocks/definitions/clock_helpers_dsl.md&quot;,
+    # ),
+]
+
+
+def generate_default_artifacts(root_path: str | Path) -&gt; None:
+    root = Path(root_path)
+    pipeline = DefaultPipeline()
+
+    for target in DEFAULT_TARGETS:
+        source_path = root / target.source
+        if not source_path.exists():
+            continue
+
+        source = source_path.read_text(encoding=&quot;utf-8&quot;)
+        result = pipeline.parse(source, source_path)
+        blocks = result.blocks
+        blocks_by_type = {block.type: block for block in blocks}
+
+        _write_if_changed(
+            root / target.output_block_js,
+            emit_blockly_blocks_js(blocks),
+        )
+        _write_if_changed(
+            root / target.output_generator_js,
+            emit_python_generators_js(result.generators, blocks_by_type),
+        )
+        _write_if_changed(
+            root / target.output_definition_md,
+            emit_definition_markdown(
+                target.category_name,
+                target.library_name,
+                blocks,
+                extra_library_names=target.extra_library_names,
+            ),
+        )
+
+
+def _write_if_changed(path: Path, content: str) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_text(encoding=&quot;utf-8&quot;) == content:
+        return
+    path.write_text(content, encoding=&quot;utf-8&quot;)
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/metadata.py</h2>
+<pre>from __future__ import annotations
+
+from typing import Any
+
+from .errors import UnknownMetadataKeyError
+from .model import (
+    BlockKind,
+    InputKind,
+    InstanceMode,
+    Metadata,
+    MethodInstanceMode,
+    ParamConfig,
+)
+
+
+_CLASS_KEYS = {
+    &quot;category&quot;,
+    &quot;color&quot;,
+    &quot;url&quot;,
+    &quot;label&quot;,
+    &quot;kind&quot;,
+    &quot;inputsInline&quot;,
+    &quot;instanceMode&quot;,
+    &quot;instanceName&quot;,
+    &quot;instanceNameFrom&quot;,
+    &quot;methodInstanceMode&quot;,
+}
+
+_FUNCTION_KEYS = {
+    &quot;label&quot;,
+    &quot;category&quot;,
+    &quot;color&quot;,
+    &quot;url&quot;,
+    &quot;kind&quot;,
+    &quot;inputsInline&quot;,
+    &quot;params&quot;,
+}
+
+
+def metadata_from_dict(raw: dict[str, Any], *, target: str) -&gt; Metadata:
+    allowed = _CLASS_KEYS if target == &quot;class&quot; else _FUNCTION_KEYS
+    unknown = set(raw) - allowed
+    if unknown:
+        raise UnknownMetadataKeyError(
+            f&quot;Unknown {target} metadata key(s): {&#x27;, &#x27;.join(sorted(unknown))}&quot;
+        )
+
+    md = Metadata(
+        category=raw.get(&quot;category&quot;),
+        color=raw.get(&quot;color&quot;),
+        url=raw.get(&quot;url&quot;),
+        label=raw.get(&quot;label&quot;),
+        kind=BlockKind(raw[&quot;kind&quot;]) if raw.get(&quot;kind&quot;) else None,
+        inputs_inline=raw.get(&quot;inputsInline&quot;),
+        instance_mode=InstanceMode(raw[&quot;instanceMode&quot;]) if raw.get(&quot;instanceMode&quot;) else None,
+        instance_name=raw.get(&quot;instanceName&quot;),
+        instance_name_from=raw.get(&quot;instanceNameFrom&quot;),
+        method_instance_mode=(
+            MethodInstanceMode(raw[&quot;methodInstanceMode&quot;])
+            if raw.get(&quot;methodInstanceMode&quot;)
+            else None
+        ),
+    )
+
+    if target == &quot;function&quot;:
+        params_raw = raw.get(&quot;params&quot;, {})
+        md.param_configs = {
+            name: ParamConfig(
+                name=name,
+                input_kind=InputKind(cfg[&quot;inputKind&quot;]) if cfg.get(&quot;inputKind&quot;) else None,
+                check_type=cfg.get(&quot;checkType&quot;),
+                default_value=cfg.get(&quot;defaultValue&quot;),
+                options=[tuple(opt) for opt in cfg.get(&quot;options&quot;, [])],
+            )
+            for name, cfg in params_raw.items()
+        }
+
+    if md.instance_mode == InstanceMode.MULTIPLE:
+        # v1+ rule: multiple-instance classes always use a numeric `id`.
+        md.instance_name_from = &quot;id&quot;
+        if md.method_instance_mode is None:
+            md.method_instance_mode = MethodInstanceMode.KEY_INPUT
+
+    return md
+
+
+def merge_metadata(class_md: Metadata | None, method_md: Metadata | None) -&gt; Metadata | None:
+    if class_md is None and method_md is None:
+        return None
+    if class_md is None:
+        return method_md
+    if method_md is None:
+        return class_md
+
+    return Metadata(
+        category=method_md.category if method_md.category is not None else class_md.category,
+        color=method_md.color if method_md.color is not None else class_md.color,
+        url=method_md.url if method_md.url is not None else class_md.url,
+        label=method_md.label if method_md.label is not None else class_md.label,
+        kind=method_md.kind if method_md.kind is not None else class_md.kind,
+        inputs_inline=(
+            method_md.inputs_inline
+            if method_md.inputs_inline is not None
+            else class_md.inputs_inline
+        ),
+        instance_mode=(
+            method_md.instance_mode
+            if method_md.instance_mode is not None
+            else class_md.instance_mode
+        ),
+        instance_name=(
+            method_md.instance_name
+            if method_md.instance_name is not None
+            else class_md.instance_name
+        ),
+        instance_name_from=(
+            method_md.instance_name_from
+            if method_md.instance_name_from is not None
+            else class_md.instance_name_from
+        ),
+        method_instance_mode=(
+            method_md.method_instance_mode
+            if method_md.method_instance_mode is not None
+            else class_md.method_instance_mode
+        ),
+        param_configs={**class_md.param_configs, **method_md.param_configs},
+    )
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/model.py</h2>
+<pre>from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Any
+
+
+class BlockKind(str, Enum):
+    STATEMENT = &quot;statement&quot;
+    VALUE = &quot;value&quot;
+    HAT = &quot;hat&quot;
+
+
+class InputKind(str, Enum):
+    INPUT_VALUE = &quot;input_value&quot;
+    FIELD_DROPDOWN = &quot;field_dropdown&quot;
+    FIELD_INPUT = &quot;field_input&quot;
+    VARIABLE = &quot;variable&quot;
+
+
+class InstanceMode(str, Enum):
+    SINGLETON = &quot;singleton&quot;
+    MULTIPLE = &quot;multiple&quot;
+
+
+class MethodInstanceMode(str, Enum):
+    FIXED_NAME = &quot;fixed_name&quot;
+    KEY_INPUT = &quot;key_input&quot;
+    OBJECT_INPUT = &quot;object_input&quot;
+
+
+@dataclass(slots=True)
+class ParamConfig:
+    name: str
+    input_kind: InputKind | None = None
+    check_type: str | None = None
+    default_value: Any = None
+    options: list[tuple[str, str]] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class Metadata:
+    category: str | None = None
+    color: int | None = None
+    url: str | None = None
+    label: str | None = None
+    kind: BlockKind | None = None
+    inputs_inline: bool | None = None
+    instance_mode: InstanceMode | None = None
+    instance_name: str | None = None
+    instance_name_from: str | None = None
+    method_instance_mode: MethodInstanceMode | None = None
+    param_configs: dict[str, ParamConfig] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class ParameterSpec:
+    name: str
+    type_hint: str | None = None
+    default_value: Any = None
+
+
+@dataclass(slots=True)
+class AnnotatedElement:
+    tooltip: str = &quot;&quot;
+    is_block_annotated: bool = False
+    metadata: Metadata | None = None
+
+
+@dataclass(slots=True)
+class FunctionBlockSource(AnnotatedElement):
+    name: str = &quot;&quot;
+    is_public_block: bool = False
+    is_constructor: bool = False
+    return_type: str | None = None
+    parameters: list[ParameterSpec] = field(default_factory=list)
+    parent_class_name: str | None = None
+    source_module_name: str | None = None
+    lineno: int | None = None
+
+
+@dataclass(slots=True)
+class ClassBlockSource(AnnotatedElement):
+    name: str = &quot;&quot;
+    methods: list[FunctionBlockSource] = field(default_factory=list)
+    source_module_name: str | None = None
+    lineno: int | None = None
+
+
+@dataclass(slots=True)
+class ModuleSource:
+    name: str
+    path: str
+    classes: list[ClassBlockSource] = field(default_factory=list)
+    functions: list[FunctionBlockSource] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class InputSpec:
+    name: str
+    input_kind: InputKind = InputKind.INPUT_VALUE
+    check_type: str | None = None
+    default_value: Any = None
+    is_instance_selector: bool = False
+    options: list[tuple[str, str]] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class InstanceReferenceSpec:
+    mode: MethodInstanceMode
+    fixed_instance_name: str | None = None
+    key_parameter_name: str | None = None
+    key_input_name: str | None = None
+
+
+@dataclass(slots=True)
+class BlockSpec:
+    type: str
+    label: str
+    category: str
+    color: int | None
+    tooltip: str
+    help_url: str | None
+    kind: BlockKind
+    is_constructor_block: bool
+    inputs_inline: bool
+    inputs: list[InputSpec]
+    source_module_name: str
+    source_function_name: str
+    source_class_name: str | None = None
+    instance_ref: InstanceReferenceSpec | None = None
+
+
+@dataclass(slots=True)
+class ToolboxCategory:
+    name: str
+    color: int | None = None
+    blocks: list[BlockSpec] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class GeneratorSpec:
+    language: str
+    template: str
+    block_type: str
+    source_module_name: str
+    source_function_name: str
+    source_class_name: str | None = None
+
+
+@dataclass(slots=True)
+class AnnotationRecord:
+    metadata_dict: dict[str, Any]
+    tooltip: str
+    annotation_line: int
+    target_line: int
+
+
+@dataclass(slots=True)
+class ParseResult:
+    module: ModuleSource
+    blocks: list[BlockSpec] = field(default_factory=list)
+    toolbox: list[ToolboxCategory] = field(default_factory=list)
+    generators: list[GeneratorSpec] = field(default_factory=list)
+
+
+def module_name_from_path(path: str | Path) -&gt; str:
+    return Path(path).stem
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/pipeline.py</h2>
+<pre>from __future__ import annotations
+
+from pathlib import Path
+
+from .builder import BlockModelBuilder
+from .extractor import PythonAstSourceExtractor
+from .model import ParseResult
+from .python_generator import PythonGeneratorBuilder
+from .resolver import SourceMetadataResolver
+from .scanner import CommentAnnotationScanner
+from .toolbox_builder import SimpleToolboxBuilder
+from .validation import ModelValidator
+
+
+class DefaultPipeline:
+    def __init__(self) -&gt; None:
+        self.scanner = CommentAnnotationScanner()
+        self.extractor = PythonAstSourceExtractor()
+        self.resolver = SourceMetadataResolver()
+        self.validator = ModelValidator()
+        self.block_builder = BlockModelBuilder()
+        self.toolbox_builder = SimpleToolboxBuilder()
+        self.generator_builder = PythonGeneratorBuilder()
+
+    def parse(self, source: str, path: str | Path = &quot;&lt;memory&gt;&quot;) -&gt; ParseResult:
+        annotations = self.scanner.scan(source)
+        module = self.extractor.extract(source, path)
+        module = self.resolver.resolve_module(module, annotations)
+        self.validator.validate_module(module)
+        blocks = self.block_builder.build_blocks(module)
+        toolbox = self.toolbox_builder.build_toolbox(blocks)
+        generators = self.generator_builder.build_generators(blocks)
+        return ParseResult(module=module, blocks=blocks, toolbox=toolbox, generators=generators)
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/python_generator.py</h2>
+<pre>from __future__ import annotations
+
+from .builder import snake_case
+from .model import BlockSpec, GeneratorSpec, MethodInstanceMode
+
+
+class PythonGeneratorBuilder:
+    def build_generators(self, blocks: list[BlockSpec]) -&gt; list[GeneratorSpec]:
+        return [
+            GeneratorSpec(
+                language=&quot;python&quot;,
+                template=self._template_for(block),
+                block_type=block.type,
+                source_module_name=block.source_module_name,
+                source_function_name=block.source_function_name,
+                source_class_name=block.source_class_name,
+            )
+            for block in blocks
+        ]
+
+    def _template_for(self, block: BlockSpec) -&gt; str:
+        if block.is_constructor_block:
+            return self._constructor_template(block)
+        return self._method_template(block)
+
+    def _constructor_template(self, block: BlockSpec) -&gt; str:
+        cls = block.source_class_name or &quot;UnknownClass&quot;
+        args = &quot;, &quot;.join(f&quot;{{{inp.name}}}&quot; for inp in block.inputs if not inp.is_instance_selector)
+        class_ref = f&quot;{block.source_module_name}.{cls}&quot;
+
+        if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.FIXED_NAME:
+            name = block.instance_ref.fixed_instance_name or &quot;board&quot;
+            return f&quot;{name} = {class_ref}({args})&quot;
+
+        if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.KEY_INPUT:
+            key = block.instance_ref.key_input_name or &quot;key&quot;
+            registry = self._registry_name(block)
+            return f&quot;{registry}[{{{key}}}] = {class_ref}({args})&quot;
+
+        return f&quot;{class_ref}({args})&quot;
+
+    def _method_template(self, block: BlockSpec) -&gt; str:
+        call_args = &quot;, &quot;.join(f&quot;{{{inp.name}}}&quot; for inp in block.inputs if not inp.is_instance_selector)
+
+        if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.FIXED_NAME:
+            name = block.instance_ref.fixed_instance_name or &quot;board&quot;
+            return f&quot;{name}.{block.source_function_name}({call_args})&quot;
+
+        if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.KEY_INPUT:
+            key = block.instance_ref.key_input_name or &quot;key&quot;
+            registry = self._registry_name(block)
+            return f&quot;{registry}[{{{key}}}].{block.source_function_name}({call_args})&quot;
+
+        return f&quot;{block.source_function_name}({call_args})&quot;
+
+    def _registry_name(self, block: BlockSpec) -&gt; str:
+        return f&quot;{snake_case(block.source_class_name or &#x27;instance&#x27;)}_instances&quot;
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/resolver.py</h2>
+<pre>from __future__ import annotations
+
+from .metadata import merge_metadata, metadata_from_dict
+from .model import AnnotationRecord, ModuleSource
+
+
+class SourceMetadataResolver:
+    def resolve_module(
+        self,
+        module: ModuleSource,
+        annotations: dict[int, AnnotationRecord],
+    ) -&gt; ModuleSource:
+        for cls in module.classes:
+            if cls.lineno in annotations:
+                record = annotations[cls.lineno]
+                cls.is_block_annotated = True
+                cls.tooltip = record.tooltip
+                cls.metadata = metadata_from_dict(record.metadata_dict, target=&quot;class&quot;)
+
+            for method in cls.methods:
+                if method.lineno in annotations:
+                    record = annotations[method.lineno]
+                    method.is_block_annotated = True
+                    method.is_public_block = True
+                    method.tooltip = record.tooltip
+                    method.metadata = metadata_from_dict(record.metadata_dict, target=&quot;function&quot;)
+                else:
+                    method.is_public_block = False
+
+                method.metadata = merge_metadata(cls.metadata, method.metadata)
+
+        for fn in module.functions:
+            if fn.lineno in annotations:
+                record = annotations[fn.lineno]
+                fn.is_block_annotated = True
+                fn.is_public_block = True
+                fn.tooltip = record.tooltip
+                fn.metadata = metadata_from_dict(record.metadata_dict, target=&quot;function&quot;)
+            else:
+                fn.is_public_block = False
+
+        return module
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/scanner.py</h2>
+<pre>from __future__ import annotations
+
+import json
+import re
+
+from .errors import AnnotationSyntaxError
+from .model import AnnotationRecord
+
+
+_BLOCK_START_RE = re.compile(r&quot;^\s*#\s*@block(?P&lt;body&gt;.*)$&quot;)
+_COMMENT_RE = re.compile(r&quot;^\s*#(?P&lt;body&gt;.*)$&quot;)
+_DEF_OR_CLASS_RE = re.compile(r&quot;^\s*(def|class)\s+\w+&quot;)
+
+
+class CommentAnnotationScanner:
+    def scan(self, source: str) -&gt; dict[int, AnnotationRecord]:
+        lines = source.splitlines()
+        records: dict[int, AnnotationRecord] = {}
+        i = 0
+
+        while i &lt; len(lines):
+            start_match = _BLOCK_START_RE.match(lines[i])
+            if not start_match:
+                i += 1
+                continue
+
+            metadata_dict, next_index = self._read_metadata(lines, i, start_match.group(&quot;body&quot;))
+            tooltip_lines: list[str] = []
+            j = next_index
+
+            while j &lt; len(lines):
+                comment_match = _COMMENT_RE.match(lines[j])
+                if comment_match and not _BLOCK_START_RE.match(lines[j]):
+                    tooltip_lines.append(comment_match.group(&quot;body&quot;).lstrip())
+                    j += 1
+                    continue
+                break
+
+            while j &lt; len(lines) and lines[j].strip() == &quot;&quot;:
+                j += 1
+
+            if j &gt;= len(lines) or not _DEF_OR_CLASS_RE.match(lines[j]):
+                raise AnnotationSyntaxError(
+                    f&quot;@block annotation on line {i + 1} is not followed by a class or def&quot;
+                )
+
+            target_line = j + 1
+            records[target_line] = AnnotationRecord(
+                metadata_dict=metadata_dict,
+                tooltip=&quot;\n&quot;.join(tooltip_lines).strip(),
+                annotation_line=i + 1,
+                target_line=target_line,
+            )
+            i = j + 1
+
+        return records
+
+    def _read_metadata(self, lines: list[str], start_index: int, first_body: str) -&gt; tuple[dict, int]:
+        json_lines: list[str] = []
+        consumed = start_index
+
+        first_body = first_body.strip()
+        if first_body:
+            json_lines.append(first_body)
+
+        # Support both one-line JSON and multiline commented JSON.
+        while True:
+            payload = &quot;\n&quot;.join(json_lines).strip()
+            if payload:
+                try:
+                    return json.loads(payload), consumed + 1
+                except json.JSONDecodeError:
+                    pass
+
+            consumed += 1
+            if consumed &gt;= len(lines):
+                break
+
+            comment_match = _COMMENT_RE.match(lines[consumed])
+            if not comment_match:
+                break
+            json_lines.append(comment_match.group(&quot;body&quot;).lstrip())
+
+        raise AnnotationSyntaxError(
+            f&quot;Invalid JSON in @block annotation on line {start_index + 1}&quot;
+        )
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/toolbox_builder.py</h2>
+<pre>from __future__ import annotations
+
+from .model import BlockSpec, ToolboxCategory
+
+
+class SimpleToolboxBuilder:
+    def build_toolbox(self, blocks: list[BlockSpec]) -&gt; list[ToolboxCategory]:
+        categories: dict[str, ToolboxCategory] = {}
+
+        for block in blocks:
+            category = categories.get(block.category)
+            if category is None:
+                category = ToolboxCategory(name=block.category, color=block.color)
+                categories[block.category] = category
+            category.blocks.append(block)
+
+        return list(categories.values())
+</pre>
+</section><section class="file-section">
+<h2>server/block_dsl/validation.py</h2>
+<pre>from __future__ import annotations
+
+import re
+
+from .errors import InstanceConfigError, LabelPlaceholderError, ValidationError
+from .model import InstanceMode, InputKind, MethodInstanceMode, ModuleSource
+
+_PLACEHOLDER_RE = re.compile(r&quot;\{([A-Za-z_][A-Za-z0-9_]*)\}&quot;)
+
+
+class ModelValidator:
+    def validate_module(self, module: ModuleSource) -&gt; None:
+        for cls in module.classes:
+            self._validate_class(cls)
+            for method in cls.methods:
+                self._validate_function(method)
+
+        for fn in module.functions:
+            self._validate_function(fn)
+
+    def _validate_class(self, cls) -&gt; None:
+        md = cls.metadata
+        if not md:
+            return
+
+        instance_mode = md.instance_mode or InstanceMode.SINGLETON
+        if instance_mode == InstanceMode.MULTIPLE:
+            constructor = next((method for method in cls.methods if method.is_constructor), None)
+            if constructor is None:
+                raise InstanceConfigError(
+                    f&quot;Class {cls.name}: instanceMode=multiple requires an annotated __init__ constructor&quot;
+                )
+
+            constructor_param_names = {p.name for p in constructor.parameters}
+            if &quot;id&quot; not in constructor_param_names:
+                raise InstanceConfigError(
+                    f&quot;Class {cls.name}: instanceMode=multiple requires constructor parameter &#x27;id&#x27;&quot;
+                )
+
+    def _validate_function(self, fn) -&gt; None:
+        if not fn.is_public_block:
+            return
+
+        md = fn.metadata
+        if md is None:
+            raise ValidationError(f&quot;{fn.name}: public block is missing resolved metadata&quot;)
+
+        param_names = {p.name for p in fn.parameters}
+        for cfg_name, cfg in md.param_configs.items():
+            if cfg_name not in param_names:
+                raise ValidationError(
+                    f&quot;{fn.name}: param config &#x27;{cfg_name}&#x27; does not match a function parameter&quot;
+                )
+            if cfg.input_kind == InputKind.FIELD_DROPDOWN and not cfg.options:
+                raise ValidationError(
+                    f&quot;{fn.name}: field_dropdown param &#x27;{cfg_name}&#x27; requires options&quot;
+                )
+            if cfg.options and cfg.input_kind not in {InputKind.FIELD_DROPDOWN, None}:
+                raise ValidationError(
+                    f&quot;{fn.name}: options only make sense for field_dropdown params&quot;
+                )
+
+        if md.label:
+            valid_names = set(param_names)
+            if (
+                fn.parent_class_name
+                and (md.instance_mode or InstanceMode.SINGLETON) == InstanceMode.MULTIPLE
+                and md.method_instance_mode == MethodInstanceMode.KEY_INPUT
+                and not fn.is_constructor
+            ):
+                valid_names.add(&quot;id&quot;)
+
+            for placeholder in _PLACEHOLDER_RE.findall(md.label):
+                if placeholder not in valid_names:
+                    raise LabelPlaceholderError(
+                        f&quot;{fn.name}: label placeholder &#x27;{placeholder}&#x27; is not a valid input name&quot;
+                    )
+</pre>
+</section>
+</body>
+</html>

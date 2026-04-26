@@ -30,6 +30,7 @@ class Channel {
     this.websocket = new _WebSocket(this)
     this.webbluetooth = new _WebBluetooth(this)
 
+    this.connections = {}
     this.targetDevice
     this.ping = {      // Create a timer on connect and on message to check
       timer:undefined, // if the device is responding
@@ -42,8 +43,9 @@ class Channel {
     })
 
     window.addEventListener("beforeunload", () => {
-      if (this.current != undefined)
-        this.disconnect(true)
+      Object.keys(this.connections).forEach(uid => {
+        this.disconnect(true, uid)
+      })
     })
     // Global shortcuts
     shortcut.add("Shift+Ctrl+S", () => {
@@ -52,6 +54,61 @@ class Channel {
           this.targetDevice, [], this.tabUID
         ])
     })
+  }
+  _createTransport (channel){
+    switch (channel){
+      case 'websocket':
+        return new _WebSocket(this)
+      case 'webserial':
+        return new _WebSerial(this)
+      case 'webbluetooth':
+        return new _WebBluetooth(this)
+      default:
+        return undefined
+    }
+  }
+  _activeConnection (){
+    if (this.targetDevice == undefined)
+      return undefined
+    return this.connections[this.targetDevice]
+  }
+  _syncActiveConnection (){
+    let connection = this._activeConnection()
+    if (connection == undefined)
+      return
+
+    connection.output = this.output
+    connection.lock = this.lock
+    connection.dirty = this.dirty
+    connection.callbacks = this.callbacks
+    connection.ping = this.ping
+  }
+  hasConnection (uid){
+    return this.connections[uid] != undefined
+  }
+  activate (uid){
+    let connection = this.connections[uid]
+    if (connection == undefined)
+      return false
+
+    this._syncActiveConnection()
+    clearInterval(this.watcher)
+
+    this.targetDevice = uid
+    this.current = connection.current
+    this.currentProtocol = connection.currentProtocol
+    this.input = connection.input
+    this.output = connection.output
+    this.callbacks = connection.callbacks
+    this.lock = connection.lock
+    this.dirty = connection.dirty
+    this.ping = connection.ping
+
+    this.watcher = setInterval(
+      this.current.watch.bind(this.current),
+      50);
+
+    return true
   }
   renewPing (){
     clearTimeout(this.ping.timer)
@@ -88,6 +145,9 @@ class Channel {
       bipes.page.notification.send(Msg["NotConnectedWarning"])
       return
     }
+
+    if (targetDevice != undefined && this.targetDevice != targetDevice)
+      this.activate(targetDevice)
 
     if (this.current == undefined || this.targetDevice != targetDevice)
       return
@@ -130,6 +190,9 @@ class Channel {
       return
     }
 
+    if (targetDevice != undefined && this.targetDevice != targetDevice)
+      this.activate(targetDevice)
+
     if (this.current == undefined || this.targetDevice != targetDevice)
       return
 
@@ -142,42 +205,81 @@ class Channel {
 
   }
   connect (channel, callback, conf){
+    let transport = this._createTransport(channel)
+    if (transport == undefined)
+      return false
+
     switch (channel){
       case 'websocket':
       case 'webserial':
-        this[channel].connect(callback, conf)
+        transport.connect(callback, conf)
         break
       default:
-        this[channel].connect(callback)
+        transport.connect(callback)
     }
   }
-  _connected (channel, callback){
-    this.targetDevice = Tool.UID()
-    this.current = this[channel]
-    this.currentProtocol = this.current.name
-    this.watcher = setInterval(
-      this.current.watch.bind(this.current),
-      50);
+  _connected (channel, callback, transport){
+    let uid = Tool.UID()
+    transport = transport || this[channel]
+    transport.uid = uid
+
+    this.connections[uid] = {
+      current: transport,
+      currentProtocol: transport.name,
+      input: [],
+      output: '',
+      callbacks: [],
+      lock: false,
+      dirty: false,
+      ping: {
+        timer: undefined,
+        on: false
+      }
+    }
+
+    this.activate(uid)
     this.pipe.prompt_on()
     this.pipe.prompt_write(`\r\n\x1b[31mConnected with ${this.currentProtocol}!\x1b[m\r\n`);
     this.push('\r\n', this.targetDevice)
     if (typeof callback == 'object' && typeof callback[1] == 'function')
       callback[1].apply(callback[0])
   }
-  disconnect (force){
-    if (!this.current.disconnect(force))
+  disconnect (force, uid){
+    uid = uid || this.targetDevice
+    let connection = this.connections[uid]
+
+    if (connection == undefined)
       return
 
-    this._disconnected()
+    if (connection.current != undefined)
+      connection.current.disconnect(force)
+
+    this._disconnected(uid)
   }
-  _disconnected (){
-    clearInterval(this.watcher);
+  _disconnected (uid){
+    if (uid == undefined)
+      return
+
+    let connection = this.connections[uid]
+    if (connection == undefined)
+      return
+
+    let wasActive = uid == this.targetDevice,
+      currentProtocol = connection.currentProtocol
+
+    if (wasActive)
+      clearInterval(this.watcher);
+
+    delete this.connections[uid]
+
+    if (!wasActive) {
+      this.pipe.device_unuse(uid)
+      return
+    }
 
     this.output = ''
     this.callbacks = []
     this.current = undefined
-    let uid = this.targetDevice,
-        currentProtocol = this.currentProtocol
     this.currentProtocol = ''
     this.pipe.device_unuse(uid)
     this.pipe.prompt_off()
@@ -186,7 +288,32 @@ class Channel {
     // Check and reconnect under some circunstances
     this.pipe.device_reconnect(currentProtocol)
   }
+  stripDashboardTriggerLines (out){
+    let lines = out.split(/\r?\n/),
+        changed = false
+
+    lines = lines.filter((line) => {
+      let normalized = line.trim()
+
+      if (normalized.startsWith('>>> '))
+        normalized = normalized.substr(4).trim()
+
+      let isTrigger = normalized == 'CAPTURE' ||
+        normalized.includes('BIPES_CAMERA_TRIGGER') ||
+        normalized.includes('BIPES_CAMERA_CAPTURE') ||
+        normalized.includes('$BIPES-CAMERA:') ||
+        normalized.includes('$BIPES_CAMERA:')
+
+      if (isTrigger)
+        changed = true
+
+      return !isTrigger
+    })
+
+    return changed ? lines.join('\n') : out
+  }
   handleCallback (out){
+    out = this.stripDashboardTriggerLines(out)
     // Remove backspaces and characters that antecends it
     out = this.interpretBackspace(
             out.replaceAll('\t', '    ')
@@ -264,7 +391,10 @@ class Channel {
     this.callbacks.unshift({skip:true})
     return true
   }
-  inArrayBuffer (buffer){
+  inArrayBuffer (buffer, uid){
+    if (uid != undefined && uid != this.targetDevice)
+      return
+
     let uint8 = new Uint8Array(buffer)
 
     if (this.callbacks.length > 0){
@@ -295,7 +425,10 @@ class Channel {
       this.callbacks.shift()
     }
   }
-  inString (chunk){
+  inString (chunk, uid){
+    if (uid != undefined && uid != this.targetDevice)
+      return
+
     //data comes in chunks, keep last 4 chars to check MicroPython REPL string
     this.output += chunk
 
@@ -325,6 +458,14 @@ function _WebSerial (parent){
   }
   this.encoder = new TextEncoder()
   this.parent = parent
+  this.isChooserCancelError = (error) => {
+    if (!error)
+      return false
+
+    return error.name == 'NotFoundError' ||
+      error.name == 'AbortError' ||
+      /No port selected by the user/i.test(error.message || '')
+  }
   /**
    * Connect using webserial protocol, will ask user permission for the serial port.
    * @param {function} callback - Function to call on connect.
@@ -338,30 +479,34 @@ function _WebSerial (parent){
     navigator.serial.requestPort().then((port) => {
       this.port = port
       this.port.open({baudRate: [baudrate] }).then(() => {
+        const transport = this
         const appendStream = new WritableStream({
           write(chunk) {
             if (typeof chunk == 'string') {
-              window.bipes.channel.inString(chunk)
+              window.bipes.channel.inString(chunk, transport.uid)
             }
           },
           abort(e){
-            window.bipes.channel._disconnected()
+            window.bipes.channel._disconnected(transport.uid)
           }
         })
         this.port.readable
         .pipeThrough(new TextDecoderStream())
         .pipeTo(appendStream)
-        this.parent._connected('webserial', callback)
+        this.parent._connected('webserial', callback, this)
         return true
 
       }).catch((e) => {
         console.error(e)
         if (e.code == 11) {
-          this.parent._connected('webserial', callback)
+          this.parent._connected('webserial', callback, this)
           return true
         }
       })
     }).catch((e) => {
+      if (this.isChooserCancelError(e))
+        return false
+
       console.error(e)
       return false
     })
@@ -380,12 +525,13 @@ function _WebSerial (parent){
           console.error(e)
           if (force == true){
             writer.abort()
-            this.parent._disconnected()
+            this.parent._disconnected(this.uid)
             this.port = undefined
           }
         })
         return true
     })
+    return true
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)
@@ -467,13 +613,13 @@ function _WebSocket (parent){
     this.ws.binaryType = 'arraybuffer';
     this.ws.onopen = () => {
       this.ws.send(`${conf.passwd}\n\n`)
-      this.parent._connected('websocket', callback)
+      this.parent._connected('websocket', callback, this)
       this.ws.onmessage = (event) => {
         if (event.data instanceof ArrayBuffer){
-          window.bipes.channel.inArrayBuffer(event.data)
+          window.bipes.channel.inArrayBuffer(event.data, this.uid)
         }
         if (typeof event.data == 'string'){
-          window.bipes.channel.inString(event.data)
+          window.bipes.channel.inString(event.data, this.uid)
 
           if (event.data.includes("Access denied"))
             bipes.page.notification.send("Wrong board password")
@@ -483,7 +629,7 @@ function _WebSocket (parent){
     this.ws.onclose = () => {
       // onclose might be called even if onopen didn't exec
       if (this.parent.current != undefined)
-        this.parent._disconnected()
+        this.parent._disconnected(this.uid)
     }
 
   }
@@ -492,7 +638,7 @@ function _WebSocket (parent){
    */
   this.disconnect = (force) => {
     this.ws.close()
-    this.parent._disconnected()
+    return true
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)
@@ -553,6 +699,15 @@ function _WebBluetooth (parent){
   this.parent = parent
   this.encoder = new TextEncoder()
   this.decoder = new TextDecoder()
+  this.isChooserCancelError = (error) => {
+    if (!error)
+      return false
+
+    return error.name == 'NotFoundError' ||
+      error.name == 'AbortError' ||
+      /requestDevice\(\) chooser/i.test(error.message || '') ||
+      /User cancelled/i.test(error.message || '')
+  }
 
   this.streaming                         // If is streaming data over bluetooth
   this.bleDevice                         // Store selected device
@@ -583,7 +738,7 @@ function _WebBluetooth (parent){
         console.log(`Found ${bleDevice.name}\nConnecting to GATT Server...`)
         this.bleDevice.addEventListener(
           'gattserverdisconnected',
-          this.disconnect.bind(this)
+          () => { this.parent._disconnected(this.uid) }
           );
         return bleDevice.gatt.connect()
       })
@@ -619,15 +774,20 @@ function _WebBluetooth (parent){
           'characteristicvaluechanged',
           (ev) => {
             this.parent.inString(
-              this.decoder.decode(ev.target.value)
+              this.decoder.decode(ev.target.value),
+              this.uid
               )
             }
           )
-        this.parent._connected('webbluetooth', callback)
+        this.parent._connected('webbluetooth', callback, this)
         /* connnected */
       }).catch(error => {
+        if (this.isChooserCancelError(error))
+          return false
+
         console.error('WebBluetooth error:', error)
-        this.parent._disconnected()
+        if (this.uid != undefined)
+          this.parent._disconnected(this.uid)
         /* error */
         if(this.bleDevice && this.bleDevice.gatt.connected)
           this.bleDevice.gatt.disconnect()
@@ -644,8 +804,7 @@ function _WebBluetooth (parent){
     this.nusService = undefined;
     this.txCharacteristic = undefined;
     this.rxCharacteristic = undefined;
-
-    this.parent._disconnected()
+    return true
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)

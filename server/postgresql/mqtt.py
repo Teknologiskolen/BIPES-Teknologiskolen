@@ -1,7 +1,7 @@
 # SQL Macro to create new table
 sql_macro_table = """
 create table {} (
-  uuid uuid default uuid_generate_v4(),
+  uuid text default md5(random()::text || clock_timestamp()::text),
   lastEdited numeric(16,6) not null default(extract(epoch from current_timestamp::timestamp with time zone)::numeric(16,6)),
   topic varchar(18) not null,
   data text not null

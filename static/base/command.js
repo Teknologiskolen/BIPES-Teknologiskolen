@@ -21,13 +21,21 @@ class CommandBroker {
     }
     this.tabUID = Tool.UID()
     this.clients = []
+    this.clientMetaKey = 'clients_meta'
+    this.clientHeartbeatMs = 5000
+    this.clientMaxAgeMs = 15000
+    this.clientHeartbeatTimer = undefined
 
     this.add (this, {
       clientsChanged: this.clientsChanged
     }, true)
 
     this._clientConnect ()
-    window.addEventListener("unload", () => {
+    this.clientHeartbeatTimer = setInterval(() => {
+      this._clientHeartbeat()
+    }, this.clientHeartbeatMs)
+    window.addEventListener("pagehide", () => {
+      clearInterval(this.clientHeartbeatTimer)
       this._clientDisconnect()
       this.pipe.close()
     })
@@ -157,26 +165,62 @@ class CommandBroker {
     this.map[key].fun(_key, args)
   }
   _clientConnect (){
-    // Parse connected clients and include tab
-    if (localStorage['clients'] == undefined || localStorage['clients'] == '[]') {
-      this.clients = [this.tabUID]
-      localStorage.setItem('clients', JSON.stringify(this.clients))
-    } else {
-      this.clients = JSON.parse(localStorage['clients'])
-      this.clients.push(this.tabUID)
-      localStorage.setItem('clients', JSON.stringify(this.clients))
+    let meta = this._pruneClientMeta(this._readClientMeta())
+    let hadOtherClients = Object.keys(meta).some((uid) => uid !== this.tabUID)
 
-      if (this.clients.length > 1)
-        this.dispatch(this, 'clientsChanged', [this.tabUID, true])
-    }
+    meta[this.tabUID] = +new Date()
+    this._writeClientMeta(meta)
+    this._syncClientsFromMeta(meta)
+
+    if (hadOtherClients)
+      this.dispatch(this, 'clientsChanged', [this.tabUID, true])
   }
   _clientDisconnect (){
-    this.clients.splice(
-      this.clients.indexOf(this.tabUID), 1
-    )
-    localStorage.setItem('clients', JSON.stringify(this.clients))
+    let meta = this._pruneClientMeta(this._readClientMeta())
+    delete meta[this.tabUID]
+    this._writeClientMeta(meta)
+    this._syncClientsFromMeta(meta)
 
     this.dispatch(this, 'clientsChanged', [this.tabUID, false])
+  }
+  _clientHeartbeat (){
+    let meta = this._pruneClientMeta(this._readClientMeta())
+    meta[this.tabUID] = +new Date()
+    this._writeClientMeta(meta)
+    this._syncClientsFromMeta(meta)
+  }
+  _readClientMeta (){
+    if (!localStorage[this.clientMetaKey])
+      return {}
+
+    try {
+      let meta = JSON.parse(localStorage[this.clientMetaKey])
+      return typeof meta == 'object' && meta !== null ? meta : {}
+    } catch (e) {
+      return {}
+    }
+  }
+  _writeClientMeta (meta){
+    localStorage.setItem(this.clientMetaKey, JSON.stringify(meta))
+  }
+  _pruneClientMeta (meta){
+    let now = +new Date()
+    let pruned = {}
+
+    Object.keys(meta || {}).forEach((uid) => {
+      let timestamp = Number(meta[uid])
+      if (!Number.isFinite(timestamp))
+        return
+      if (now - timestamp > this.clientMaxAgeMs)
+        return
+      pruned[uid] = timestamp
+    })
+
+    return pruned
+  }
+  _syncClientsFromMeta (meta){
+    this.clients = Object.keys(meta || {})
+    localStorage.setItem('clients', JSON.stringify(this.clients))
   }
   /**
    * If clients were removed or added.
@@ -184,13 +228,14 @@ class CommandBroker {
    * @param {bool} add - True to add and false to remove.
    */
   clientsChanged (uid, add){
-    if (add) {
-      this.clients.push(uid)
-    } else {
-      this.clients.splice(
-        this.clients.indexOf(uid), 1
-      )
-    }
+    let meta = this._pruneClientMeta(this._readClientMeta())
+    if (add)
+      meta[uid] = +new Date()
+    else
+      delete meta[uid]
+
+    this._writeClientMeta(meta)
+    this._syncClientsFromMeta(meta)
   }
 }
 

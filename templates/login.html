@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BIPES</title>
+    <title>{{ t.login }} - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body>
+<body class="login-page {{ theme }}">
     <div class="auth-container">
         <div class="auth-header">
-            <h1 id="login-title">Login</h1>
-            <p id="login-subtitle">Access your BIPES account</p>
+            <img class="auth-logo" src="/static/media/icon/icon-192x192.png" alt="BIPES logo">
+            <h1 id="login-title">{{ t.login }}</h1>
+            <p id="login-subtitle">{{ t.login_subtitle }}</p>
         </div>
 
         <div id="alert-container"></div>
@@ -19,98 +20,82 @@
         <div id="teacher-login" style="display: none;">
             <form id="teacher-login-form" class="auth-form">
                 <div class="form-group">
-                    <label for="teacher-email">Email</label>
+                    <label for="teacher-email">{{ t.email }}</label>
                     <input type="email" id="teacher-email" name="email" required placeholder="teacher@school.com">
                 </div>
 
                 <div class="form-group">
-                    <label for="teacher-password">Password</label>
+                    <label for="teacher-password">{{ t.password }}</label>
                     <input type="password" id="teacher-password" name="password" required placeholder="••••••••">
                 </div>
 
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="teacher-remember" name="remember">
-                    <label for="teacher-remember">Remember me</label>
-                </div>
-
                 <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">Login as Teacher</span>
+                    <span class="btn-text">{{ t.login_as_teacher }}</span>
                 </button>
             </form>
 
             <div class="auth-links">
-                <p>Don't have an account? <a href="/register">Register here</a></p>
-                <p><a href="/ide">Continue as Guest</a></p>
+                <p>{{ t.register_prompt }} <a href="/register" data-auth-preserve>{{ t.register_here }}</a></p>
+                <p><a href="/ide" data-auth-ide>{{ t.guest_login }}</a></p>
             </div>
         </div>
 
         <!-- Student Login -->
         <div id="student-login" style="display: none;">
-            <div class="tabs">
-                <button class="tab active" data-tab="class-code-tab">Class Code</button>
-                <button class="tab" data-tab="email-tab">Email</button>
-            </div>
+            <form id="student-class-form" class="auth-form">
+                <div class="form-group">
+                    <label for="class-code">{{ t.class_code }}</label>
+                    <input
+                        type="text"
+                        id="class-code"
+                        name="class_code"
+                        required
+                        placeholder="ABC123XY"
+                        maxlength="8"
+                        style="text-transform: uppercase;">
+                </div>
 
-            <!-- Class Code Login Tab -->
-            <div id="class-code-tab" class="tab-content active">
-                <form id="student-class-form" class="auth-form">
-                    <div class="form-group">
-                        <label for="class-code">Class Code</label>
-                        <input
-                            type="text"
-                            id="class-code"
-                            name="class_code"
-                            required
-                            placeholder="ABC123XY"
-                            maxlength="8"
-                            style="text-transform: uppercase;">
-                    </div>
+                <div class="form-group">
+                    <label for="student-name">{{ t.username }}</label>
+                    <input type="text" id="student-name" name="student_name" required placeholder="{{ t.username }}">
+                </div>
 
-                    <div class="form-group">
-                        <label for="student-name">Your Name</label>
-                        <input type="text" id="student-name" name="student_name" required placeholder="John Smith">
-                    </div>
+                <div class="form-group">
+                    <label for="student-password-class">{{ t.password }}</label>
+                    <input type="password" id="student-password-class" name="password" required placeholder="••••••••">
+                </div>
 
-                    <div class="form-group">
-                        <label for="student-password-class">Password</label>
-                        <input type="password" id="student-password-class" name="password" required placeholder="••••••••">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-text">Login</span>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Email Login Tab -->
-            <div id="email-tab" class="tab-content">
-                <form id="student-email-form" class="auth-form">
-                    <div class="form-group">
-                        <label for="student-email">Email</label>
-                        <input type="email" id="student-email" name="email" required placeholder="student@email.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="student-password-email">Password</label>
-                        <input type="password" id="student-password-email" name="password" required placeholder="••••••••">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-text">Login</span>
-                    </button>
-                </form>
-            </div>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">{{ t.login }}</span>
+                </button>
+            </form>
 
             <div class="auth-links">
-                <p><a href="/ide">Continue as Guest</a></p>
+                <p><a href="/ide" data-auth-ide>{{ t.guest_login }}</a></p>
             </div>
         </div>
 
         <div class="auth-back">
-            <a href="/" class="btn btn-secondary">Back to Home</a>
+            <a href="/" class="btn btn-secondary" data-auth-preserve>{{ t.back_home }}</a>
         </div>
     </div>
 
+    <div id="status-bar" class="auth-status-bar">
+        <div id="extra">
+            <button id="forum" class="status-icon" type="button" title="{{ t.forum }}">{{ t.forum }}</button>
+            <button id="theme" class="status-icon" type="button" title="{{ t.change_theme }}">{{ t.mode }}</button>
+            <span id="language" class="status-icon">{{ t.language }}
+                <select id="auth-language" title="{{ t.language }}">
+                    {% for key, value in available_lang.items() -%}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div id="globals"></div>
+    </div>
+    <script>window.authText = {{ t|tojson }};</script>
+    <script src="/static/auth/preferences.js"></script>
     <script src="/static/auth/login.js"></script>
 </body>
 </html>

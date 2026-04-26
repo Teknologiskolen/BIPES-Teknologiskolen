@@ -1,4 +1,9 @@
 // Teacher Registration JavaScript
+const authText = window.authText || {};
+
+function t(key, fallback) {
+    return authText[key] || fallback;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('register-form');
@@ -34,12 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Validation
         if (password !== confirmPassword) {
-            showAlert('Passwords do not match', 'error');
+            showAlert(t('passwords_no_match', 'Passwords do not match'), 'error');
             return;
         }
 
         if (password.length < 8) {
-            showAlert('Password must be at least 8 characters', 'error');
+            showAlert(t('password_min', 'Password must be at least 8 characters'), 'error');
             return;
         }
 
@@ -52,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     full_name: fullName,
                     email: email,
@@ -62,15 +68,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok) {
-                showAlert('Registration successful! Redirecting...', 'success');
+                showAlert(t('registration_success', 'Registration successful! Redirecting...'), 'success');
                 setTimeout(() => {
-                    window.location.href = '/ide';
+                    window.location.href = window.authPreferences ? window.authPreferences.idePath() : '/ide';
                 }, 1500);
             } else {
-                showAlert(data.error || 'Registration failed', 'error');
+                showAlert(data.error || t('registration_failed', 'Registration failed'), 'error');
             }
         } catch (error) {
-            showAlert('Network error. Please try again.', 'error');
+            showAlert(t('network_error', 'Network error. Please try again.'), 'error');
         } finally {
             setLoading(false);
         }
@@ -108,9 +114,9 @@ function setLoading(isLoading) {
 
     if (isLoading) {
         button.disabled = true;
-        buttonText.innerHTML = '<span class="spinner"></span> Creating Account...';
+        buttonText.innerHTML = '<span class="spinner"></span> ' + t('creating_account', 'Creating Account...');
     } else {
         button.disabled = false;
-        buttonText.textContent = 'Create Account';
+        buttonText.textContent = t('create_account', 'Create Account');
     }
 }

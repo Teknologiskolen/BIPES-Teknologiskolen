@@ -27,7 +27,9 @@ log_dest file /mosquitto/log/mosquitto.log
 log_dest stdout
 log_type all
 allow_anonymous false
-password_file /mosquitto/config/mosquitto_passwd
+per_listener_settings false
+plugin /usr/lib/mosquitto_dynamic_security.so
+plugin_opt_config_file /mosquitto/data/dynamic-security.json
 listener 1883
 protocol mqtt
 listener 9001
@@ -67,6 +69,7 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     client_max_body_size 10m;
 
@@ -94,6 +97,10 @@ server {
         alias /usr/share/nginx/html/static/;
         expires 1h;
         add_header Cache-Control "public, must-revalidate";
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         access_log off;
     }
 
@@ -106,6 +113,10 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
         add_header Pragma "no-cache" always;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         expires -1;
     }
 
@@ -117,6 +128,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         expires -1;
     }
 
@@ -143,6 +158,18 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    # MQTT WebSocket proxy (browser -> wss:// -> nginx -> ws://broker:9001)
+    location /wss {
+        resolver 127.0.0.11 valid=10s;
+        set $mqtt_upstream http://broker:9001;
+        proxy_pass $mqtt_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400;
+    }
 }
 CONF
 
@@ -161,9 +188,7 @@ CREATE TABLE IF NOT EXISTS teachers (
 CREATE TABLE IF NOT EXISTS students (
   student_id SERIAL PRIMARY KEY,
   student_name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  initial_password TEXT,
   password_changed BOOLEAN DEFAULT FALSE,
   created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
   created_by_teacher_id INTEGER NOT NULL,
@@ -202,6 +227,45 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6))
 );
 
+CREATE TABLE IF NOT EXISTS auth_events (
+  event_id BIGSERIAL PRIMARY KEY,
+  user_type VARCHAR(20),
+  user_id INTEGER,
+  event_type VARCHAR(50) NOT NULL,
+  target_type VARCHAR(50),
+  target_id VARCHAR(100),
+  ip_address VARCHAR(64),
+  details JSONB,
+  created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6))
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  session_id BIGSERIAL PRIMARY KEY,
+  session_token_hash VARCHAR(64) UNIQUE NOT NULL,
+  user_type VARCHAR(20) NOT NULL,
+  user_id INTEGER NOT NULL,
+  created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
+  last_seen_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
+  expires_at NUMERIC(16,6) NOT NULL,
+  rotated_at NUMERIC(16,6),
+  revoked_at NUMERIC(16,6),
+  ip_address VARCHAR(64),
+  user_agent TEXT
+);
+
+CREATE TABLE IF NOT EXISTS mqtt_devices (
+  device_uid VARCHAR(64) PRIMARY KEY,
+  owner_user_type VARCHAR(20) NOT NULL,
+  owner_user_id INTEGER NOT NULL,
+  display_name VARCHAR(100) NOT NULL,
+  mqtt_username VARCHAR(100) UNIQUE NOT NULL,
+  mqtt_topic_prefix VARCHAR(255) NOT NULL,
+  created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
+  last_rotated_at NUMERIC(16,6),
+  revoked_at NUMERIC(16,6),
+  is_active BOOLEAN DEFAULT TRUE
+);
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='student_id') THEN
@@ -213,10 +277,24 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='assigned_class_id') THEN
         ALTER TABLE projects ADD COLUMN assigned_class_id INTEGER REFERENCES classes(class_id) ON DELETE SET NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='share_uid') THEN
+        ALTER TABLE projects ADD COLUMN share_uid VARCHAR(32);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='share_token') THEN
+        ALTER TABLE projects ADD COLUMN share_token VARCHAR(64);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='shared_public') THEN
+        ALTER TABLE projects ADD COLUMN shared_public BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='shared_class_id') THEN
+        ALTER TABLE projects ADD COLUMN shared_class_id INTEGER REFERENCES classes(class_id) ON DELETE SET NULL;
+    END IF;
 END $$;
 
+ALTER TABLE students DROP COLUMN IF EXISTS email;
+ALTER TABLE students DROP COLUMN IF EXISTS initial_password;
+
 CREATE INDEX IF NOT EXISTS idx_students_name ON students(student_name);
-CREATE INDEX IF NOT EXISTS idx_students_email ON students(email);
 CREATE INDEX IF NOT EXISTS idx_classes_code ON classes(class_code);
 CREATE INDEX IF NOT EXISTS idx_classes_teacher ON classes(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_class ON enrollments(class_id);
@@ -224,19 +302,20 @@ CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_projects_student ON projects(student_id);
 CREATE INDEX IF NOT EXISTS idx_projects_teacher ON projects(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_projects_assigned_class ON projects(assigned_class_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_share_uid ON projects(share_uid);
+CREATE INDEX IF NOT EXISTS idx_projects_shared_public ON projects(shared_public);
+CREATE INDEX IF NOT EXISTS idx_projects_shared_class_id ON projects(shared_class_id);
+CREATE INDEX IF NOT EXISTS idx_auth_events_user ON auth_events(user_type, user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_events_type ON auth_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_auth_events_created_at ON auth_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_type, user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_mqtt_devices_owner ON mqtt_devices(owner_user_type, owner_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mqtt_devices_username ON mqtt_devices(mqtt_username);
 SQL
 
-echo "[3/5] Creating Mosquitto password file..."
-if [ ! -f config/mosquitto_passwd ]; then
-    # Generate a random password if MOSQUITTO_PASSWORD not set
-    MQTT_PASS=${MOSQUITTO_PASSWORD:-$(openssl rand -base64 12)}
-    # Create password file using mosquitto container
-    docker run --rm -v "$(pwd)/config:/tmp/config" eclipse-mosquitto:2.0 \
-        mosquitto_passwd -b -c /tmp/config/mosquitto_passwd bipes "$MQTT_PASS"
-    echo "   MQTT password: $MQTT_PASS (save this for your .env file)"
-else
-    echo "   mosquitto_passwd already exists, skipping"
-fi
+echo "[3/5] Preparing Mosquitto Dynamic Security..."
+echo "   dynamic-security.json will be created in the Docker mosquitto_data volume on first start"
 
 echo "[4/5] Generating SSL certificates..."
 if [ ! -f ssl/cert.pem ]; then
@@ -256,6 +335,9 @@ fi
 echo "[5/5] Creating .env file..."
 if [ ! -f .env ]; then
     FLASK_SECRET=$(openssl rand -base64 32)
+    PASSWORD_PEPPER=$(openssl rand -base64 32)
+    MQTT_PASS=$(openssl rand -base64 24)
+    MQTT_DYNSEC_ADMIN_PASS=$(openssl rand -base64 24)
     cat > .env << EOF
 # BIPES Configuration
 # Auth Mode: "full" (teacher+student+guest with login) or "guest" (guest-only, no login)
@@ -265,6 +347,7 @@ AUTH_MODE=guest
 
 # Flask
 FLASK_SECRET_KEY=$FLASK_SECRET
+PASSWORD_PEPPER=$PASSWORD_PEPPER
 
 # PostgreSQL (only needed in full auth mode)
 POSTGRES_DB=bipes
@@ -272,7 +355,11 @@ POSTGRES_USER=bipes_user
 POSTGRES_PASSWORD=$(openssl rand -base64 16)
 
 # Mosquitto MQTT
-MOSQUITTO_PASSWORD=${MQTT_PASS:-changeme}
+MOSQUITTO_USERNAME=bipes-server
+MOSQUITTO_PASSWORD=$MQTT_PASS
+MOSQUITTO_DYNSEC_ENABLED=true
+MOSQUITTO_DYNSEC_ADMIN_USERNAME=admin
+MOSQUITTO_DYNSEC_ADMIN_PASSWORD=$MQTT_DYNSEC_ADMIN_PASS
 EOF
     echo "   .env file created with random secrets"
 else
@@ -291,7 +378,6 @@ echo "  ├── docker-compose.yml    (deployment config)"
 echo "  ├── config/"
 echo "  │   ├── nginx.conf"
 echo "  │   ├── mosquitto.conf"
-echo "  │   ├── mosquitto_passwd"
 echo "  │   └── init-db.sql"
 echo "  └── ssl/"
 echo "      ├── cert.pem"

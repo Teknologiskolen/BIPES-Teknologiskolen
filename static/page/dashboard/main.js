@@ -8,11 +8,15 @@ import {navigation} from '../../base/navigation.js'
 
 import {project} from '../project/main.js'
 import {Actions} from './action.js'
-import {plugins} from './plugins.js'
+import {plugins, triggerSharedSerialCameraFeedFromChunk} from './plugins.js'
 
 import {dataStorage} from './datastorage.js'
 import {easyMQTT} from './easymqtt.js'
 import {databaseMQTT} from './easymqtt.js'
+
+function dashboardMainMsg (key, fallback){
+  return (window.Msg && Msg[key]) || fallback
+}
 
 /* Create dashboard with graphs, plugins and buttons */
 class Dashboard {
@@ -133,6 +137,7 @@ class Dashboard {
    * @param {string} chunk - Incoming data.
    */
   write (chunk){
+    triggerSharedSerialCameraFeedFromChunk(chunk)
     dataStorage.write(chunk, this.storagemanager.bridgeEasyMQTT.status)
   }
   /*
@@ -349,6 +354,15 @@ class DashboardGrid {
 		this.editiding
 		this.editingProp  // Store original position and current from plugin(string)
 		this.isGrabbing = [false, undefined]
+    this.responsiveLayoutPending = false
+    this.responsiveContentObserver = new MutationObserver(() => {
+      this.scheduleResponsiveLayout()
+    })
+    this.responsiveResizeObserver = typeof ResizeObserver == 'function'
+      ? new ResizeObserver(() => {
+        this.scheduleResponsiveLayout()
+      })
+      : undefined
 
     // Hold data points to push to charts.
     this.chartBuffer
@@ -430,6 +444,13 @@ class DashboardGrid {
 
     this.ref = this.parent.tree[this.parent.currentSID].grid
     this.restore()
+    this.observeResponsiveItems()
+    this.responsiveContentObserver.observe(this.$.container.$, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    })
+    this.scheduleResponsiveLayout()
   }
   /**
    * Deinit grid.
@@ -448,6 +469,9 @@ class DashboardGrid {
 
     this.muuri.remove(this.muuri.getItems(), {removeElements: true})
     this.ref = undefined
+    this.responsiveContentObserver.disconnect()
+    if (this.responsiveResizeObserver)
+      this.responsiveResizeObserver.disconnect()
 	}
   /**
    * Restore itens.
@@ -515,6 +539,109 @@ class DashboardGrid {
       silk: new DOM('div', {className:'silk'})
     }
     plugins.include(this, data, _$)
+    this.observeResponsiveItems()
+    this.scheduleResponsiveLayout()
+  }
+  isResponsiveItem (element){
+    return element.classList.contains('chart') ||
+      element.classList.contains('switch') ||
+      element.classList.contains('three-state-switch') ||
+      element.classList.contains('button') ||
+      element.classList.contains('range') ||
+      element.classList.contains('gauge') ||
+      element.classList.contains('ml-classifier') ||
+      element.classList.contains('vision-processor')
+  }
+  observeResponsiveItems (){
+    if (!this.responsiveResizeObserver)
+      return
+
+    this.responsiveResizeObserver.disconnect()
+    if (!this.muuri)
+      return
+
+    this.muuri.getItems().forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+
+      let content = element.firstElementChild
+      if (content)
+        this.responsiveResizeObserver.observe(content)
+    })
+  }
+  measureResponsiveItemHeight (element){
+    let content = element.firstElementChild
+    if (!content)
+      return undefined
+
+    let baseHeight = Math.ceil(element.getBoundingClientRect().height)
+    let contentHeightStyle = content.style.height
+
+    element.classList.add('responsive-measuring')
+    content.style.height = 'auto'
+
+    let nextHeight = Math.max(
+      baseHeight,
+      Math.ceil(
+        Math.max(
+          content.scrollHeight,
+          content.getBoundingClientRect().height
+        )
+      )
+    )
+
+    content.style.height = contentHeightStyle
+    element.classList.remove('responsive-measuring')
+
+    return nextHeight
+  }
+  applyResponsiveItemHeights (){
+    if (!this.muuri)
+      return
+
+    let items = this.muuri.getItems()
+    let changed = false
+
+    items.forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+      element.style.removeProperty('height')
+    })
+
+    items.forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+
+      let nextHeight = this.measureResponsiveItemHeight(element)
+      if (nextHeight == undefined)
+        return
+
+      let baseHeight = Math.ceil(element.getBoundingClientRect().height)
+
+      if (Math.abs(nextHeight - baseHeight) <= 1)
+        return
+
+      element.style.height = `${nextHeight}px`
+      changed = true
+    })
+
+    if (changed)
+      this.muuri.refreshItems().layout()
+
+    this.observeResponsiveItems()
+  }
+  scheduleResponsiveLayout (){
+    if (this.responsiveLayoutPending || !this.ref)
+      return
+
+    this.responsiveLayoutPending = true
+    requestAnimationFrame(() => {
+      this.responsiveLayoutPending = false
+      this.applyResponsiveItemHeights()
+    })
   }
   /*
    * Remove a plugin.
@@ -540,6 +667,7 @@ class DashboardGrid {
 				this.ref.splice(index,1)
 			}
 		})
+    this.observeResponsiveItems()
 		// Changed locally, save project then dispatch modified
 		this.parent.commit()
 	  if (this.editing)
@@ -711,6 +839,7 @@ class DashboardGrid {
 
 
     this.muuri.refreshItems().layout()
+    this.scheduleResponsiveLayout()
   }
   /** Store current muuri positions to project */
   storeLayout (){
@@ -819,12 +948,16 @@ class DashboardAddMenu {
   constructor (dom, grid, button){
     this.grid = grid
     this.plugins = {
-      chart:'Chart',
-      switch: 'Switch',
-      range:'Range',
-      gauge:'Gauge',
-      coordinate:'Coordinate',
-      drawing:'Drawing'
+      chart:dashboardMainMsg('DashboardWidgetChart', 'Chart'),
+      switch:dashboardMainMsg('DashboardWidgetSwitch', 'Switch'),
+      threeStateSwitch:dashboardMainMsg('DashboardWidgetThreeStateSwitch', 'Three-state switch'),
+      button:dashboardMainMsg('DashboardWidgetButton', 'Button'),
+      range:dashboardMainMsg('DashboardWidgetRange', 'Range'),
+      gauge:dashboardMainMsg('DashboardWidgetGauge', 'Gauge'),
+      coordinate:dashboardMainMsg('DashboardWidgetCoordinate', 'Coordinate'),
+      drawing:dashboardMainMsg('DashboardWidgetDrawing', 'Drawing'),
+      mlClassifier:dashboardMainMsg('MLClassifierTitle', 'ML Classifier'),
+      visionProcessor:dashboardMainMsg('VisionProcessorTitle', 'Vision Processor')
     }
     let $ = this.$ = {}
     $.addMenu = dom
@@ -859,6 +992,7 @@ class DashboardAddMenu {
 
 class DataStorageManager {
   constructor (dom, grid_ref, button, parent){
+    this.guestMode = !document.getElementById('user-info')
     this.datalake = []
     this.datalakeMQTT = []
     this.parent = parent
@@ -878,10 +1012,10 @@ class DataStorageManager {
     $.uploadLabel = new DOM('label', {
 			  className:'button icon notext',
 			  id:'upload',
-			  title:'Upload CSV',
+			  title:dashboardMainMsg('DashboardUploadCSV', 'Upload CSV'),
 			  htmlFor:'uploadCSV'
 		  })
-    $.h2 = new DOM ('h2',   {innerText: 'Console (localStorage)'})
+    $.h2 = new DOM ('h2',   {innerText: dashboardMainMsg('DashboardConsoleLocalStorage', 'Console (localStorage)')})
     $.title = new DOM ('div', {className: 'header'})
       .append([
         $.h2,
@@ -934,6 +1068,13 @@ class DataStorageManager {
       $.statusMQTTButton
     ])
 
+    if (this.guestMode) {
+      $.mqttTitle.$.style.display = 'none'
+      $.containerMQTT.$.style.display = 'none'
+      this.bridgeEasyMQTT.$.container.$.style.display = 'none'
+      $.statusMQTTButton.$.style.display = 'none'
+    }
+
     command.add([this.parent, this], {
       changedMQTTSession: this._changedMQTTSession
     })
@@ -941,6 +1082,12 @@ class DataStorageManager {
   }
   /** Change easyMQTT session*/
   changeMQTTSession (){
+    if (easyMQTT.serverOwnedSession === true) {
+      this.$.mqttInput.value = easyMQTT.session
+      bipes.page.notification.send('EasyMQTT session is managed by your login.')
+      return
+    }
+
     let session = this.$.mqttInput.value
     session = session == '' ? Tool.SID() : session
     session = /[0-9]/.test(session[0]) ?
@@ -1214,6 +1361,12 @@ class DataStorageManager {
   }
   /** Called when MQTT connection is established */
   onConnect (){
+    this.$.statusMQTT.innerText = easyMQTT.session
+    this.$.mqttInput.value = easyMQTT.session
+    if (easyMQTT.serverOwnedSession === true) {
+      this.$.mqttInput.$.readOnly = true
+      this.$.mqttInput.$.title = 'EasyMQTT session is managed by your login.'
+    }
     this.$.statusMQTTButton.classList.add('on')
     this.$.statusMQTTButton.classList.remove('off')
     this.$.mqttH2.classList.add('on')
@@ -1250,5 +1403,3 @@ class BridgeEasyMQTT {
 }
 
 export let dashboard = new Dashboard()
-
-

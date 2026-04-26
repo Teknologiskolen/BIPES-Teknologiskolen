@@ -126,6 +126,12 @@ class Blocks {
       Blockly.svgResize(this.workspace)
     },250)
   }
+  sanitizeLegacyXml (xmlText){
+    if (typeof xmlText !== 'string' || xmlText.indexOf('strip_name') === -1)
+      return xmlText
+
+    return xmlText.replace(/<field name="strip_name">[\s\S]*?<\/field>/g, '')
+  }
   /*
    * On load a project, load the blocks' scope of the project.
    */
@@ -136,7 +142,7 @@ class Blocks {
       this.loadedWorkspace = false
       Blockly.Events.disable()
       Blockly.Xml.clearWorkspaceAndLoadFromXml(
-        Blockly.Xml.textToDom(obj.xml),
+        Blockly.Xml.textToDom(this.sanitizeLegacyXml(obj.xml)),
         this.workspace
       )
       Blockly.Events.enable()
@@ -517,7 +523,7 @@ let blocksRegisterCallbacks = (workspace) => {
       }).then(response => {
         Blockly.Events.disable()
         Blockly.Xml.clearWorkspaceAndLoadFromXml(
-          Blockly.Xml.textToDom(response),
+          Blockly.Xml.textToDom(bipes.page.blocks.sanitizeLegacyXml(response)),
           bipes.page.blocks.workspace
         )
         Blockly.Events.enable()

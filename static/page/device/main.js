@@ -17,9 +17,13 @@ import {deviceSpecifications} from './devices.js'
 class Device {
   constructor (){
     this.name = 'device'
+    this.isGuestMode = !document.getElementById('user-info')
     this.pipe = {}
     this.devices = storage.has('device') && storage.fetch('device') != '[]' ?
                     JSON.parse(storage.fetch('device')) : []
+
+    this.devices = this._liveDevices(this.devices)
+    storage.set('device', JSON.stringify(this.devices))
 
     if (this.devices.length === 0)
       storage.set('device')
@@ -38,32 +42,42 @@ class Device {
     })
     $.baudRateDropdown = new DOM('select', {id:'baudrate'})
             .append(baudRates)
+    ;['click', 'mousedown', 'pointerdown', 'touchstart'].forEach((eventName) => {
+      $.baudRateDropdown.$.addEventListener(eventName, (ev) => {
+        ev.stopPropagation()
+      })
+    })
     $.buttonWebSerial = new DOM('button', {id:'WebSerial'})
       .append([
           new DOM('span', {innerText:Msg['NotSupported']}),
-          new DOM('div', {innerText:'USB/Serial', className:'button icon'}),
+          new DOM('div', {innerText:Msg['USBSerial'], className:'button icon'}),
           $.baudRateDropdown,
           new DOM('span', {className:'silk'})
-            .onclick(this, this.connectWebSerial)
-      ])
+      ]).onclick(this, this.connectWebSerial)
     DOM.setSelected(this.$.baudRateDropdown, 115200),
     $.buttonWebSocket = new DOM('button', {id:'WebSocket'})
       .append([
           new DOM('span', {innerText:Msg['NotSupported']}),
-          new DOM('div', {innerText:'Wi-fi/Internet', className:'button icon'}),
+          new DOM('div', {innerText:Msg['WifiInternet'], className:'button icon'}),
       ])
     $.buttonWebBluetooth = new DOM('button', {id:'WebBluetooth'})
         .append([
           new DOM('span', {innerText:Msg['NotSupported']}),
-          new DOM('div', {innerText:'Bluetooth', className:'button icon'}),
+          new DOM('div', {innerText:Msg['Bluetooth'], className:'button icon'}),
         ]).onclick(this, this.connectWebBluetooth)
+
+    let connectionButtons = [
+      $.buttonWebSerial,
+      $.buttonWebBluetooth
+    ]
+
+    if (!this.isGuestMode)
+      connectionButtons.splice(1, 0, $.buttonWebSocket)
 
     $.newConnection = new DOM('div', {id:'new-connection'})
       .append([
         new DOM('h3', {innerText:Msg['NewConnection']}),
-        new DOM('span', {className:'funky'}).append([
-          $.buttonWebSerial, $.buttonWebSocket, $.buttonWebBluetooth
-        ])
+        new DOM('span', {className:'funky'}).append(connectionButtons)
       ])
 
     $.devices = new DOM('span', {className:'funky'})
@@ -134,10 +148,12 @@ class Device {
     $.section.$.classList.add('default')
     $.nav = new DOM(DOM.get('a#device'))
 
-    $.webSocketSetup = new DOM('div')
-    this.webSocketSetup = new WebSocketSetup($.webSocketSetup, this)
-    $.buttonWebSocket.onclick(this.webSocketSetup, this.webSocketSetup.open)
-    $.section.append($.webSocketSetup)
+    if (!this.isGuestMode) {
+      $.webSocketSetup = new DOM('div')
+      this.webSocketSetup = new WebSocketSetup($.webSocketSetup, this)
+      $.buttonWebSocket.onclick(this.webSocketSetup, this.webSocketSetup.open)
+      $.section.append($.webSocketSetup)
+    }
 
 
     // Status shortcut
@@ -239,8 +255,6 @@ class Device {
    * Trigger WebSerial connection to a device.
    */
   connectWebSerial (){
-    if (channel.targetDevice != undefined)
-      this.select(channel.targetDevice)
     channel.connect('webserial', [this, this.use], this.$.baudRateDropdown.$.value)
   }
   /*
@@ -249,16 +263,17 @@ class Device {
    * @param{string} passwd - Device's password.
    */
   connectWebSocket (url, passwd){
-    if (channel.targetDevice != undefined)
-      this.select(channel.targetDevice)
+    if (this.isGuestMode) {
+      notification.send('Wi-fi/Internet connections require login.')
+      return
+    }
+
     channel.connect('websocket', [this, this.use], {url:url,passwd:passwd})
   }
   /*
    * Trigger WebBluetooth connection to a device.
    */
   connectWebBluetooth (){
-    if (channel.targetDevice != undefined)
-      this.select(channel.targetDevice)
     channel.connect('webbluetooth', [this, this.use])
   }
  /*
@@ -267,7 +282,7 @@ class Device {
   */
   reconnect (protocol){
     if (!this.userDisconnectInput){
-      if (protocol == "WebSocket" && this.webSocketSetup.config.reconnect){
+      if (protocol == "WebSocket" && this.webSocketSetup && this.webSocketSetup.config.reconnect){
         setTimeout(()=>{this.connectWebSocket(
           this.webSocketSetup.config.address,
           this.webSocketSetup.config.password
@@ -306,7 +321,7 @@ class Device {
 
     // If not inited, fill devices from StorageBroker
     if (!this.inited) {
-      this.devices = JSON.parse(storage.fetch('device'))
+      this.devices = this._liveDevices(JSON.parse(storage.fetch('device')))
       this._devicePush(channel.targetDevice, timestamp, str, command.tabUID)
     }
     // Update StorageBroker once
@@ -317,14 +332,35 @@ class Device {
   }
 
   _devicePush (uid, timestamp, str, tabUID){
-    this.devices.push({
+    let device = {
       uid: uid,
       timestamp: timestamp,
       protocol: str.protocol,
       nodename: str.nodename,
       version: str.version,
       tab: tabUID
-      })
+    }
+    let index = this.devices.findIndex((item) => item.uid == uid)
+    if (index === -1)
+      this.devices.push(device)
+    else
+      this.devices[index] = device
+  }
+
+  _liveDevices (devices){
+    let clients = new Set(command.clients || [])
+    return (devices || []).filter((item) => {
+      if (!item || !item.uid)
+        return false
+      if (item.tab == command.tabUID)
+        return channel.hasConnection(item.uid)
+      return clients.has(item.tab)
+    })
+  }
+
+  _persistLiveDevices (){
+    this.devices = this._liveDevices(this.devices)
+    storage.set('device', JSON.stringify(this.devices))
   }
 
   // Visual and instance object
@@ -334,27 +370,15 @@ class Device {
     if (!this.inited)
       return
 
-    if (this.devices.length == 1) {
-      this.$.devices.removeChilds()
-    }
-    this.$.devices.$.insertBefore(
-      this.$Card(this.devices[this.devices.length - 1]).$,
-      this.$.devices.$.firstChild
-    )
+    this.renderConnectedDevices()
   }
   init (){
     if (this.inited)
       return
 
+    this._persistLiveDevices()
     this.nav.classList.remove('new')
-    if (this.devices.length > 0) {
-      let msgs = []
-      this.devices.forEach (item => {
-        msgs.unshift(this.$Card(item))
-      })
-      this.$.devices.append(msgs)
-    } else
-      this._noDevice()
+    this.renderConnectedDevices()
 
     // Only on a slave tab
     if (channel.targetDevice != undefined) {
@@ -378,21 +402,50 @@ class Device {
     if (target != project.current.device.target)
       this.pipe.blocks_deviceTarget(target)
 
-    project.update({
-      device:{
-        target:target,
-        firmware:firmware
-      }
+    this.persistProjectDeviceState({
+      target:target,
+      firmware:firmware
     })
     // Update status bar
     this.$.statusDevice.innerText = this.deviceInfo[target].name
     this.$.statusFirmware.innerText = firmware
   }
 
+  persistProjectDeviceState (extra = {}){
+    let currentDevice = project.current && project.current.device ? project.current.device : this.empty()
+
+    project.update({
+      device:{
+        target: currentDevice.target || this.$.targetDropdown.$.value || 'RPIPico',
+        firmware: currentDevice.firmware || this.$.targetFirmwareDropdown.$.value || rosetta.language(''),
+        ...extra
+      }
+    })
+  }
+
   _noDevice (){
     this.$.devices.append(
       new DOM('span', {innerText:Msg['NoConnectedLong']})
     )
+  }
+  renderConnectedDevices (){
+    this.$.devices.removeChilds()
+
+    let cards = []
+    this.devices.forEach((item) => {
+      cards.unshift(this.$Card(item))
+    })
+
+    if (cards.length > 0)
+      this.$.devices.append(cards)
+    else
+      this._noDevice()
+
+    if (channel.targetDevice != undefined) {
+      let child = DOM.get(`[data-uid=${channel.targetDevice}]`, this.$.devices.$)
+      if (child !== null)
+        child.classList.add('on')
+    }
   }
   // Creates a DOM notificaton card
   $Card (item){
@@ -418,7 +471,7 @@ class Device {
             innerText:Msg['Disconnect']
           }).onclick(this, ()=>{
             this.userDisconnectInput = true
-            channel.disconnect()
+            channel.disconnect(false, item.uid)
           }, [])
         ])
       ])
@@ -432,26 +485,29 @@ class Device {
   select (uid, ev){
     if (ev !== undefined)
       ev.preventDefault()
-    if (channel.current != undefined)
-      return
 
-    let unselect = () => {
+    let unselect = (targetUid) => {
       this.$.nav.$.classList.remove('using')
-      let child = DOM.get(`[data-uid=${channel.targetDevice}]`, this.$.devices.$)
+      let child = DOM.get(`[data-uid=${targetUid}]`, this.$.devices.$)
       if (child != null)
         child.classList.remove('on')
-      channel.targetDevice = undefined
-      channel.currentProtocol = undefined
-      this._statusNotConnected()
     }
     if (uid != channel.targetDevice){
+      let previousTarget = channel.targetDevice
+
+      if (!channel.activate(uid)) {
+        notification.send(Msg['NotConnectedWarning'])
+        return
+      }
+
       // Only on a slave tab
-      if (channel.targetDevice != undefined)
-        unselect()
-      channel.targetDevice = uid
+      if (previousTarget != undefined)
+        unselect(previousTarget)
+
       this.devices.forEach((device) => {
         if (device.uid == uid) {
-          channel.currentProtocol = device.protocol
+          if (channel.currentProtocol == undefined)
+            channel.currentProtocol = device.protocol
           // Update status bar
           this.$.statusTarget.innerText = `${device.nodename} ${device.version}`
           this.$.statusTargetButton.classList.add('on')
@@ -462,8 +518,7 @@ class Device {
       let child = DOM.get(`[data-uid=${channel.targetDevice}]`, this.$.devices.$)
       if (child != null)
         child.classList.add('on')
-    } else
-      unselect()
+    }
   }
   fetchInfo (uid){
     let cmd = rosetta.uname.cmd()
@@ -513,9 +568,11 @@ class Device {
     })
     storage.set('device', JSON.stringify(this.devices))
 
-    // Only on a master tab
-    this.$.wrapper.$.classList.remove('master')
-    this._statusNotConnected()
+    // Only clear the active status if the disconnected device was active.
+    if (channel.targetDevice == uid) {
+      this.$.wrapper.$.classList.remove('master')
+      this._statusNotConnected()
+    }
     command.dispatch(this, 'unuse', [uid])
   }
   // Visual and instance object
@@ -534,13 +591,7 @@ class Device {
     if (!this.inited)
       return
 
-    // Must find child to work between tabs
-    let child = DOM.get(`[data-uid=${uid}]`, this.$.devices.$)
-    if (child !== null){
-      this.$.devices.$.removeChild(child)
-      if (this.$.devices.$.childElementCount == 0)
-        this._noDevice()
-    }
+    this.renderConnectedDevices()
   }
   _statusNotConnected(){
       // Update status and prompt
@@ -560,9 +611,8 @@ class Device {
    * the APIs.
    */
   checkAPISupport (){
-    // Not using this rule, considering wss connection
-    //if (window.location.protocol == 'https:')
-    //  this.$.buttonWebSocket.$.classList.add('unsupported')
+    if (this.isGuestMode)
+      this.$.buttonWebSocket.$.classList.add('unsupported')
 
     if (window.location.protocol == 'http:' && window.location.hostname != '127.0.0.1')
       this.$.buttonWebSerial.$.classList.add('unsupported'),

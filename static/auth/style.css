@@ -58,13 +58,7 @@ body {
     text-align: center;
     text-decoration: none;
     color: #333;
-    transition: transform 0.3s, box-shadow 0.3s;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.login-option:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
 
 .login-option .option-icon {
@@ -81,18 +75,6 @@ body {
 .login-option p {
     color: #666;
     font-size: 1rem;
-}
-
-.teacher-option:hover {
-    border-top: 4px solid #667eea;
-}
-
-.student-option:hover {
-    border-top: 4px solid #764ba2;
-}
-
-.guest-option:hover {
-    border-top: 4px solid #48bb78;
 }
 
 .landing-footer {
@@ -404,4 +386,401 @@ body {
 
 .auth-back .btn {
     min-width: 160px;
+}
+
+/* BIPES-aligned login and chooser pages */
+.landing-page,
+.login-page {
+    --bipes-panel: rgba(255, 255, 255, 0.86);
+    --bipes-border: rgba(68, 153, 204, 0.18);
+    --bipes-text: #1f2937;
+    --bipes-muted: #64748b;
+    --bipes-accent: #4499cc;
+    --bipes-accent-hot: #267ba8;
+    --bipes-focus-ring: rgba(38, 123, 168, 0.4);
+    --bipes-green: #48bb78;
+    --bipes-page-bg: #fff;
+    --bipes-shadow: rgba(68, 153, 204, 0.12);
+    --bipes-shadow-strong: rgba(68, 153, 204, 0.18);
+    --bipes-input-bg: rgba(255, 255, 255, 0.76);
+    --bipes-input-border: rgba(68, 153, 204, 0.22);
+    --bipes-placeholder: rgba(31, 41, 55, 0.42);
+    --bipes-secondary-bg: rgba(255, 255, 255, 0.75);
+    --bipes-secondary-hover: rgba(68, 153, 204, 0.08);
+    --bipes-secondary-text: #334155;
+    --bipes-divider: rgba(68, 153, 204, 0.14);
+    --bipes-status-bg: rgba(255, 255, 255, 0.94);
+    --bipes-primary-bg: linear-gradient(135deg, #4499cc 0%, #54beff 100%);
+    --teacher-card-bg: linear-gradient(180deg, rgba(229, 246, 255, 0.96), rgba(214, 239, 252, 0.82)), #e5f6ff;
+    --student-card-bg: linear-gradient(180deg, rgba(239, 247, 255, 0.96), rgba(225, 240, 255, 0.82)), #eff7ff;
+    --guest-card-bg: linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(220, 252, 231, 0.82)), #ecfdf5;
+    --guest-card-border: rgba(72, 187, 120, 0.26);
+    background: var(--bipes-page-bg);
+    color-scheme: light;
+    color: var(--bipes-text);
+    font-family: 'OpenSans', 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.landing-page::before,
+.login-page::before {
+    display: none;
+}
+
+.landing-container {
+    max-width: 1040px;
+    position: relative;
+    z-index: 1;
+}
+
+.landing-header {
+    margin-bottom: 2.2rem;
+}
+
+.auth-logo {
+    display: block;
+    height: 4.5rem;
+    margin: 0 auto 1rem;
+    width: 4.5rem;
+}
+
+.landing-header h1 {
+    color: var(--bipes-text);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    letter-spacing: -0.035em;
+    line-height: 1;
+}
+
+.landing-header .subtitle {
+    color: var(--bipes-muted);
+    font-size: 1rem;
+    margin: 0.9rem auto 0;
+    max-width: 34rem;
+}
+
+.login-options {
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 0;
+}
+
+.login-option {
+    border: 1px solid var(--bipes-border);
+    border-radius: 1.15rem;
+    box-shadow: 0 1rem 2.5rem var(--bipes-shadow);
+    color: var(--bipes-text);
+    min-height: 13rem;
+    padding: 1.5rem;
+    position: relative;
+    text-align: center;
+}
+
+.login-option:hover,
+.login-option:focus-visible {
+    border-color: var(--bipes-accent);
+    outline: 2px solid var(--bipes-focus-ring);
+    outline-offset: 0.2rem;
+}
+
+.login-option .option-icon {
+    align-items: center;
+    display: inline-flex;
+    font-size: 3.4rem;
+    height: 4rem;
+    justify-content: center;
+    margin-bottom: 1.4rem;
+    width: 4rem;
+}
+
+.login-option h2 {
+    color: var(--bipes-text);
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+}
+
+.login-option p {
+    color: var(--bipes-muted);
+    line-height: 1.45;
+    margin-top: 0.5rem;
+}
+
+.teacher-option {
+    background: var(--teacher-card-bg);
+}
+
+.student-option {
+    background: var(--student-card-bg);
+}
+
+.guest-option {
+    background: var(--guest-card-bg);
+    border-color: var(--guest-card-border);
+}
+
+.login-page .auth-container {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84)),
+        var(--bipes-panel);
+    border: 1px solid var(--bipes-border);
+    border-radius: 1.15rem;
+    box-shadow: 0 1rem 2.8rem var(--bipes-shadow);
+    max-width: 28rem;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.login-page .auth-header h1 {
+    color: var(--bipes-accent-hot);
+    font-size: 1.8rem;
+    letter-spacing: -0.03em;
+}
+
+.login-page .auth-header p,
+.login-page .auth-links p {
+    color: var(--bipes-muted);
+}
+
+.login-page .form-group label {
+    color: var(--bipes-text);
+}
+
+.login-page .form-group input,
+.login-page .form-group select {
+    background: var(--bipes-input-bg);
+    border: 1px solid var(--bipes-input-border);
+    color: var(--bipes-text);
+}
+
+.login-page .form-group input::placeholder {
+    color: var(--bipes-placeholder);
+}
+
+.login-page .form-group input:focus,
+.login-page .form-group select:focus {
+    border-color: var(--bipes-accent-hot);
+    box-shadow: 0 0 0 0.2rem rgba(84, 190, 255, 0.12);
+}
+
+.login-page .btn {
+    border-radius: 0.55rem;
+}
+
+.login-page .btn-primary {
+    background: var(--bipes-primary-bg);
+    border: 1px solid rgba(38, 123, 168, 0.35);
+    color: #fff;
+}
+
+.login-page .btn:hover,
+.login-page .btn:focus-visible {
+    box-shadow: none;
+    outline: 2px solid var(--bipes-focus-ring);
+    outline-offset: 0.18rem;
+    transform: none;
+}
+
+.login-page .btn-secondary {
+    background: var(--bipes-secondary-bg);
+    border: 1px solid var(--bipes-divider);
+    color: var(--bipes-secondary-text);
+}
+
+.login-page .btn-secondary:hover {
+    background: var(--bipes-secondary-hover);
+}
+
+.login-page .auth-links a {
+    color: var(--bipes-accent-hot);
+}
+
+.login-page .auth-back {
+    border-top: 1px solid var(--bipes-divider);
+}
+
+#status-bar.auth-status-bar {
+    font-size: 0.9rem;
+    height: 1.5rem;
+    position: fixed;
+    right: 0;
+    text-align: right;
+    top: calc(100vh - 1.5rem);
+    width: calc(100vw - 3.5rem);
+    box-shadow: 0 0 .25em rgba(0,0,0,.25);
+    display: flex;
+    justify-content: space-between;
+    background: var(--bipes-status-bg);
+    border-top: 1px solid var(--bipes-border);
+    bottom: auto;
+    left: auto;
+    z-index: 5;
+}
+
+#status-bar.auth-status-bar #globals {
+    display: inline-block;
+    min-width: 5rem;
+    height: 1.5rem;
+}
+
+#status-bar.auth-status-bar select {
+    border-radius: 0;
+    padding: 0;
+    border: none;
+    opacity: 0;
+    width: 6rem;
+    position: absolute;
+}
+
+#status-bar.auth-status-bar button.status-icon,
+#status-bar.auth-status-bar span.status-icon {
+    padding: .125rem .25rem;
+    cursor: pointer;
+    transition: background-color ease .125s;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(68,153,204,0);
+    color: var(--bipes-text);
+    border: 0;
+    font: inherit;
+    min-height: 1.5rem;
+    position: relative;
+    text-decoration: none;
+}
+
+#status-bar.auth-status-bar button.status-icon:before,
+#status-bar.auth-status-bar span.status-icon:before {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: url('../media/icons.svg');
+    background-size: auto 2.5rem;
+    content: '';
+    margin: 0;
+    flex-shrink: 0;
+    margin-right: .125rem;
+}
+
+#status-bar.auth-status-bar #extra button,
+#status-bar.auth-status-bar #extra span {
+    opacity: 0.8;
+}
+
+#status-bar.auth-status-bar #extra button:hover,
+#status-bar.auth-status-bar #extra span:hover {
+    opacity: 1;
+}
+
+#status-bar.auth-status-bar span.status-icon:hover,
+#status-bar.auth-status-bar span.status-icon:focus,
+#status-bar.auth-status-bar button.status-icon:hover,
+#status-bar.auth-status-bar button.status-icon:focus {
+    background-color: rgba(68,153,204,.5);
+    outline: none;
+}
+
+#status-bar.auth-status-bar span#language select {
+    cursor: pointer;
+}
+
+#status-bar.auth-status-bar button#forum:before,
+div#status-bar button#forum:before {
+    background-position: left calc(-1.25rem*45) top;
+}
+
+#status-bar.auth-status-bar span#language:before,
+div#status-bar span#language:before {
+    background-position: left calc(-1.25rem*46) top;
+}
+
+#status-bar.auth-status-bar button#theme:before,
+div#status-bar button#theme:before {
+    background-position: left calc(-1.25rem*47) top !important;
+}
+
+#status-bar.auth-status-bar button.on#theme:before,
+div#status-bar button.on#theme:before {
+    background-position: left calc(-1.25rem*47) bottom !important;
+}
+
+.landing-page.light #status-bar.auth-status-bar button.status-icon:before,
+.landing-page.light #status-bar.auth-status-bar span#language:before,
+.login-page.light #status-bar.auth-status-bar button.status-icon:before,
+.login-page.light #status-bar.auth-status-bar span#language:before {
+    filter: invert(1);
+}
+
+#status-bar.auth-status-bar #extra {
+    display: inline-block;
+}
+
+#status-bar.auth-status-bar #language select {
+    cursor: pointer;
+}
+
+.landing-page.dark,
+.login-page.dark {
+    --bipes-panel: rgba(51, 51, 51, 0.94);
+    --bipes-border: rgba(125, 211, 252, 0.2);
+    --bipes-text: #fff;
+    --bipes-muted: #cbd5e1;
+    --bipes-accent-hot: #7dd3fc;
+    --bipes-focus-ring: rgba(125, 211, 252, 0.72);
+    --bipes-page-bg: #222;
+    --bipes-shadow: rgba(0, 0, 0, 0.28);
+    --bipes-shadow-strong: rgba(0, 0, 0, 0.34);
+    --bipes-input-bg: rgba(0, 0, 0, 0.18);
+    --bipes-input-border: rgba(125, 211, 252, 0.24);
+    --bipes-placeholder: rgba(255, 255, 255, 0.45);
+    --bipes-secondary-bg: rgba(255, 255, 255, 0.08);
+    --bipes-secondary-hover: rgba(255, 255, 255, 0.14);
+    --bipes-secondary-text: #fff;
+    --bipes-divider: rgba(255, 255, 255, 0.12);
+    --bipes-status-bg: rgba(34, 34, 34, 0.96);
+    --teacher-card-bg: linear-gradient(180deg, rgba(28, 64, 82, 0.98), rgba(28, 52, 66, 0.92)), #1c4052;
+    --student-card-bg: linear-gradient(180deg, rgba(33, 58, 88, 0.98), rgba(30, 48, 70, 0.92)), #213a58;
+    --guest-card-bg: linear-gradient(180deg, rgba(28, 71, 52, 0.98), rgba(27, 58, 44, 0.92)), #1c4734;
+    --guest-card-border: rgba(72, 187, 120, 0.36);
+    color-scheme: dark;
+}
+
+.landing-page.dark select,
+.login-page.dark select {
+    background-color: #222;
+    color: #fff;
+}
+
+.landing-page.dark select option,
+.login-page.dark select option {
+    background-color: #222;
+    color: #fff;
+}
+
+.landing-page.dark select option:checked,
+.login-page.dark select option:checked {
+    background-color: var(--bipes-accent);
+    color: #fff;
+}
+
+.login-page.dark .auth-container {
+    background:
+        linear-gradient(180deg, rgba(51, 51, 51, 0.98), rgba(42, 42, 42, 0.94)),
+        #333;
+}
+
+@media screen and (max-width:39.99rem) {
+    #status-bar.auth-status-bar {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-options {
+        grid-template-columns: 1fr;
+    }
+
+    .login-option {
+        min-height: auto;
+    }
 }

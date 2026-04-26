@@ -7,6 +7,7 @@ import {rosetta} from '../../base/rosetta.js'
 import {channel} from '../../base/channel.js'
 
 import {notification} from '../notification/main.js'
+import {prompt} from '../prompt/main.js'
 import {project} from '../project/main.js'
 
 class Files {
@@ -147,6 +148,7 @@ class DeviceFiles {
     this.arrayBufferFilename                 // Temporaly store file filename
     this.arrayBufferTarget                   // After fetch, download or show
     this.arrayBufferPos                      // Position on the current file being sent
+    this.runAfterWriteFilename = null        // Filename to execute after upload finishes
 
     let $ = this.$ = {}
 
@@ -199,8 +201,14 @@ class DeviceFiles {
       title:Msg['WriteToDevice']
     }).onclick(this, this._fromEditor)
 
+    $.executeOnTarget = new DOM('button', {
+      id:'run',
+      className:'icon files-execute',
+      title:Msg['ExecuteScript']
+    }).onclick(this, this._execEditorOnTarget)
+
     this.parent.$.sidebar.append($.detailsFileOnTarget)
-    this.parent.$.header.append($.saveToTarget)
+    this.parent.$.header.append([$.saveToTarget, $.executeOnTarget])
 
     command.add([this.parent, this], {
       buildFileTree: this._buildFileTree,
@@ -347,7 +355,7 @@ class DeviceFiles {
             if (item.files[0].hasOwnProperty('empty')) {
               doms[doms.length - 1].$.open = true
               doms[doms.length - 1].append(
-                new DOM('span', {innerText:'(Empty)', className:'emptyDir'})
+                new DOM('span', {innerText:`(${Msg['Empty']})`, className:'emptyDir'})
               )
             } else
             _iterate (item.files, doms[doms.length - 1], path)
@@ -567,10 +575,56 @@ class DeviceFiles {
   _fromEditor (){
     //For codemirror
       let script = this.parent.codemirror.state.doc.toString(),
-        filename = this.parent.$.filename.$.value
+        filename = this.editorFilename()
     //let uint8Array = new Uint8Array([...script].map(s => s.charCodeAt(0)))
 
     this.writeToTarget (filename, script)
+  }
+  editorFilename (){
+    let filename = this.parent.$.filename.$.value || ''
+    filename = filename.trim()
+    if (filename && filename[0] != '/')
+      filename = '/' + filename
+    if (filename && filename.indexOf('.') == -1)
+      filename += '.py'
+    this.parent.$.filename.$.value = filename
+    return filename
+  }
+  /**
+   * Execute the current editor contents on the active target device.
+   */
+  _execEditorOnTarget (){
+    if (channel.targetDevice == undefined) {
+      notification.send(Msg["NotConnectedWarning"])
+      return
+    }
+
+    if (prompt.locked) {
+      command.dispatch(channel, 'rawPush', [
+        '\x03',
+        channel.targetDevice, [], command.tabUID
+      ])
+      return
+    }
+
+    let script = this.parent.codemirror.state.doc.toString()
+    let filename = this.editorFilename()
+    if (!filename) {
+      notification.send(`${Msg['PageFiles']}: ${Msg['Filename']}`)
+      return
+    }
+
+    this.runAfterWriteFilename = filename
+    this.$.executeOnTarget.$.classList.add('on')
+    this.writeToTarget(filename, script)
+  }
+  _ranEditorOnTarget (str, cmd, tabUID){
+    if (command.tabUID != tabUID)
+      return
+
+    this.runAfterWriteFilename = null
+    this.$.executeOnTarget.$.classList.remove('on')
+    notification.send(`${Msg['PageFiles']}: ${Msg['ScriptFinishedExecuting']}`)
   }
   /**
    * Get file from ``codemirror`` editor and calls :js:func:`Files.writeToTarget` to upload.
@@ -666,6 +720,8 @@ class DeviceFiles {
     if (command.tabUID != tabUID)
       return
     this.listDir(filename.match(/(.*)\/(?:.*)/)[1], tabUID)
+    if (this.runAfterWriteFilename === filename)
+      this.runOnTarget(filename)
   }
 
   _wroteToTarget (str, cmd, tabUID){
@@ -674,6 +730,8 @@ class DeviceFiles {
       return
 
     this.listDir(cmd.match(reg)[1], tabUID)
+    if (this.runAfterWriteFilename)
+      this.runOnTarget(this.runAfterWriteFilename)
   }
   newScript (path){
     this.contextMenu.oninput({
@@ -735,11 +793,12 @@ class DeviceFiles {
     this.contextMenu.close()
 
     let cmd = rosetta.exec.cmd(filename)
+    let callback = this.runAfterWriteFilename === filename ? '_ranEditorOnTarget' : '_ranOnTarget'
 
     command.dispatch(channel, 'push', [
       cmd,
       channel.targetDevice,
-      ['files', 'device', '_ranOnTarget'],
+      ['files', 'device', callback],
       command.tabUID
     ])
   }

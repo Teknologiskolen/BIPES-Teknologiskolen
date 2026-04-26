@@ -2277,6 +2277,7 @@ Blockly.Blocks["machine.ADCWiPy_adcchannel.deinit"] = {
 
 
 
+/* Legacy duplicate machine.I2C blocks kept for reference.
 Blockly.Blocks["machine.I2C_I2C.init"] = {
   init: function() {
   this.appendValueInput("pIn")
@@ -2467,6 +2468,7 @@ Blockly.Blocks["machine.I2C_I2C.writeto_mem"] = {
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
 };
+*/
 
 
 
@@ -2942,6 +2944,7 @@ Blockly.Blocks["machine.Signal_Signal.off"] = {
 
 
 
+/* Legacy duplicate machine.SPI blocks kept for reference.
 Blockly.Blocks["machine.SPI_SPI.init"] = {
   init: function() {
   this.appendValueInput("pIn")
@@ -3021,6 +3024,7 @@ Blockly.Blocks["machine.SPI_SPI.write_readinto"] = {
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
 };
+*/
 
 
 
@@ -3150,6 +3154,7 @@ Blockly.Blocks["machine.TimerWiPy_timerchannel.duty_cycle"] = {
 
 
 
+/* Legacy duplicate machine.UART blocks kept for reference.
 Blockly.Blocks["machine.UART_UART.init"] = {
   init: function() {
   this.appendValueInput("pIn")
@@ -3272,6 +3277,7 @@ Blockly.Blocks["machine.UART_UART.irq"] = {
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.UART.html");
   }
 };
+*/
 
 
 
@@ -3348,19 +3354,6 @@ Blockly.Blocks["math_atan"] = {
         this.setColour(0);
     this.setOutput(true, null);
  this.setTooltip(".. function:: atan(x) Return the inverse tangent of ``x``. ");
- this.setHelpUrl("https://docs.micropython.org/en/latest/library/math.html");
-  }
-};
-
-
-
-Blockly.Blocks["math_atan2"] = {
-  init: function() {
-  this.appendValueInput("pIn")
-        .appendField(" atan2");
-        this.setColour(0);
-    this.setOutput(true, null);
- this.setTooltip(".. function:: atan2(y, x) Return the principal value of the inverse tangent of ``y/x``. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/math.html");
   }
 };
@@ -6750,4 +6743,3 @@ Blockly.Blocks["wipy_heartbeat"] = {
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/wipy.html");
   }
 };
-

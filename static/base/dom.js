@@ -13,14 +13,33 @@ class DOM {
       'innerText', 'className', 'id', 'title', 'innerText',
       'value', 'tabIndex', 'role', 'href', 'ariaPressed', 'preload', 'controls',
       'autoplay', 'src', 'placeholder', 'htmlFor', 'type', 'autocomplete',
-      'name', 'accept', 'disabled', 'innerHTML'
+      'name', 'accept', 'disabled', 'innerHTML', 'min', 'max', 'step', 'width', 'height'
     ]
     this.$ = document.createElement (dom);
-    if (typeof tags == 'object') for (const tag in tags) {
-      if (known_tags.includes(tag))
-       this.$[tag] = tags[tag]
-      else
-        this.$.dataset[tag] = tags[tag]
+    if (typeof tags == 'object') {
+      let deferredValue
+
+      for (const tag in tags) {
+        if (tag == 'value') {
+          deferredValue = tags[tag]
+          continue
+        }
+
+        if (known_tags.includes(tag))
+          this.$[tag] = tags[tag]
+        else
+          this.$.dataset[tag] = tags[tag]
+      }
+
+      if (typeof deferredValue != 'undefined')
+        this.$.value = deferredValue
+
+      if (
+        ['input', 'select', 'textarea'].includes(dom) &&
+        !this.$.id &&
+        !this.$.name
+      )
+        this.$.name = `${dom}-${DOM.UID()}`
     }
   }
   /**
@@ -91,8 +110,9 @@ class DOM {
       if (typeof args == 'undefined')
         ev.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        ev.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        ev.apply(self, applyArgs)
       }
     }
   return this
@@ -106,8 +126,9 @@ class DOM {
       if (typeof args == 'undefined')
         ev.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        ev.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        ev.apply(self, applyArgs)
       }
     }
   return this
@@ -121,8 +142,9 @@ class DOM {
       if (typeof args == 'undefined')
         ev.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        ev.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        ev.apply(self, applyArgs)
       }
     })
   return this
@@ -136,8 +158,9 @@ class DOM {
       if (typeof args == 'undefined')
         ev.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        ev.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        ev.apply(self, applyArgs)
       }
     })
   return this
@@ -151,8 +174,9 @@ class DOM {
       if (typeof args == 'undefined')
         ev.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        ev.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        ev.apply(self, applyArgs)
       }
     })
   return this
@@ -168,8 +192,9 @@ class DOM {
       if (typeof args == 'undefined')
         fun.apply(self, [e])
       else if (args.constructor == Array) {
-        args.push(e)
-        fun.apply(self, args)
+        let applyArgs = args.slice()
+        applyArgs.push(e)
+        fun.apply(self, applyArgs)
       }
     })
   return this
@@ -202,11 +227,8 @@ class DOM {
    * Remove childs from :js:func:`DOM` object.
    */
   removeChilds (){
-    let child = this.$.lastElementChild
-    while (child) {
-      this.$.removeChild(child)
-      child = this.$.lastElementChild
-    }
+    while (this.$.lastChild)
+      this.$.lastChild.remove()
     return this
   }
   /**
@@ -437,6 +459,7 @@ class ContextMenu {
     this.ref = ref
 
     this.mdTimestamp  // A timestamp to differentiate click and selection drag.
+    this.closeTimer
 
     let $ = this.$ = {}
     $.contextMenu = dom
@@ -462,7 +485,7 @@ class ContextMenu {
       if (+new Date - this.mdTimestamp < 250 || ev == undefined){
         this.$.wrapper.$.style.height = '0px'
         Animate.off(this.$.contextMenu.$, undefined, 125)
-        setTimeout(() => {this.$.wrapper.removeChilds()}, 125)
+        this.closeTimer = setTimeout(() => {this.$.wrapper.removeChilds()}, 125)
       }
     }
   }
@@ -475,11 +498,14 @@ class ContextMenu {
   * @param {string} actions[].args - Arguments applied to the callback function.
   */
   open (actions, ev){
+    clearTimeout(this.closeTimer)
     let $ = this.$
-    let y = window.innerHeight < (ev.y + (actions.length*2)*16) ?
-            ev.y - (1 + (actions.length*2-1))*16 : ev.y-1*16
-    let x = window.innerWidth < (ev.x + 10*16) ?
-            ev.x - 11*16: ev.x - 1*16
+    let evX = ev && Number.isFinite(ev.x) ? ev.x : ev && Number.isFinite(ev.clientX) ? ev.clientX : window.innerWidth / 2
+    let evY = ev && Number.isFinite(ev.y) ? ev.y : ev && Number.isFinite(ev.clientY) ? ev.clientY : window.innerHeight / 2
+    let y = window.innerHeight < (evY + (actions.length*2)*16) ?
+            evY - (1 + (actions.length*2-1))*16 : evY-1*16
+    let x = window.innerWidth < (evX + 10*16) ?
+            evX - 11*16: evX - 1*16
     $.wrapper.$.style.margin = `${y}px auto auto ${x}px`
     setTimeout(() =>{
       $.wrapper.$.style.height = `${(actions.length*2 + .25)*16}px`
@@ -523,6 +549,7 @@ class ContextMenu {
   * @param {Object} fun - Callback function to when input changes.
   */
   oninput (str, fun){
+    clearTimeout(this.closeTimer)
     let $ = this.$
     $.wrapper.removeChilds()
     $.wrapper.$.style.height = `${4.75*16}px`

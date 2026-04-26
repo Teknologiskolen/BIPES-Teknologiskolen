@@ -530,10 +530,10 @@ Blockly.Python['mqtt_disconnect'] = function(block) {
 // EasyMQTT --------------------------------------------------------------------
 /// EasyMQTT Init
 Blockly.Python['easymqtt_init'] = function(block) {
-  var server = bipes.page.dashboard.easyMQTT.host;
+  var server = bipes.page.dashboard.easyMQTT.host || "YOUR_MQTT_BROKER_HOST";
   var port = '1883';
-  var user = 'bipes';
-  var pass = bipes.page.dashboard.easyMQTT.password;
+  var user = bipes.page.dashboard.easyMQTT.deviceUser || "YOUR_DEVICE_MQTT_USER";
+  var pass = bipes.page.dashboard.easyMQTT.devicePassword || "YOUR_DEVICE_MQTT_PASSWORD";
   var session = bipes.page.dashboard.easyMQTT.session;
 
   Blockly.Python.definitions_['import_umqtt.robust'] = 'import umqtt.robust';

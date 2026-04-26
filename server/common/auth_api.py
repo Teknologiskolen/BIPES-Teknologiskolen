@@ -3,21 +3,37 @@ Authentication API endpoints for BIPES
 Handles teacher/student login, registration, class management, and student enrollment
 """
 
-from flask import Blueprint, request, jsonify, session, g, make_response
+from flask import Blueprint, request, jsonify, g, make_response
 import json
 from server.common import database as dbase
 from server.common import auth
+from server.common import security
 
 #--------------------------------------------------------------------------
 # Blueprint
 bp = Blueprint('auth_api', __name__, url_prefix='/api')
 _db = 'API'
 
+
+def _rehash_user_password_if_needed(table_name, id_column, user_id, password, stored_hash):
+    if not auth.password_hash_needs_upgrade(stored_hash):
+        return
+
+    new_hash = auth.hash_password(password)
+    db = dbase.get_db(_db)
+    sql = dbase._s(f"UPDATE {table_name} SET password_hash = %s WHERE {id_column} = %s")
+    db.execute(sql, (new_hash, user_id))
+    db.commit()
+    db.close()
+    g.pop('db', None)
+
 #---------------------------------------------------------------------------
 # Teacher Authentication
 #---------------------------------------------------------------------------
 
 @bp.route('/auth/teacher/register', methods=['POST'])
+@security.require_same_origin()
+@auth.rate_limit(limit=3, window_seconds=600)
 def teacher_register():
     """
     Register a new teacher
@@ -25,7 +41,7 @@ def teacher_register():
     Returns: {success: true, teacher_id} or {error}
     """
     try:
-        obj = request.json
+        obj = request.json or {}
         email = obj.get('email', '').strip()
         password = obj.get('password', '')
         full_name = obj.get('full_name', '').strip()
@@ -61,6 +77,7 @@ def teacher_register():
 
         # Set session
         auth.set_user_session(teacher_id, 'teacher', name, email)
+        security.log_auth_event('teacher_register_success', 'teacher', teacher_id, {'email': email})
 
         return jsonify({
             'success': True,
@@ -69,10 +86,13 @@ def teacher_register():
         }), 201
 
     except Exception as e:
+        security.log_auth_event('teacher_register_error', 'teacher', details={'error': str(e)})
         return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/auth/teacher/login', methods=['POST'])
+@security.require_same_origin()
+@auth.rate_limit(limit=5, window_seconds=300)
 def teacher_login():
     """
     Teacher login
@@ -80,11 +100,12 @@ def teacher_login():
     Returns: {success: true, teacher_id} or {error}
     """
     try:
-        obj = request.json
+        obj = request.json or {}
         email = obj.get('email', '').strip()
         password = obj.get('password', '')
 
         if not email or not password:
+            security.log_auth_event('teacher_login_invalid_request', 'teacher', email or None)
             return jsonify({'error': 'Email and password are required'}), 400
 
         # Fetch teacher by email
@@ -93,17 +114,22 @@ def teacher_login():
             ['email', email])
 
         if teacher_data[2] is None:
+            security.log_auth_event('teacher_login_failed', 'teacher', email, {'reason': 'unknown_email'})
             return jsonify({'error': 'Invalid email or password'}), 401
 
         teacher_id, password_hash, full_name, is_active = teacher_data[2]
 
         # Check if account is active
         if not is_active:
+            security.log_auth_event('teacher_login_denied', 'teacher', teacher_id, {'reason': 'inactive'})
             return jsonify({'error': 'Account is disabled'}), 403
 
         # Verify password
         if not auth.verify_password(password, password_hash):
+            security.log_auth_event('teacher_login_failed', 'teacher', teacher_id, {'reason': 'bad_password'})
             return jsonify({'error': 'Invalid email or password'}), 401
+
+        _rehash_user_password_if_needed('teachers', 'teacher_id', teacher_id, password, password_hash)
 
         # Update last login
         timestamp = auth.get_timestamp()
@@ -115,6 +141,7 @@ def teacher_login():
 
         # Set session
         auth.set_user_session(teacher_id, 'teacher', full_name, email)
+        security.log_auth_event('teacher_login_success', 'teacher', teacher_id, {'email': email})
 
         return jsonify({
             'success': True,
@@ -124,6 +151,7 @@ def teacher_login():
         }), 200
 
     except Exception as e:
+        security.log_auth_event('teacher_login_error', 'teacher', details={'error': str(e)})
         return jsonify({'error': str(e)}), 500
 
 
@@ -132,6 +160,8 @@ def teacher_login():
 #---------------------------------------------------------------------------
 
 @bp.route('/auth/student/login/class', methods=['POST'])
+@security.require_same_origin()
+@auth.rate_limit(limit=5, window_seconds=300)
 def student_login_class():
     """
     Student login with class code + name + password
@@ -139,18 +169,19 @@ def student_login_class():
     Returns: {success: true, student_id, password_changed} or {error}
     """
     try:
-        obj = request.json
+        obj = request.json or {}
         class_code = obj.get('class_code', '').strip().upper()
         student_name = obj.get('student_name', '').strip()
         password = obj.get('password', '')
 
         if not class_code or not student_name or not password:
+            security.log_auth_event('student_login_invalid_request', 'student', details={'class_code': class_code, 'student_name': student_name})
             return jsonify({'error': 'All fields are required'}), 400
 
         # Query to find student by class code + name + password
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT s.student_id, s.student_name, s.password_hash, s.password_changed, s.email, s.is_active
+            SELECT s.student_id, s.student_name, s.password_hash, s.password_changed, s.is_active
             FROM students s
             JOIN enrollments e ON s.student_id = e.student_id
             JOIN classes c ON e.class_id = c.class_id
@@ -164,83 +195,55 @@ def student_login_class():
         db.close()
 
         if result is None:
+            security.log_auth_event('student_login_failed', 'student', details={'class_code': class_code, 'student_name': student_name, 'reason': 'unknown_user'})
             return jsonify({'error': 'Invalid class code, name, or password'}), 401
 
-        student_id, name, password_hash, password_changed, email, is_active = result
+        student_id, name, password_hash, password_changed, is_active = result
 
         # Check if account is active
         if not is_active:
+            security.log_auth_event('student_login_denied', 'student', student_id, {'reason': 'inactive'})
             return jsonify({'error': 'Account is disabled'}), 403
 
         # Verify password
         if not auth.verify_password(password, password_hash):
+            security.log_auth_event('student_login_failed', 'student', student_id, {'reason': 'bad_password'})
             return jsonify({'error': 'Invalid class code, name, or password'}), 401
 
+        _rehash_user_password_if_needed('students', 'student_id', student_id, password, password_hash)
+
         # Set session
-        auth.set_user_session(student_id, 'student', name, email)
+        auth.set_user_session(student_id, 'student', name)
+        security.log_auth_event('student_login_success', 'student', student_id, {'class_code': class_code})
 
         return jsonify({
             'success': True,
             'student_id': student_id,
             'name': name,
-            'password_changed': password_changed,
-            'email': email
+            'password_changed': password_changed
         }), 200
 
     except Exception as e:
+        security.log_auth_event('student_login_error', 'student', details={'error': str(e)})
         return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/auth/student/login/email', methods=['POST'])
+@security.require_same_origin()
+@auth.rate_limit(limit=5, window_seconds=300)
 def student_login_email():
     """
-    Student login with email + password
-    POST body: {email, password}
-    Returns: {success: true, student_id, password_changed} or {error}
+    Student email login is intentionally disabled.
     """
-    try:
-        obj = request.json
-        email = obj.get('email', '').strip()
-        password = obj.get('password', '')
-
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-
-        # Fetch student by email
-        student_data = dbase.fetch(_db, 'students',
-            ['student_id', 'student_name', 'password_hash', 'password_changed', 'email', 'is_active'],
-            ['email', email])
-
-        if student_data[2] is None:
-            return jsonify({'error': 'Invalid email or password'}), 401
-
-        student_id, name, password_hash, password_changed, email, is_active = student_data[2]
-
-        # Check if account is active
-        if not is_active:
-            return jsonify({'error': 'Account is disabled'}), 403
-
-        # Verify password
-        if not auth.verify_password(password, password_hash):
-            return jsonify({'error': 'Invalid email or password'}), 401
-
-        # Set session
-        auth.set_user_session(student_id, 'student', name, email)
-
-        return jsonify({
-            'success': True,
-            'student_id': student_id,
-            'name': name,
-            'password_changed': password_changed,
-            'email': email
-        }), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    security.log_auth_event('student_login_email_blocked', 'student')
+    return jsonify({
+        'error': 'Students must sign in with class code, username, and password'
+    }), 403
 
 
 @bp.route('/auth/student/change-password', methods=['POST'])
 @auth.require_student()
+@security.require_same_origin()
 def student_change_password():
     """
     Change student password (required on first login)
@@ -281,10 +284,10 @@ def student_change_password():
         new_password_hash = auth.hash_password(new_password)
         db = dbase.get_db(_db)
 
-        # Update password and clear initial_password
+        # Update password and mark onboarding as complete
         sql = dbase._s("""
             UPDATE students
-            SET password_hash = %s, initial_password = NULL, password_changed = TRUE
+            SET password_hash = %s, password_changed = TRUE
             WHERE student_id = %s
         """)
         db.execute(sql, (new_password_hash, student_id))
@@ -302,59 +305,28 @@ def student_change_password():
 
 @bp.route('/auth/student/add-email', methods=['POST'])
 @auth.require_student()
+@security.require_same_origin()
 def student_add_email():
     """
-    Add or update student email
-    POST body: {email}
-    Returns: {success: true} or {error}
+    Student email logins are not supported.
     """
-    try:
-        user = auth.get_current_user()
-        student_id = user['user_id']
-
-        obj = request.json
-        email = obj.get('email', '').strip()
-
-        if not email:
-            return jsonify({'error': 'Email is required'}), 400
-
-        if not auth.validate_email(email):
-            return jsonify({'error': 'Invalid email format'}), 400
-
-        # Check if email already exists for another student
-        existing = dbase.fetch(_db, 'students', ['student_id'], ['email', email])
-        if existing[2] is not None and existing[2][0] != student_id:
-            return jsonify({'error': 'Email already in use'}), 409
-
-        # Update email
-        db = dbase.get_db(_db)
-        sql = dbase._s("UPDATE students SET email = %s WHERE student_id = %s")
-        db.execute(sql, (email, student_id))
-        db.commit()
-        db.close()
-
-        # Update session
-        session['email'] = email
-
-        return jsonify({
-            'success': True,
-            'message': 'Email updated successfully'
-        }), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'error': 'Student email addresses are not supported'}), 410
 
 
 #---------------------------------------------------------------------------
 # General Authentication
 #---------------------------------------------------------------------------
 
-@bp.route('/auth/logout', methods=['POST', 'GET'])
+@bp.route('/auth/logout', methods=['POST'])
+@security.require_same_origin()
 def logout():
     """
     Logout current user (teacher or student)
     Returns: {success: true}
     """
+    user = auth.get_current_user()
+    if user:
+        security.log_auth_event('logout', user['user_type'], user['user_id'])
     auth.clear_user_session()
     return jsonify({'success': True, 'message': 'Logged out successfully'}), 200
 
@@ -383,6 +355,7 @@ def get_current_user_info():
 
 @bp.route('/classes/create', methods=['POST'])
 @auth.require_teacher()
+@security.require_same_origin()
 def create_class():
     """
     Create a new class
@@ -510,6 +483,7 @@ def get_class_details(class_id):
 
 @bp.route('/classes/<int:class_id>', methods=['DELETE'])
 @auth.require_teacher()
+@security.require_same_origin()
 def delete_class(class_id):
     """
     Delete (deactivate) a class
@@ -547,6 +521,7 @@ def delete_class(class_id):
 
 @bp.route('/classes/<int:class_id>/students/search', methods=['POST'])
 @auth.require_teacher()
+@security.require_same_origin()
 def search_students(class_id):
     """
     Search for existing students by name
@@ -589,6 +564,7 @@ def search_students(class_id):
 
 @bp.route('/classes/<int:class_id>/students/create', methods=['POST'])
 @auth.require_teacher()
+@security.require_same_origin()
 def create_student_and_enroll(class_id):
     """
     Create a new student and enroll in class
@@ -622,11 +598,11 @@ def create_student_and_enroll(class_id):
         # Create student and get the new student_id via RETURNING
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            INSERT INTO students (student_name, password_hash, initial_password, created_at, created_by_teacher_id)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO students (student_name, password_hash, password_changed, created_at, created_by_teacher_id)
+            VALUES (%s, %s, FALSE, %s, %s)
             RETURNING student_id
         """)
-        result = db.execute(sql, (student_name, password_hash, initial_password, timestamp, teacher_id)).fetchone()
+        result = db.execute(sql, (student_name, password_hash, timestamp, teacher_id)).fetchone()
         db.commit()
         student_id = result[0]
 
@@ -653,6 +629,7 @@ def create_student_and_enroll(class_id):
 
 @bp.route('/classes/<int:class_id>/students/add', methods=['POST'])
 @auth.require_teacher()
+@security.require_same_origin()
 def add_existing_student(class_id):
     """
     Add an existing student to class
@@ -714,6 +691,7 @@ def add_existing_student(class_id):
 
 @bp.route('/classes/<int:class_id>/students/<int:student_id>', methods=['DELETE'])
 @auth.require_teacher()
+@security.require_same_origin()
 def remove_student_from_class(class_id, student_id):
     """
     Remove a student from class
@@ -752,8 +730,8 @@ def remove_student_from_class(class_id, student_id):
 @auth.require_teacher()
 def get_class_students(class_id):
     """
-    Get all students in a class (with passwords if not changed)
-    Returns: {students: [{student_id, student_name, password, password_changed, enrolled_at}]} or {error}
+    Get all students in a class
+    Returns: {students: [{student_id, student_name, password_changed, enrolled_at}]} or {error}
     """
     try:
         user = auth.get_current_user()
@@ -771,7 +749,7 @@ def get_class_students(class_id):
         # Get students in class
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT s.student_id, s.student_name, s.initial_password, s.password_changed, e.enrolled_at
+            SELECT s.student_id, s.student_name, s.password_changed, e.enrolled_at
             FROM students s
             JOIN enrollments e ON s.student_id = e.student_id
             WHERE e.class_id = %s AND e.is_active = TRUE
@@ -783,15 +761,11 @@ def get_class_students(class_id):
 
         students = []
         for row in rows:
-            student_id, student_name, initial_password, password_changed, enrolled_at = row
-
-            # Show password only if not changed
-            password_display = initial_password if not password_changed else None
+            student_id, student_name, password_changed, enrolled_at = row
 
             students.append({
                 'student_id': student_id,
                 'student_name': student_name,
-                'password': password_display,  # Null if password was changed
                 'password_changed': password_changed,
                 'enrolled_at': enrolled_at
             })
@@ -853,6 +827,7 @@ def get_student_classes():
 
 @bp.route('/projects/save', methods=['POST'])
 @auth.require_login()
+@security.require_same_origin()
 def save_project():
     """
     Save a project (student or teacher)
@@ -897,10 +872,29 @@ def save_project():
             if result is None:
                 db.close()
                 return jsonify({'error': 'Project not found'}), 404
-            if user_type == 'student' and result[0] != user_id:
+
+            student_owner, teacher_owner = result
+
+            # Adopt legacy rows that existed before per-user ownership was added.
+            if student_owner is None and teacher_owner is None:
+                if user_type == 'student':
+                    sql = dbase._s("""
+                        UPDATE projects
+                        SET student_id = %s, teacher_id = NULL
+                        WHERE uid = %s
+                    """)
+                    db.execute(sql, (user_id, uid))
+                else:
+                    sql = dbase._s("""
+                        UPDATE projects
+                        SET teacher_id = %s, student_id = NULL
+                        WHERE uid = %s
+                    """)
+                    db.execute(sql, (user_id, uid))
+            elif user_type == 'student' and student_owner != user_id:
                 db.close()
                 return jsonify({'error': 'Unauthorized'}), 403
-            if user_type == 'teacher' and result[1] != user_id:
+            elif user_type == 'teacher' and teacher_owner != user_id:
                 db.close()
                 return jsonify({'error': 'Unauthorized'}), 403
 
@@ -939,14 +933,16 @@ def get_my_projects():
 
         if user_type == 'student':
             sql = dbase._s("""
-                SELECT uid, name, assigned_class_id, created_at, last_edited
+                SELECT uid, name, assigned_class_id, created_at, last_edited,
+                       share_uid, share_token, shared_public, shared_class_id
                 FROM projects
                 WHERE student_id = %s
                 ORDER BY last_edited DESC
             """)
         else:  # teacher
             sql = dbase._s("""
-                SELECT uid, name, assigned_class_id, created_at, last_edited
+                SELECT uid, name, assigned_class_id, created_at, last_edited,
+                       share_uid, share_token, shared_public, shared_class_id
                 FROM projects
                 WHERE teacher_id = %s
                 ORDER BY last_edited DESC
@@ -962,7 +958,11 @@ def get_my_projects():
                 'name': row[1],
                 'assigned_class_id': row[2],
                 'created_at': row[3],
-                'last_edited': row[4]
+                'last_edited': row[4],
+                'share_uid': row[5],
+                'share_token': row[6],
+                'shared_public': row[7],
+                'shared_class_id': row[8]
             })
 
         return jsonify({'projects': projects}), 200
@@ -973,6 +973,7 @@ def get_my_projects():
 
 @bp.route('/projects/<string:uid>/assign-class', methods=['POST'])
 @auth.require_student()
+@security.require_same_origin()
 def assign_project_to_class(uid):
     """
     Assign a project to a class (student only)
@@ -1090,7 +1091,8 @@ def get_project(uid):
 
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT student_id, teacher_id, name, data, created_at, last_edited
+            SELECT student_id, teacher_id, name, data, created_at, last_edited,
+                   share_uid, share_token, shared_public, shared_class_id
             FROM projects WHERE uid = %s
         """)
         result = db.execute(sql, (uid,)).fetchone()
@@ -1099,7 +1101,7 @@ def get_project(uid):
         if result is None:
             return jsonify({'error': 'Project not found'}), 404
 
-        student_id, teacher_id, name, data, created_at, last_edited = result
+        student_id, teacher_id, name, data, created_at, last_edited, share_uid, share_token, shared_public, shared_class_id = result
 
         if user_type == 'student' and student_id != user_id:
             return jsonify({'error': 'Unauthorized'}), 403
@@ -1111,7 +1113,11 @@ def get_project(uid):
             'name': name,
             'data': json.loads(data) if data else {},
             'created_at': created_at,
-            'last_edited': last_edited
+            'last_edited': last_edited,
+            'share_uid': share_uid,
+            'share_token': share_token,
+            'shared_public': shared_public,
+            'shared_class_id': shared_class_id
         }), 200
 
     except Exception as e:
@@ -1120,6 +1126,7 @@ def get_project(uid):
 
 @bp.route('/projects/<string:uid>', methods=['DELETE'])
 @auth.require_login()
+@security.require_same_origin()
 def delete_project(uid):
     """
     Delete a project
@@ -1166,6 +1173,7 @@ def delete_project(uid):
 
 @bp.route('/projects/migrate', methods=['POST'])
 @auth.require_login()
+@security.require_same_origin()
 def migrate_projects():
     """
     Migrate projects from localStorage to server

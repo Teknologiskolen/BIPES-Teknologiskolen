@@ -300,7 +300,6 @@ class ClassesPage {
                     <thead>
                         <tr>
                             <th>Student Name</th>
-                            <th>Password</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -309,11 +308,6 @@ class ClassesPage {
                         ${students.map(student => `
                             <tr>
                                 <td>${student.student_name}</td>
-                                <td>
-                                    ${student.password ?
-                                        `<code>${student.password}</code>` :
-                                        '<span class="password-hidden">****</span>'}
-                                </td>
                                 <td>
                                     ${student.password_changed ?
                                         '<span class="badge badge-success">Active</span>' :

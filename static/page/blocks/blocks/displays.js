@@ -1,27 +1,10 @@
 // Neopixel -------------------------------------------------------------------
-const LedStripNameMap = {}; //key: block.id, value: name
-
 Blockly.Blocks['neopixel_led_strip'] = {
-  update_list: function() {
-    const entries = Object.values(LedStripNameMap);
-	const blocks = this.workspace.getAllBlocks();
-	blocks.forEach(block => {
-		if(block.type === 'neopixel_init') {
-			const nameInput = block.getFieldValue('strip_name'); 	
-			LedStripNameMap[block.id] = nameInput;
-		}
-	});	
-	
-	if(entries.length === 0) return [[`${Msg["no"]} LED Strip`, ""]];
-	return entries.map(name => [name, name]);
-  },
-  refresh: function() {
-	this.update_list();
-  },
   init: function() {
     this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown(() => this.update_list()), 'strip_name');
-    this.setOutput(true, "String");
+        .appendField('ID #')
+        .appendField(new Blockly.FieldNumber(1, 1, Infinity, 1), 'id');
+    this.setOutput(true, "Number");
     this.setColour(160);
     this.setHelpUrl("http://www.bipes.net.br");
   },
@@ -37,12 +20,12 @@ Blockly.Blocks['neopixel_init'] = {
         55,
         55,
         "*"));
-	this.appendDummyInput()
-		.appendField(Msg["name"])
-		.appendField(new Blockly.FieldTextInput(""), "strip_name")
-    this.appendValueInput("pin")
+    this.appendValueInput("id")
         .setCheck("Number")
-		.appendField("Pin:")
+        .appendField("ID #")
+	    this.appendValueInput("pin")
+	        .setCheck("Number")
+			.appendField("Pin:")
     this.appendValueInput("number")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_LEFT)
@@ -51,38 +34,21 @@ Blockly.Blocks['neopixel_init'] = {
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_LEFT)
         .appendField("State Machine");
-    this.setColour(160);
-    this.setPreviousStatement(true);
-    this.setNextStatement(true);
-    this.setTooltip("Init NeoPixel on the specified pin");
-  },
-  onchange: function(event) {
-	if(event.type === Blockly.Events.BLOCK_DELETE) {
-		delete LedStripNameMap[this.id];	
-		return;	
-	}
-
-	if(!this.workspace || this.isInFlyout || this.isInsertionMarker()) return;
-
-	const nameInput = this.getFieldValue('strip_name');
-	if(!nameInput) return;
-
-	const blockId = this.id;
-	
-	if(LedStripNameMap[blockId] !== nameInput) {
-		LedStripNameMap[blockId] = nameInput;
-	}
-  }
+	    this.setColour(160);
+	    this.setPreviousStatement(true);
+	    this.setNextStatement(true);
+	    this.setTooltip("Init NeoPixel on the specified pin");
+	  }
 };
 
 Blockly.Blocks['neopixel_brightness'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabel(`${Msg["set"]} ${Msg["brightness"]}`), "MSG_NEOPIXEL");
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	init: function() {
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabel(`${Msg["set"]} ${Msg["brightness"]}`), "MSG_NEOPIXEL");
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
 
     this.appendValueInput("brightness")
         .setCheck("Number")
@@ -109,7 +75,7 @@ Blockly.Blocks['neopixel_color_numbers'] = {
     this.appendValueInput("green")
         .setCheck(null);
     this.appendDummyInput()
-        .appendField(Msg["blå"]);
+        .appendField(Msg["blue"]);
     this.appendValueInput("blue")
         .setCheck(null);
     this.setInputsInline(true);
@@ -177,12 +143,12 @@ Blockly.Blocks['HSL_to_RGB'] = {
 
 Blockly.Blocks['neopixel_set_line_gradient_pixel'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabel(`${Msg["set"]} gradient for strip`), "MSG_NEOPIXEL");
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabel(`${Msg["set"]} gradient for strip`), "MSG_NEOPIXEL");
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
 	this.appendValueInput("start")
         .setCheck(null)
 	.appendField("Start LED");
@@ -214,12 +180,12 @@ Blockly.Blocks['neopixel_set_line_gradient_pixel'] = {
 
 Blockly.Blocks['neopixel_set_line_pixel'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Neopixel Strip`), "MSG_NEOPIXEL");
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Neopixel Strip`), "MSG_NEOPIXEL");
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
 	this.appendValueInput("start")
         .setCheck(null)
 	.appendField("Start LED");
@@ -247,12 +213,12 @@ Blockly.Blocks['neopixel_set_line_pixel'] = {
 
 Blockly.Blocks['neopixel_set_pixel'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Single Neopixel`), "MSG_NEOPIXEL");
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabel(`${Msg["set"]} Single Neopixel`), "MSG_NEOPIXEL");
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
 
     this.appendValueInput("address")
         .setCheck(null)
@@ -280,6 +246,10 @@ Blockly.Blocks['neopixel_write'] = {
   init: function() {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabel("Write NeoPixel"), "MSG_NEOPIXEL");
+    this.appendValueInput("id")
+        .setCheck("Number")
+        .setAlign(Blockly.ALIGN_LEFT)
+        .appendField('ID #');
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
@@ -297,12 +267,12 @@ function componentToHex(c) {
 
 Blockly.Blocks['neopixel_rotate_left'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["left"]}`));
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["left"]}`));
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
     this.appendValueInput("steps")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_LEFT)
@@ -317,12 +287,12 @@ Blockly.Blocks['neopixel_rotate_left'] = {
 
 Blockly.Blocks['neopixel_rotate_right'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["right"]}`));
-	this.appendValueInput("strip_name")
-		.setCheck("String")
-		.setAlign(Blockly.ALIGN_LEFT)
-        .appendField(`strip ${Msg["name"]}`);
+	    this.appendDummyInput()
+	        .appendField(new Blockly.FieldLabelSerializable(`${Msg["rotate"]} LEDs ${Msg["right"]}`));
+		this.appendValueInput("id")
+			.setCheck("Number")
+			.setAlign(Blockly.ALIGN_LEFT)
+	        .appendField('ID #');
     this.appendValueInput("steps")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_LEFT)

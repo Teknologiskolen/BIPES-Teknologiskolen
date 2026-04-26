@@ -127,9 +127,13 @@ export const knownLibs = {
     hostname:'./static/page/blocks/libraries',
     file:'ZerroStepper.py'
   },
-  sand_table_robot:{
+  sandRobot:{
     hostname:'./static/page/blocks/libraries',
     file:'sand_table_robot.py'
+  },
+    controlRobot:{
+    hostname:'./static/page/blocks/libraries',
+    file:'controlRobot.py'
   },
   Buttons:{
     hostname:'./static/page/blocks/libraries',
@@ -146,6 +150,14 @@ export const knownLibs = {
   st7735s:{
     hostname:'./static/page/blocks/libraries',
     file:'st7735s.py'
+  },
+  dfplayer:{
+    hostname:'./static/page/blocks/libraries',
+    file:'dfplayer.py'
+  },
+  AlarmClockMain:{
+    hostname:'./static/page/blocks/libraries',
+    file:'main.py'
   }
 
 }

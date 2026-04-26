@@ -25,6 +25,37 @@ body.light {
 body.dark {
   background: #222;
 }
+body.dark section a:link,
+body.dark #notify a:link,
+body.dark #contextMenu a:link {
+  color: #7dd3fc;
+  text-decoration: underline;
+  text-decoration-color: rgba(125, 211, 252, 0.55);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+}
+body.dark section a:visited,
+body.dark #notify a:visited,
+body.dark #contextMenu a:visited {
+  color: #a7f3d0;
+  text-decoration-color: rgba(167, 243, 208, 0.5);
+}
+body.dark section a:hover,
+body.dark #notify a:hover,
+body.dark #contextMenu a:hover,
+body.dark section a:focus,
+body.dark #notify a:focus,
+body.dark #contextMenu a:focus {
+  color: #e0f2fe;
+  text-decoration-color: #e0f2fe;
+}
+body.dark section a:focus-visible,
+body.dark #notify a:focus-visible,
+body.dark #contextMenu a:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.75);
+  outline-offset: 0.18em;
+  border-radius: 0.2em;
+}
 input, textarea, select, button, summary {
 	background: none;
 	font: 1em 'OpenSans', sans-serif;
@@ -54,6 +85,16 @@ hr {
 }
 body.dark select {
   border: 1px solid #fff;
+  background-color: #222;
+  color: #fff;
+}
+body.dark select option {
+  background-color: #222;
+  color: #fff;
+}
+body.dark select option:checked {
+  background-color: #4499cc;
+  color: #fff;
 }
 body.light select {
   border: 1px solid #000;
@@ -176,6 +217,13 @@ body.light nav.on {
   nav a, nav span {
     justify-content: left;
     width: 3rem;
+  }
+  nav #panels {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
   }
   nav.on, nav div {
 	  width: 13.5em;
@@ -404,6 +452,35 @@ nav #user-info {
   border-top: 1px solid rgba(125,125,125,.3);
   margin-top: auto;
 }
+nav #guest-info {
+  text-align: center;
+  font-weight: normal;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: .125s ease opacity;
+  transition-delay: .25s;
+  border-top: 1px solid rgba(125,125,125,.3);
+  margin-top: auto;
+}
+nav.on #guest-info {
+  opacity: 1;
+}
+nav #guest-info #guest-label {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  padding: 0.15rem 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  cursor: default;
+}
+nav #guest-info #guest-label::before {
+  display: none;
+}
 nav.on #user-info {
   opacity: 1;
 }
@@ -423,24 +500,75 @@ nav #user-info #user-role {
   text-transform: capitalize;
   padding-bottom: 0.15rem;
 }
-nav #user-info #logout-link {
-  display: inline-block;
+nav #user-info #logout-link,
+nav #guest-info #login-link {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
   margin-top: 0.3rem;
   color: #4499cc;
   cursor: pointer;
   font-size: 0.8rem;
+  line-height: 1;
   text-decoration: none;
   border: 1px solid #4499cc;
   border-radius: 0.25rem;
-  padding: 0.15rem 0.5rem;
+  padding: 0;
   text-align: center;
-  justify-content: center;
-  height: auto;
+  width: 5rem;
+  min-width: 5rem;
+  height: 1.65rem;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  box-sizing: border-box;
 }
 nav #user-info #logout-link::before {
   display: none;
 }
-nav #user-info #logout-link:hover {
+nav #guest-info #login-link::before {
+  display: none;
+}
+nav #user-info #logout-link:hover,
+nav #guest-info #login-link:hover {
+  background: rgba(68,153,204,.2);
+}
+nav #logout-quick,
+nav #login-quick {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  position: absolute;
+  bottom: 0.4rem;
+  left: 0.35rem;
+  margin: 0;
+  color: #4499cc;
+  cursor: pointer;
+  font-size: 0.62rem;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid #4499cc;
+  border-radius: 0.25rem;
+  padding: 0;
+  text-align: center;
+  width: 2.8rem;
+  height: 1.15rem;
+  z-index: 2;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+nav #logout-quick::before {
+  display: none;
+}
+nav #login-quick::before {
+  display: none;
+}
+nav.on #logout-quick,
+nav.on #login-quick {
+  display: none;
+}
+nav #logout-quick:hover,
+nav #login-quick:hover {
   background: rgba(68,153,204,.2);
 }
 nav #app-version {
@@ -1012,14 +1140,17 @@ div#status-bar button.status-icon:focus {
 div#status-bar span#language select {
   cursor: pointer;
 }
+div#status-bar button#forum:before {
+  background-position: left calc(-1.25rem*45) top;
+}
 div#status-bar span#language:before {
   background-position: left calc(-1.25rem*46) top;
 }
-button#theme:before {
+div#status-bar button#theme:before {
   background-position: left calc(-1.25rem*47) top !important;
 }
-button.on#theme:before {
-background-position: left calc(-1.25rem*47) bottom !important;
+div#status-bar button.on#theme:before {
+  background-position: left calc(-1.25rem*47) bottom !important;
 }
 body.light div#status-bar span#language:before {
   filter: invert(1);

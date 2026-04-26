@@ -45,7 +45,8 @@ Update these values in `.env`:
 ```env
 FLASK_SECRET_KEY=your-random-secret-key-here
 POSTGRES_PASSWORD=your-postgres-password
-MOSQUITTO_PASSWORD=your-mqtt-password
+MOSQUITTO_PASSWORD=your-server-bridge-mqtt-password
+MOSQUITTO_DYNSEC_ADMIN_PASSWORD=your-dynamic-security-admin-password
 ```
 
 ### 2. Deploy
@@ -181,7 +182,9 @@ Gunicorn settings:
 Mosquitto MQTT configuration:
 - MQTT port: 1883
 - WebSocket port: 9001
-- Anonymous access: allowed (configure password file for production)
+- Anonymous access: disabled
+- Authentication/authorization: Mosquitto Dynamic Security plugin
+- Runtime security state: `dynamic-security.json` inside the `mosquitto_data` Docker volume
 
 ## Troubleshooting
 
@@ -231,21 +234,20 @@ docker exec -it bipes_web env | grep POSTGRES
 
 **For Production:**
 
-1. **Change default passwords** in `.env`
+1. **Change default passwords and secrets** in `.env`, including `FLASK_SECRET_KEY`, `PASSWORD_PEPPER`, `POSTGRES_PASSWORD`, `MOSQUITTO_PASSWORD`, and `MOSQUITTO_DYNSEC_ADMIN_PASSWORD`
 2. **Use real SSL certificates** (Let's Encrypt)
-3. **Configure Mosquitto authentication**:
+3. **Use Mosquitto Dynamic Security**:
    ```bash
-   # Create password file
-   docker exec -it broker mosquitto_passwd -c /mosquitto/config/passwd bipes
-
-   # Update mosquitto.conf
-   # Change: allow_anonymous true
-   # To: allow_anonymous false
-   #     password_file /mosquitto/config/passwd
+   # The production config should include:
+   allow_anonymous false
+   per_listener_settings false
+   plugin /usr/lib/mosquitto_dynamic_security.so
+   plugin_opt_config_file /mosquitto/data/dynamic-security.json
    ```
-4. **Set proper firewall rules**
-5. **Enable PostgreSQL password** (already configured in .env)
-6. **Review nginx security headers**
+4. **Keep broker credentials out of the browser**. The Flask app creates scoped device clients through Dynamic Security, and the browser dashboard uses the authenticated server bridge.
+5. **Set proper firewall rules**. Only expose TCP MQTT if devices must connect directly; otherwise keep MQTT internal and proxy only what is needed.
+6. **Enable PostgreSQL password** (already configured in .env)
+7. **Review nginx security headers**
 
 ## Monitoring
 
@@ -261,8 +263,8 @@ curl -k https://localhost
 # Test HTTP redirect
 curl -I http://localhost
 
-# Test MQTT
-mosquitto_sub -h localhost -p 1883 -t test/topic
+# Test MQTT with a scoped device credential from /api/devices
+mosquitto_sub -h localhost -p 1883 -u '<device-user>' -P '<device-password>' -t '<session>/devices/<device-id>/commands/#'
 ```
 
 ### Logs

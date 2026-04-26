@@ -34,8 +34,36 @@ section#project .listy #uid:before {
   content:'#'
 }
 section#project .listy #author,
-section#project .listy #lastEdited {
+section#project .listy #lastEdited,
+section#project .listy #teacherName {
   font-size: 0.8rem;
+}
+section#project #shared-projects .listy {
+  max-height: 32rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+section#project .shared-group {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(125,125,125,.2);
+}
+section#project .shared-group:last-child {
+  border-bottom: 0;
+}
+section#project .shared-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+section#project .shared-group-header h4 {
+  margin: 0;
+}
+section#project .shared-group-header span {
+  font-size: 0.8rem;
+  color: #666;
 }
 section#project .listy #assignedClass {
   font-size: 0.75rem;

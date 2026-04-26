@@ -11,9 +11,7 @@ Blockly.Blocks["bluetooth_init"] = {
     this.appendStatementInput("OD")
         .setCheck(null) // Accepts any block type
     this.appendDummyInput()
-      .appendField("On Message Received")
-        .appendField("with:")
-        .appendField(new Blockly.FieldVariable("Message"), "message")
+      .appendField("On Message Received");
     this.appendStatementInput("OR")
         .setCheck(null) // Accepts any block type
     this.setColour(240);
@@ -21,6 +19,39 @@ Blockly.Blocks["bluetooth_init"] = {
     this.setNextStatement(true, null);
  this.setTooltip(" ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
+  }
+};
+
+Blockly.Blocks["bluetooth_last_msg"] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Bluetooth Last Message");
+    this.setColour(240);
+    this.setOutput(true, "String");
+ this.setTooltip("Read the latest received Bluetooth message.");
+ this.setHelpUrl("https://docs.micropython.org/en/latest/library/ubluetooth.html");
+  }
+};
+
+Blockly.Blocks["bluetooth_has_msg"] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Bluetooth Has Message");
+    this.setColour(240);
+    this.setOutput(true, "Boolean");
+ this.setTooltip("Check whether a Bluetooth message is waiting in the queue.");
+ this.setHelpUrl("https://docs.micropython.org/en/latest/library/ubluetooth.html");
+  }
+};
+
+Blockly.Blocks["bluetooth_pop_msg"] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Bluetooth Pop Message");
+    this.setColour(240);
+    this.setOutput(true, "String");
+ this.setTooltip("Read and remove the oldest queued Bluetooth message.");
+ this.setHelpUrl("https://docs.micropython.org/en/latest/library/ubluetooth.html");
   }
 };
 
