@@ -81,6 +81,11 @@ class Prompt {
         return true
     })
     this.prompt.open($.promptXterm.$)
+    let helperTextarea = $.promptXterm.$.querySelector('.xterm-helper-textarea')
+    if (helperTextarea && !helperTextarea.name)
+      helperTextarea.name = 'terminal-input'
+    if (helperTextarea && !helperTextarea.id)
+      helperTextarea.id = 'terminal-input'
     this.prompt.setOption('fontSize',14)
     // Disable until connect.
     this.prompt.setOption('disableStdin', true);

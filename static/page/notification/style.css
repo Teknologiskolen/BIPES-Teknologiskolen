@@ -28,9 +28,22 @@ section#notification #splash {
   border-radius: 1.5rem;
   padding: 1rem 1rem .25rem 1rem;
 }
-section#notification #splash h3 {
-  padding: 0
-}
-section#notification #splash div {
+section#notification #splash .markdown-body {
   font-size: 0.9rem;
+}
+section#notification #splash .markdown-body h1,
+section#notification #splash .markdown-body h2,
+section#notification #splash .markdown-body h3 {
+  margin: 0 0 .75rem 0;
+  padding: 0;
+}
+section#notification #splash .markdown-body p,
+section#notification #splash .markdown-body ul {
+  margin: 0 0 1rem 0;
+}
+section#notification #splash .markdown-body ul {
+  padding-left: 1.25rem;
+}
+section#notification #splash .markdown-body code {
+  font-size: 0.95em;
 }

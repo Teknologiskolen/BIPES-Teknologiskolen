@@ -24,24 +24,29 @@
 
 # st7735_s__create
 <block type="st7735_s__create">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="dc_pin">
     <shadow type="pinout">
-      <field name="PIN">0</field>
+      <field name="PIN">16</field>
+    </shadow>
+  </value>
+  <value name="sck_pin">
+    <shadow type="pinout">
+      <field name="PIN">18</field>
+    </shadow>
+  </value>
+  <value name="mosi_pin">
+    <shadow type="pinout">
+      <field name="PIN">19</field>
     </shadow>
   </value>
   <value name="rst_pin">
     <shadow type="pinout">
-      <field name="PIN">0</field>
+      <field name="PIN">20</field>
     </shadow>
   </value>
   <value name="cs_pin">
     <shadow type="pinout">
-      <field name="PIN">0</field>
+      <field name="PIN">17</field>
     </shadow>
   </value>
   <value name="width">
@@ -58,11 +63,6 @@
 
 # st7735_s__fill
 <block type="st7735_s__fill">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="color">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -72,11 +72,6 @@
 
 # st7735_s__fill_rect
 <block type="st7735_s__fill_rect">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -106,11 +101,6 @@
 
 # st7735_s__pixel
 <block type="st7735_s__pixel">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -130,11 +120,6 @@
 
 # st7735_s__hline
 <block type="st7735_s__hline">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -159,11 +144,6 @@
 
 # st7735_s__vline
 <block type="st7735_s__vline">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -188,11 +168,6 @@
 
 # st7735_s__rect
 <block type="st7735_s__rect">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -222,11 +197,6 @@
 
 # st7735_s__line
 <block type="st7735_s__line">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="x0">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -256,11 +226,6 @@
 
 # st7735_s__text
 <block type="st7735_s__text">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="string">
     <shadow type="text">
       <field name="TEXT"></field>

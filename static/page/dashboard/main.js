@@ -8,7 +8,7 @@ import {navigation} from '../../base/navigation.js'
 
 import {project} from '../project/main.js'
 import {Actions} from './action.js'
-import {plugins, triggerSharedSerialCameraFeedFromChunk} from './plugins.js'
+import {plugins, triggerImageSourceFeedsFromChunk} from './plugins.js'
 
 import {dataStorage} from './datastorage.js'
 import {easyMQTT} from './easymqtt.js'
@@ -137,7 +137,7 @@ class Dashboard {
    * @param {string} chunk - Incoming data.
    */
   write (chunk){
-    triggerSharedSerialCameraFeedFromChunk(chunk)
+    triggerImageSourceFeedsFromChunk(chunk)
     dataStorage.write(chunk, this.storagemanager.bridgeEasyMQTT.status)
   }
   /*
@@ -944,6 +944,17 @@ class DashboardGrid {
 }
 
 
+const DASHBOARD_WIDGET_ICONS = {
+  'chart':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="15" x2="5" y2="8"/><line x1="9" y1="15" x2="9" y2="5"/><line x1="13" y1="15" x2="13" y2="10"/><line x1="17" y1="15" x2="17" y2="7"/><line x1="3" y1="15" x2="19" y2="15"/></svg>',
+  'switch':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="16" height="6" rx="3"/><circle cx="13" cy="10" r="2" fill="currentColor" opacity="0.5"/></svg>',
+  'threeStateSwitch': '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="16" height="6" rx="3"/><circle cx="10" cy="10" r="2" fill="currentColor" opacity="0.5"/><circle cx="5" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>',
+  'button':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="7" width="14" height="7" rx="3"/></svg>',
+  'range':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="10" x2="18" y2="10"/><circle cx="11" cy="10" r="3" fill="currentColor" opacity="0.3"/></svg>',
+  'gauge':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 14.5A8 8 0 1 1 16.5 14.5"/><line x1="10" y1="10" x2="14" y2="6.5"/><circle cx="10" cy="10" r="1.5" fill="currentColor" opacity="0.5"/></svg>',
+  'coordinate':       '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="16" x2="4" y2="4"/><line x1="4" y1="16" x2="17" y2="16"/><polyline points="4,12 7,8 11,11 15,6"/></svg>',
+  'drawing':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3.5-1L16 6.5l-2.5-2.5L4 14.5z"/><line x1="13.5" y1="4" x2="16" y2="6.5"/></svg>'
+}
+
 class DashboardAddMenu {
   constructor (dom, grid, button){
     this.grid = grid
@@ -955,9 +966,7 @@ class DashboardAddMenu {
       range:dashboardMainMsg('DashboardWidgetRange', 'Range'),
       gauge:dashboardMainMsg('DashboardWidgetGauge', 'Gauge'),
       coordinate:dashboardMainMsg('DashboardWidgetCoordinate', 'Coordinate'),
-      drawing:dashboardMainMsg('DashboardWidgetDrawing', 'Drawing'),
-      mlClassifier:dashboardMainMsg('MLClassifierTitle', 'ML Classifier'),
-      visionProcessor:dashboardMainMsg('VisionProcessorTitle', 'Vision Processor')
+      drawing:dashboardMainMsg('DashboardWidgetDrawing', 'Drawing')
     }
     let $ = this.$ = {}
     $.addMenu = dom
@@ -965,17 +974,17 @@ class DashboardAddMenu {
     $.plugins = []
 
     for (const plugin in this.plugins) {
-      $.plugins.push(new DOM('button', {
-          value: plugin,
-          id:`${plugin}`,
-          className:'icon',
-          innerText: this.plugins[plugin]
-        })
-        .onclick(grid, grid.add, [plugin]))
+      let btn = new DOM('button', { value: plugin, id: plugin, className: 'dashboard-add-btn' })
+      btn.$.innerHTML = `${DASHBOARD_WIDGET_ICONS[plugin] || ''}<span>${this.plugins[plugin]}</span>`
+      $.plugins.push(btn.onclick(grid, grid.add, [plugin]))
     }
 
-    $.wrapper = new DOM('div')
-      .append($.plugins)
+    let title = new DOM('h2', {
+      className: 'dashboard-add-title',
+      innerText: (window.Msg && Msg['DashboardAddWidget']) || 'Add widget'
+    })
+    $.wrapper = new DOM('div', {className: 'dashboard-add-card'})
+      .append([title, new DOM('div', {className: 'dashboard-add-grid'}).append($.plugins)])
     $.addMenu.append($.wrapper)
 
     button.onclick(this, this.open)

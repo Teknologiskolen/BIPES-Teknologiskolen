@@ -6,11 +6,6 @@
 
 # sand_table_robot__create
 <block type="sand_table_robot__create">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="motor1_pins">
     <shadow type="lists_create_with">
       <mutation items="4"></mutation>
@@ -120,29 +115,14 @@
 
 # sand_table_robot__off
 <block type="sand_table_robot__off">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
 </block>
 
 # sand_table_robot__home
 <block type="sand_table_robot__home">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
 </block>
 
 # sand_table_robot__move_line
 <block type="sand_table_robot__move_line">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="target_x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -167,11 +147,6 @@
 
 # sand_table_robot__move_arc
 <block type="sand_table_robot__move_arc">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="center_x">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -211,11 +186,6 @@
 
 # sand_table_robot__draw_spiral
 <block type="sand_table_robot__draw_spiral">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="max_radius">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -240,11 +210,6 @@
 
 # sand_table_robot__draw_flower
 <block type="sand_table_robot__draw_flower">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="max_radius">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -264,11 +229,6 @@
 
 # sand_table_robot__run_gcode_text
 <block type="sand_table_robot__run_gcode_text">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="gcode_text">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -298,11 +258,6 @@
 
 # sand_table_robot__run_gcode_file
 <block type="sand_table_robot__run_gcode_file">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="path">
     <shadow type="text">
       <field name="TEXT"></field>

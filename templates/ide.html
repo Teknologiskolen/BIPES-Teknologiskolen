@@ -30,7 +30,7 @@
 			}
 		    }
 		  </script>
-  <link rel="stylesheet" href='./static/style.css'/>
+  <link rel="stylesheet" href='./static/style.css?v={{ app_version }}'/>
   {% for item in imports -%}
   <script type="text/javascript" src="./static/libs/{{ item }}.js"></script>
   {% endfor %}
@@ -90,8 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var url = new URL(window.location.href);
     var lang = document.documentElement.lang || url.searchParams.get('lang') || '{{ lang }}' || 'en';
     var theme = url.searchParams.get('theme') || '{{ theme }}' || 'light';
-    var path = lang === 'en' ? '/ide' : '/ide-' + lang;
-    return path + '?theme=' + encodeURIComponent(theme) + '&lang=' + encodeURIComponent(lang);
+    return '/ide?theme=' + encodeURIComponent(theme) + '&lang=' + encodeURIComponent(lang);
   }
 
   function bindLogout(id) {

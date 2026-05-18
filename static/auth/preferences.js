@@ -38,7 +38,7 @@
     }
 
     function preferredIdePath() {
-        return currentLanguage === 'en' ? '/ide' : `/ide-${currentLanguage}`;
+        return '/ide';
     }
 
     function withPreferences(path) {

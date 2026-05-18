@@ -1,6 +1,8 @@
 "use strict";
 
-import {DOM} from '../../base/dom.js'
+import {DOM, ContextMenu, Animate} from '../../base/dom.js'
+import {Tool} from '../../base/tool.js'
+import {command} from '../../base/command.js'
 
 import {project} from '../project/main.js'
 
@@ -13,8 +15,15 @@ class Vision {
     this.name = 'vision'
     this.available = false
     this.inited = false
+    this.tree = {}
+    this.currentSID = undefined
+    this.selectedGraphId = null
+    this.graphSessions = {}
+    this.loadingProjectState = false
+
     this.originalImageData = null
     this.originalFilename = ''
+    this.inputImages = {}
     this.selectedNodeId = null
     this.outputCache = {}
     this.boardPadding = 120
@@ -23,6 +32,8 @@ class Vision {
     this.contextMenu = null
     this.contextMenuSubmenu = null
     this.contextMenuSubmenuTrigger = null
+    this.expandedNodeHelp = {}
+    this.addNodeMenuOpen = false
 
     this.bufferCanvas = document.createElement('canvas')
     this.bufferContext = this.bufferCanvas.getContext('2d', {willReadFrequently:true})
@@ -42,39 +53,14 @@ class Vision {
     $.section = new DOM(section)
     $.section.$.classList.add('default')
 
-    $.header = new DOM('h2', {innerText:Msg['PageVision']})
-    $.intro = new DOM('p', {
-      className:'vision-intro',
-      innerText:Msg['VisionIntro']
-    })
-
-    $.resetButton = new DOM('button', {
-      id:'discard',
-      className:'icon text',
-      innerText:Msg['VisionResetGraph']
-    }).onclick(this, this.resetGraph)
-
-    $.toolActions = new DOM('div', {className:'vision-actions'})
-      .append([
-        $.resetButton
-      ])
-
-    $.workspace = new DOM('div', {className:'vision-panel vision-workspace-panel'})
-
-    $.layout = new DOM('div', {className:'vision-layout'})
-      .append([
-        $.workspace
-      ])
-
     $.container = new DOM('div', {className:'container vision-container'})
-      .append([
-        $.header,
-        $.intro,
-        $.toolActions,
-        $.layout
-      ])
+    $.tabContextMenu = new DOM('div')
+    this.tabContextMenu = new ContextMenu($.tabContextMenu, this)
 
-    $.section.append($.container)
+    $.section.append([
+      $.container,
+      $.tabContextMenu
+    ])
 
     this.handlePointerMove = (ev) => {this.onPointerMove(ev)}
     this.handlePointerUp = (ev) => {this.onPointerUp(ev)}
@@ -83,22 +69,51 @@ class Vision {
     window.addEventListener('mouseup', this.handlePointerUp)
     window.addEventListener('mousedown', this.handleWindowPointerDown)
 
-    this.renderWorkspaceShell()
-    this.render()
+    command.add(this, {
+      add: this._add,
+      remove: this._remove,
+      rename: this._rename
+    })
+
+    this.load(this.empty())
   }
 
   init (){
     if (!this.available || this.inited)
       return
 
+    if (this.tree instanceof Array)
+      this.tree = {}
+
+    if (!this.tree || Object.keys(this.tree).length === 0) {
+      let graph = this.makeGraph()
+      this.tree[graph.id] = graph
+      this.selectedGraphId = graph.id
+    }
+
+    this.renderShell()
+    this.restore()
     this.inited = true
-    this.render()
+    this.select(this.selectedGraphId || Object.keys(this.tree)[0])
   }
 
   deinit (){
     if (!this.available || !this.inited)
       return
 
+    this.saveCurrentGraphState()
+    this.nodeDrag = null
+    this.connectionDrag = null
+    this.addNodeMenuOpen = false
+    this.closeContextMenu()
+
+    if (this.$.tabs)
+      this.$.tabs.removeChilds()
+
+    if (this.$.container)
+      this.$.container.$.innerHTML = ''
+
+    this.currentSID = undefined
     this.inited = false
   }
 
@@ -110,18 +125,371 @@ class Vision {
   }
 
   empty (){
+    let graph = this.makeGraph()
+    let tree = {}
+    tree[graph.id] = graph
+
     return {
-      nodes:this.cloneNodes(this.defaultNodes)
+      selectedGraphId:graph.id,
+      tree:tree
     }
   }
 
   load (obj){
-    let nodes = obj && obj.nodes instanceof Array ? obj.nodes : this.defaultNodes
-    this.nodes = this.normalizeNodes(nodes)
-    this.selectedNodeId = this.findNode(this.selectedNodeId) ? this.selectedNodeId : this.nodes[0].id
-    this.invalidateOutputs()
-    if (this.available && this.inited)
-      this.render()
+    let wasInited = this.inited
+    this.loadingProjectState = true
+
+    try {
+      if (wasInited)
+        this.deinit()
+
+      let data = this.normalizeData(obj)
+      this.tree = data.tree
+      this.selectedGraphId = data.selectedGraphId
+      this.currentSID = undefined
+      this.graphSessions = {}
+      this.loadGraphState(this.selectedGraphId)
+
+      if (wasInited)
+        this.init()
+    } finally {
+      this.loadingProjectState = false
+    }
+  }
+
+  renderShell (){
+    let $ = this.$
+    $.container.$.innerHTML = ''
+
+    $.tabs = new DOM('span', {className:'vision-tabs'})
+    $.add = new DOM('button', {
+      className:'icon',
+      id:'add',
+      title:visionMsg('VisionNewGraph', 'New vision graph')
+    }).onclick(this, this.add, [true])
+
+    $.resetButton = new DOM('button', {
+      id:'discard',
+      className:'icon text',
+      innerText:Msg['VisionResetGraph']
+    }).onclick(this, this.resetGraph)
+
+    if (!$.addNodeMenuBtn) {
+      $.addNodeMenuBtn = new DOM('button', {
+        id:'vision-add-node',
+        className:'icon',
+        title:visionMsg('VisionAddNode', 'Add node')
+      }).onclick(this, this.toggleAddNodeMenu)
+      $.section.append([$.addNodeMenuBtn])
+    }
+
+    $.addNodePopup = new DOM('div', {id:'vision-node-popup', className:'popup'})
+    $.addNodePopup.$.addEventListener('click', (ev) => {
+      if (ev.target === $.addNodePopup.$) this.closeAddNodeMenu()
+    })
+
+    $.header = new DOM('div', {className:'vision-header'}).append([
+      new DOM('div', {className:'vision-header-left'}).append([
+        $.tabs,
+        $.add
+      ]),
+      new DOM('span', {className:'vision-header-right'}).append([
+        $.resetButton
+      ])
+    ])
+
+    $.workspace = new DOM('div', {className:'vision-panel vision-workspace-panel'})
+
+    $.layout = new DOM('div', {className:'vision-layout'})
+      .append([
+        $.workspace
+      ])
+
+    $.container.append([
+      $.header,
+      $.layout,
+      $.addNodePopup
+    ])
+
+    this.renderWorkspaceShell()
+  }
+
+  restore (){
+    this.renderTabs()
+  }
+
+  renderTabs (){
+    if (!this.$.tabs)
+      return
+
+    this.$.tabs.removeChilds()
+
+    for (const sid in this.tree)
+      this.include(sid, this.tree[sid])
+  }
+
+  include (sid, obj){
+    let h3 = new DOM('h3', {innerText:obj.name})
+
+    obj.dom = new DOM('button', {
+      sid:sid,
+      className:`vision-tab${sid === this.selectedGraphId ? ' on' : ''}`
+    })
+      .append([h3])
+      .onevent('contextmenu', this, (ev) => {
+        ev.preventDefault()
+        this.tabContextMenu.open([
+          {
+            id:'rename',
+            innerText:Msg['Rename'],
+            fun:this.rename,
+            args:[sid, obj.name]
+          }, {
+            id:'remove',
+            innerText:Msg['Remove'],
+            fun:this.remove,
+            args:[sid]
+          }
+        ], ev)
+      })
+      .onclick(this, this.select, [sid])
+
+    this.$.tabs.append(obj.dom)
+  }
+
+  commit (){
+    if (this.loadingProjectState)
+      return
+
+    this.syncProject()
+  }
+
+  add (select){
+    let sid = `vision-graph-${Tool.SID()}`
+    command.dispatch(this, 'add', [sid, project.currentUID])
+    this.commit()
+
+    if (select === true)
+      this.select(sid)
+  }
+
+  _add (sid, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    this.tree[sid] = this.makeGraph(sid)
+
+    if (this.inited)
+      this.renderTabs()
+  }
+
+  remove (sid){
+    if (this.tabContextMenu)
+      this.tabContextMenu.close()
+
+    if (!this.tree[sid] || Object.keys(this.tree).length <= 1)
+      return
+
+    command.dispatch(this, 'remove', [sid, project.currentUID])
+    this.commit()
+  }
+
+  _remove (sid, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    if (!this.tree[sid] || Object.keys(this.tree).length <= 1)
+      return
+
+    if (sid === this.currentSID)
+      this.unselect()
+
+    delete this.tree[sid]
+    delete this.graphSessions[sid]
+
+    if (!this.tree[this.selectedGraphId])
+      this.selectedGraphId = Object.keys(this.tree)[0] || null
+
+    if (this.inited) {
+      this.renderTabs()
+      if (this.selectedGraphId)
+        this.select(this.selectedGraphId)
+    }
+  }
+
+  rename (sid, name){
+    this.tabContextMenu.oninput({
+      title:visionMsg('VisionGraphName', 'Vision graph name'),
+      placeholder:name,
+      value:name
+    }, (input, ev) => {
+      ev.preventDefault()
+      let next = input.value
+      this.tabContextMenu.close()
+
+      if (next == undefined || next.trim() === '')
+        return
+
+      command.dispatch(this, 'rename', [sid, next, project.currentUID])
+      this.commit()
+    })
+  }
+
+  _rename (sid, name, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    let graph = this.tree[sid]
+    let trimmed = String(name || '').trim()
+
+    if (!graph || trimmed === '')
+      return
+
+    graph.name = trimmed
+
+    if (this.inited) {
+      let title = DOM.get(`[data-sid='${sid}'] h3`, this.$.tabs)
+      if (title)
+        title.innerText = trimmed
+    }
+  }
+
+  select (sid){
+    if (!this.tree[sid])
+      return
+
+    if (this.currentSID !== undefined && this.currentSID !== sid)
+      this.unselect()
+
+    this.currentSID = sid
+    this.selectedGraphId = sid
+    this.loadGraphState(sid)
+
+    let tab = DOM.get(`[data-sid='${sid}']`, this.$.tabs)
+    if (tab)
+      tab.classList.add('on')
+
+    this.commit()
+    this.render()
+  }
+
+  unselect (){
+    if (this.currentSID === undefined)
+      return
+
+    this.saveCurrentGraphState()
+
+    let tab = DOM.get(`[data-sid='${this.currentSID}']`, this.$.tabs)
+    if (tab)
+      tab.classList.remove('on')
+
+    this.currentSID = undefined
+  }
+
+  makeGraph (sid){
+    let graphNumber = Object.keys(this.tree || {}).length + 1
+    return {
+      id:sid || `vision-graph-${DOM.UID()}`,
+      name:`${visionMsg('VisionGraph', 'Vision graph')} ${graphNumber}`,
+      nodes:this.cloneNodes(this.defaultNodes)
+    }
+  }
+
+  normalizeData (obj){
+    if (obj && obj.tree && typeof obj.tree === 'object' && !Array.isArray(obj.tree)) {
+      let tree = this.normalizeTree(obj.tree)
+      let selectedGraphId = tree[obj.selectedGraphId] ? obj.selectedGraphId : Object.keys(tree)[0]
+      return {
+        selectedGraphId:selectedGraphId,
+        tree:tree
+      }
+    }
+
+    if (obj && obj.nodes instanceof Array) {
+      let graph = this.makeGraph()
+      graph.name = visionMsg('VisionGraphLegacyName', 'Vision graph 1')
+      graph.nodes = this.normalizeNodes(obj.nodes)
+      let tree = {}
+      tree[graph.id] = graph
+      return {
+        selectedGraphId:graph.id,
+        tree:tree
+      }
+    }
+
+    return this.empty()
+  }
+
+  normalizeTree (tree){
+    let normalized = {}
+
+    Object.keys(tree || {}).forEach((sid, index) => {
+      let item = tree[sid] || {}
+      normalized[sid] = {
+        id:sid,
+        name:typeof item.name === 'string' && item.name.trim() !== ''
+          ? item.name.trim()
+          : `${visionMsg('VisionGraph', 'Vision graph')} ${index + 1}`,
+        nodes:this.normalizeNodes(item.nodes instanceof Array ? item.nodes : this.defaultNodes)
+      }
+    })
+
+    if (Object.keys(normalized).length === 0) {
+      let fallback = this.makeGraph()
+      normalized[fallback.id] = fallback
+    }
+
+    return normalized
+  }
+
+  getGraphSession (sid){
+    if (!sid)
+      sid = this.currentSID || this.selectedGraphId || '__session__'
+
+    if (!this.graphSessions[sid]) {
+      this.graphSessions[sid] = {
+        originalImageData:null,
+        originalFilename:'',
+        inputImages:{},
+        outputCache:{},
+        expandedNodeHelp:{},
+        selectedNodeId:null
+      }
+    }
+
+    return this.graphSessions[sid]
+  }
+
+  saveCurrentGraphState (){
+    if (!this.currentSID || !this.tree[this.currentSID])
+      return
+
+    this.tree[this.currentSID].nodes = this.cloneNodes(this.nodes)
+
+    let session = this.getGraphSession(this.currentSID)
+    session.originalImageData = this.originalImageData
+    session.originalFilename = this.originalFilename
+    session.inputImages = this.inputImages
+    session.outputCache = this.outputCache
+    session.expandedNodeHelp = this.expandedNodeHelp
+    session.selectedNodeId = this.selectedNodeId
+  }
+
+  loadGraphState (sid){
+    let graph = this.tree[sid]
+    if (!graph)
+      return
+
+    let session = this.getGraphSession(sid)
+    this.nodes = this.normalizeNodes(graph.nodes || this.defaultNodes)
+    this.originalImageData = session.originalImageData
+    this.originalFilename = session.originalFilename || ''
+    this.inputImages = session.inputImages || {}
+    this.outputCache = session.outputCache || {}
+    this.expandedNodeHelp = session.expandedNodeHelp || {}
+    this.selectedNodeId = this.findNode(session.selectedNodeId)
+      ? session.selectedNodeId
+      : (this.nodes[0] ? this.nodes[0].id : null)
   }
 
   makeDefaultNodes (){
@@ -129,6 +497,7 @@ class Vision {
       id:'vision-input',
       type:'input',
       sourceId:null,
+      sourceIds:{},
       params:{},
       x:84,
       y:96
@@ -137,10 +506,17 @@ class Vision {
 
   cloneNodes (nodes){
     return nodes.map((node) => {
+      let sourceIds = {}
+      if (node.sourceIds && typeof node.sourceIds == 'object')
+        Object.keys(node.sourceIds).forEach((key) => {
+          sourceIds[key] = node.sourceIds[key]
+        })
+
       return {
         id:node.id,
         type:node.type,
         sourceId:node.sourceId,
+        sourceIds:sourceIds,
         params:{...node.params},
         x:node.x,
         y:node.y
@@ -154,15 +530,26 @@ class Vision {
 
     nodes.forEach((node, index) => {
       let type = VisionNodeTypes[node.type] ? node.type : 'input'
-      if (type === 'input') {
-        if (hasInput)
-          return
+      if (type === 'input')
         hasInput = true
-      }
+
+      let inputSlots = this.getNodeInputSlots(type)
+      let sourceIds = {}
+      inputSlots.forEach((slot, slotIndex) => {
+        let sourceId = null
+        if (node.sourceIds && typeof node.sourceIds == 'object' && typeof node.sourceIds[slot.name] == 'string')
+          sourceId = node.sourceIds[slot.name]
+        else if (slotIndex === 0 && typeof node.sourceId == 'string')
+          sourceId = node.sourceId
+        sourceIds[slot.name] = sourceId
+      })
+      let primarySourceId = inputSlots[0] ? sourceIds[inputSlots[0].name] : null
+
       normalized.push({
         id:typeof node.id == 'string' ? node.id : `vision-node-${index}`,
         type:type,
-        sourceId:type === 'input' ? null : node.sourceId || null,
+        sourceId:type === 'input' ? null : primarySourceId,
+        sourceIds:type === 'input' ? {} : sourceIds,
         params:VisionNodeTypes[type].sanitize(node.params || {}),
         x:Number.isFinite(node.x) ? node.x : 84 + index * 240,
         y:Number.isFinite(node.y) ? node.y : 96 + (index % 2) * 188
@@ -172,17 +559,120 @@ class Vision {
     if (!hasInput)
       normalized.unshift(this.makeDefaultNodes()[0])
 
-    normalized.forEach((node, index) => {
+    let normalizedById = {}
+    normalized.forEach((node) => {
+      normalizedById[node.id] = node
+    })
+
+    let wouldCreateCycle = (sourceNodeId, targetNodeId) => {
+      let stack = [sourceNodeId]
+      let visited = {}
+      while (stack.length > 0) {
+        let current = stack.pop()
+        if (!current || visited[current])
+          continue
+        visited[current] = true
+        if (current === targetNodeId)
+          return true
+
+        let currentNode = normalizedById[current]
+        if (!currentNode)
+          continue
+
+        this.getNodeInputSlots(currentNode).forEach((slot) => {
+          let sourceId = this.getNodeSourceId(currentNode, slot.name)
+          if (sourceId)
+            stack.push(sourceId)
+        })
+      }
+      return false
+    }
+
+    normalized.forEach((node) => {
       if (node.type === 'input') {
         node.sourceId = null
+        node.sourceIds = {}
         return
       }
-      let previousNodes = normalized.slice(0, index)
-      if (!previousNodes.some((item) => item.id === node.sourceId))
-        node.sourceId = null
+      this.getNodeInputSlots(node).forEach((slot, slotIndex) => {
+        let sourceId = this.getNodeSourceId(node, slot.name)
+        if (!normalizedById[sourceId] || sourceId === node.id || wouldCreateCycle(sourceId, node.id))
+          this.setNodeSourceId(node, null, slot.name)
+        else if (slotIndex === 0)
+          node.sourceId = sourceId
+      })
     })
 
     return normalized
+  }
+
+  getNodeInputSlots (nodeOrType){
+    let type = typeof nodeOrType == 'string' ? nodeOrType : nodeOrType && nodeOrType.type
+    if (!type || type === 'input')
+      return []
+
+    let nodeType = VisionNodeTypes[type]
+    if (nodeType && Array.isArray(nodeType.inputSlots))
+      return nodeType.inputSlots
+
+    return [{
+      name:'image',
+      labelKey:'VisionInputSlotImage',
+      fallbackLabel:'Image'
+    }]
+  }
+
+  getInputSlotLabel (slot){
+    return visionMsg(slot.labelKey, slot.fallbackLabel || slot.name)
+  }
+
+  getInputSourceLabel (node){
+    let inputIndex = this.getInputNodeIndex(node)
+    if (inputIndex >= 0)
+      return String(inputIndex)
+
+    return node && node.id ? node.id : visionMsg('VisionNodeInputBadge', 'Source')
+  }
+
+  getInputNodeIndex (node){
+    if (!node)
+      return -1
+
+    let inputs = this.nodes.filter((item) => item.type === 'input')
+    return inputs.findIndex((item) => item.id === node.id)
+  }
+
+  getPrimaryInputName (node){
+    let slots = this.getNodeInputSlots(node)
+    return slots[0] ? slots[0].name : 'image'
+  }
+
+  getNodeSourceId (node, inputName){
+    if (!node)
+      return null
+
+    let slotName = inputName || this.getPrimaryInputName(node)
+    if (node.sourceIds && typeof node.sourceIds == 'object' && typeof node.sourceIds[slotName] == 'string')
+      return node.sourceIds[slotName]
+
+    return slotName === this.getPrimaryInputName(node) ? node.sourceId || null : null
+  }
+
+  setNodeSourceId (node, sourceId, inputName){
+    if (!node)
+      return
+
+    let slotName = inputName || this.getPrimaryInputName(node)
+    if (!node.sourceIds || typeof node.sourceIds != 'object')
+      node.sourceIds = {}
+
+    if (sourceId)
+      node.sourceIds[slotName] = sourceId
+    else
+      delete node.sourceIds[slotName]
+
+    if (slotName === this.getPrimaryInputName(node))
+      node.sourceId = sourceId || null
   }
 
   getNodeTypeLabel (type){
@@ -192,15 +682,39 @@ class Vision {
     return visionMsg(nodeType.labelKey, nodeType.fallbackLabel || type)
   }
 
+  getNodeTypeDescription (type){
+    let nodeType = VisionNodeTypes[type]
+    if (!nodeType)
+      return ''
+    return visionMsg(nodeType.descriptionKey, nodeType.fallbackDescription || '')
+  }
+
+  getNodeTypeHelp (type){
+    let nodeType = VisionNodeTypes[type]
+    if (!nodeType)
+      return ''
+    return visionMsg(nodeType.helpKey, nodeType.fallbackHelp || '')
+  }
+
+  toggleNodeHelp (nodeId, ev){
+    if (ev)
+      ev.stopPropagation()
+
+    this.expandedNodeHelp[nodeId] = !this.expandedNodeHelp[nodeId]
+    this.renderNodes()
+    this.renderConnections()
+  }
+
   getControlLabel (control){
     return visionMsg(control.labelKey, control.fallbackLabel || control.name)
   }
 
-  getNodeSourceImageData (node){
-    if (!node || !node.sourceId)
+  getNodeSourceImageData (node, inputName){
+    let sourceId = this.getNodeSourceId(node, inputName)
+    if (!node || !sourceId)
       return this.originalImageData
 
-    let sourceOutput = this.getNodeOutput(node.sourceId)
+    let sourceOutput = this.getNodeOutput(sourceId)
     return this.getOutputImageData(sourceOutput)
   }
 
@@ -297,6 +811,27 @@ class Vision {
     return numeric
   }
 
+  applyRangeInputState (input, control, value){
+    if (!input)
+      return
+
+    let numericValue = this.clampControlValue(control, value)
+    let min = Number.isFinite(control.min) ? control.min : 0
+    let max = Number.isFinite(control.max) ? control.max : numericValue
+    let step = Number.isFinite(control.step) && control.step > 0 ? control.step : 1
+
+    input.setAttribute('min', String(min))
+    input.setAttribute('max', String(max))
+    input.setAttribute('step', String(step))
+    input.min = String(min)
+    input.max = String(max)
+    input.step = String(step)
+    input.value = String(numericValue)
+
+    if (typeof input.valueAsNumber == 'number' && Number.isFinite(numericValue))
+      input.valueAsNumber = numericValue
+  }
+
   bindNodeControlEvents (input){
     if (!input || !input.$)
       return input
@@ -333,6 +868,11 @@ class Vision {
           return
         }
 
+        if (resolvedControl.type === 'range') {
+          this.applyRangeInputState(input, resolvedControl, currentValue)
+          return
+        }
+
         if (typeof resolvedControl.min != 'undefined') {
           input.min = resolvedControl.min
           input.setAttribute('min', String(resolvedControl.min))
@@ -363,38 +903,50 @@ class Vision {
   }
 
   renderWorkspaceShell (){
-    this.$.workspace.removeChilds().append([
-      new DOM('div', {className:'vision-panel-header', innerText:Msg['VisionWorkspace']})
-    ])
-
-    this.$.workspaceHint = new DOM('p', {
-      className:'vision-panel-copy',
-      innerText:Msg['VisionWorkspaceHelp']
-    })
+    this.$.workspace.removeChilds()
     this.$.graphScroll = new DOM('div', {className:'vision-graph-scroll'})
     this.$.graphBoard = new DOM('div', {className:'vision-graph-board'})
-    this.$.graphConnections = new DOM('div', {className:'vision-connections'})
+
+    let svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svgEl.setAttribute('class', 'vision-connections-svg')
+    svgEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3;width:100%;height:100%;'
+    svgEl.innerHTML = `<defs>
+  <marker id="vision-arr" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L7,3 Z" fill="#38bdf8"/>
+  </marker>
+  <marker id="vision-arr-active" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L7,3 Z" fill="#facc15"/>
+  </marker>
+</defs>
+<path id="vision-drag-preview" display="none" stroke="#facc15" stroke-dasharray="6,3" fill="none" stroke-width="1.8" marker-end="url(#vision-arr-active)"/>`
+    this.$.graphBoard.$.appendChild(svgEl)
+    this.$.connectionsSvg = { $: svgEl }
+
     this.$.nodes = new DOM('div', {className:'vision-node-list'})
     this.$.contextMenu = this.makeContextMenu()
     this.$.graphBoard.onclick(this, this.clearSelection)
     this.$.graphBoard.$.addEventListener('contextmenu', (ev) => {
       ev.preventDefault()
-      this.handleBoardContextMenu(ev)
     })
 
-    this.$.graphBoard.append([this.$.graphConnections, this.$.nodes, this.$.contextMenu])
+    this.$.graphBoard.append([this.$.nodes, this.$.contextMenu])
     this.$.graphScroll.append(this.$.graphBoard)
-    this.$.workspace.append([this.$.workspaceHint, this.$.graphScroll])
+    this.$.workspace.append([this.$.graphScroll])
   }
 
   render (){
+    if (!this.available || !this.inited)
+      return
+
     this.updateBoardSize()
+    this.renderTabs()
     this.renderNodes()
     window.requestAnimationFrame(() => {this.renderConnections()})
   }
 
   renderNodes (){
     this.$.nodes.removeChilds()
+    let inputNodeCount = this.nodes.filter((item) => item.type === 'input').length
 
     this.nodes.forEach((node) => {
       let nodeType = VisionNodeTypes[node.type]
@@ -402,22 +954,30 @@ class Vision {
         className:`vision-node${this.selectedNodeId === node.id ? ' selected' : ''}`
       })
       card.$.dataset.nodeId = node.id
+      card.$.dataset.nodeType = node.type
       card.style.left = `${node.x}px`
       card.style.top = `${node.y}px`
       card.onclick(this, this.selectNode, [node.id])
 
       let header = new DOM('div', {className:'vision-node-header'})
-      header.ondown(this, this.startNodeDrag, [node.id])
-        .append([
-          new DOM('div', {
-            className:'vision-node-title',
-            innerText:this.getNodeTypeLabel(node.type)
-          }),
-          node.type === 'input' ?
-            new DOM('span', {
-              className:'vision-node-badge',
-              innerText:Msg['VisionNodeInputBadge']
-            }) :
+      let headerActions = new DOM('div', {className:'vision-node-actions'})
+      let helpButton = new DOM('button', {
+        innerText:this.expandedNodeHelp[node.id] ? '−' : '+',
+        className:'vision-node-help-toggle',
+        title:'Read more about this node'
+      })
+      helpButton
+        .ondown(this, (ev) => {ev.stopPropagation()})
+        .onup(this, (ev) => {ev.stopPropagation()})
+        .onclick(this, this.toggleNodeHelp, [node.id])
+
+      if (node.type === 'input') {
+        headerActions.append(new DOM('span', {
+          className:'vision-node-badge',
+          innerText:Msg['VisionNodeInputBadge']
+        }))
+        if (inputNodeCount > 1) {
+          headerActions.append(
             new DOM('button', {
               id:'remove',
               innerText:'×',
@@ -427,18 +987,45 @@ class Vision {
               .ondown(this, (ev) => {ev.stopPropagation()})
               .onup(this, (ev) => {ev.stopPropagation()})
               .onclick(this, this.removeNode, [node.id])
+          )
+        }
+      } else {
+        headerActions.append(
+          new DOM('button', {
+            id:'remove',
+            innerText:'×',
+            className:'vision-node-remove',
+            title:Msg['VisionRemoveNode']
+          })
+            .ondown(this, (ev) => {ev.stopPropagation()})
+            .onup(this, (ev) => {ev.stopPropagation()})
+            .onclick(this, this.removeNode, [node.id])
+        )
+      }
+
+      header.ondown(this, this.startNodeDrag, [node.id])
+        .append([
+          new DOM('div', {
+            className:'vision-node-title',
+            innerText:node.type === 'input'
+              ? `${this.getNodeTypeLabel(node.type)} ${this.getInputSourceLabel(node)}`
+              : this.getNodeTypeLabel(node.type)
+          }),
+          headerActions
         ])
 
       let body = new DOM('div', {className:'vision-node-body'})
       let uploadInput = null
       let uploadLabel = null
+      let metaRow = new DOM('div', {className:'vision-node-meta-row'})
+      let metaText = null
 
       if (node.type === 'input') {
         let uploadId = `vision-upload-${DOM.UID()}`
         uploadInput = new DOM('input', {
           type:'file',
           accept:'image/*'
-        }).onevent('change', this, this.uploadImage)
+        }).onevent('change', this, this.uploadImage, [node.id])
         uploadInput.id = uploadId
 
         uploadLabel = new DOM('label', {
@@ -457,15 +1044,25 @@ class Vision {
           ev.stopPropagation()
         })
 
-        body.append(new DOM('div', {
+        metaText = new DOM('div', {
           className:'vision-node-meta',
-          innerText:this.originalFilename === '' ? Msg['VisionAwaitingImage'] : this.originalFilename
-        }))
+          innerText:this.getInputNodeFilename(node) || Msg['VisionAwaitingImage']
+        })
       } else {
-        let source = this.findNode(node.sourceId)
-        body.append(new DOM('div', {
+        metaText = new DOM('div', {
           className:'vision-node-meta',
-          innerText:source ? Msg['VisionInspectorSource'].replace('{0}', this.getNodeTypeLabel(source.type)) : Msg['VisionWireHelp']
+          innerText:(this.getNodeTypeDescription(node.type) || '').split('.')[0]
+        })
+      }
+
+      metaRow.append([metaText, helpButton])
+      body.append(metaRow)
+
+      let helpText = this.getNodeTypeHelp(node.type)
+      if (helpText && this.expandedNodeHelp[node.id]) {
+        body.append(new DOM('div', {
+          className:'vision-node-help',
+          innerText:helpText
         }))
       }
 
@@ -483,16 +1080,9 @@ class Vision {
 
         if (resolvedControl.type === 'range') {
           let inputs = new DOM('div', {className:'vision-field-inputs'})
-          let slider = new DOM('input', {
-            type:'range',
-            value:String(currentValue),
-            min:resolvedControl.min,
-            max:resolvedControl.max,
-            step:resolvedControl.step
-          })
-          slider.$.setAttribute('min', String(resolvedControl.min))
-          slider.$.setAttribute('max', String(resolvedControl.max))
-          slider.$.setAttribute('step', String(resolvedControl.step))
+          let slider = new DOM('input')
+          slider.$.type = 'range'
+          this.applyRangeInputState(slider.$, resolvedControl, currentValue)
           this.bindNodeControlEvents(slider)
           slider.onevent('input', this, this.changeNodeParam, [node.id, control.name, resolvedControl.type])
           slider.onevent('change', this, this.changeNodeParam, [node.id, control.name, resolvedControl.type])
@@ -546,22 +1136,37 @@ class Vision {
       })
 
       let ports = new DOM('div', {className:'vision-node-ports'})
-      let inputPort = new DOM('button', {
-        className:`vision-port input${node.type === 'input' ? ' disabled' : ''}`,
-        title:Msg['VisionInputPort']
-      })
-      inputPort.$.dataset.portNodeId = node.id
-      inputPort.$.dataset.portType = 'input'
-      if (node.type !== 'input') {
-        inputPort.onclick(this, (ev) => {
+      let inputSlots = this.getNodeInputSlots(node)
+      inputSlots.forEach((slot, slotIndex) => {
+        let inputPort = new DOM('button', {
+          className:'vision-port input',
+          title:`${Msg['VisionInputPort']}: ${this.getInputSlotLabel(slot)}`
+        })
+        inputPort.$.dataset.portNodeId = node.id
+        inputPort.$.dataset.portType = 'input'
+        inputPort.$.dataset.portInputName = slot.name
+        inputPort.$.dataset.portLabel = inputSlots.length > 1 ? this.getInputSlotLabel(slot) : ''
+        inputPort.$.style.top = `${1.15 + slotIndex * 1.55}rem`
+        inputPort.$.setAttribute('aria-label', `${Msg['VisionInputPort']}: ${this.getInputSlotLabel(slot)}`)
+        inputPort.$.addEventListener('mousedown', (ev) => {
           ev.stopPropagation()
-          this.completeConnection(node.id)
+          if (typeof ev.button !== 'undefined' && ev.button !== 0)
+            return
+          if (this.connectionDrag && this.connectionDrag.fromPortType === 'output')
+            this.completeConnectionOnInput(node.id, slot.name)
+          else
+            this.startConnectionFromInput(node.id, slot.name, ev)
         })
         inputPort.$.addEventListener('mouseup', (ev) => {
           ev.stopPropagation()
-          this.completeConnection(node.id)
+          if (this.connectionDrag && this.connectionDrag.fromPortType === 'output')
+            this.completeConnectionOnInput(node.id, slot.name)
         })
-      }
+        inputPort.$.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+        })
+        ports.append(inputPort)
+      })
 
       let outputPort = new DOM('button', {
         className:'vision-port output',
@@ -569,16 +1174,25 @@ class Vision {
       })
       outputPort.$.dataset.portNodeId = node.id
       outputPort.$.dataset.portType = 'output'
-      outputPort.onclick(this, (ev) => {
-        ev.stopPropagation()
-        this.startConnection(node.id, ev)
-      })
       outputPort.$.addEventListener('mousedown', (ev) => {
         ev.stopPropagation()
-        this.startConnection(node.id, ev)
+        if (typeof ev.button !== 'undefined' && ev.button !== 0)
+          return
+        if (this.connectionDrag && this.connectionDrag.fromPortType === 'input')
+          this.completeConnectionOnOutput(node.id)
+        else
+          this.startConnectionFromOutput(node.id, ev)
+      })
+      outputPort.$.addEventListener('mouseup', (ev) => {
+        ev.stopPropagation()
+        if (this.connectionDrag && this.connectionDrag.fromPortType === 'input')
+          this.completeConnectionOnOutput(node.id)
+      })
+      outputPort.$.addEventListener('click', (ev) => {
+        ev.stopPropagation()
       })
 
-      ports.append([inputPort, outputPort])
+      ports.append(outputPort)
 
       card.append([ports, header, body, status])
       this.$.nodes.append(card)
@@ -588,35 +1202,45 @@ class Vision {
   }
 
   renderConnections (){
-    if (!this.$.graphConnections || !this.$.graphBoard)
+    if (!this.$.connectionsSvg || !this.$.graphBoard)
       return
 
-    let layer = this.$.graphConnections
-    layer.removeChilds()
+    let svg = this.$.connectionsSvg.$
+    let pathEls = svg.querySelectorAll('g.vision-conn, path#vision-drag-preview')
+    pathEls.forEach((el) => {
+      if (el.id !== 'vision-drag-preview')
+        el.remove()
+    })
+
+    let dragPreview = svg.querySelector('#vision-drag-preview')
 
     this.nodes.forEach((node) => {
-      if (!node.sourceId)
-        return
+      this.getNodeInputSlots(node).forEach((slot) => {
+        let sourceId = this.getNodeSourceId(node, slot.name)
+        if (!sourceId)
+          return
 
-      let start = this.getPortCenter(node.sourceId, 'output')
-      let end = this.getPortCenter(node.id, 'input')
-      if (!start || !end)
-        return
+        let start = this.getPortCenter(sourceId, 'output')
+        let end = this.getPortCenter(node.id, 'input', slot.name)
+        if (!start || !end)
+          return
 
-      layer.append(this.makeConnectionElement(
-        start.x,
-        start.y,
-        end.x,
-        end.y,
-        false,
-        node.id
-      ))
+        let g = this.makeSvgConnection(start.x, start.y, end.x, end.y, false, node.id, slot.name)
+        svg.insertBefore(g, dragPreview || null)
+      })
     })
 
     if (this.connectionDrag) {
-      let start = this.getPortCenter(this.connectionDrag.nodeId, 'output')
-      if (start)
-        layer.append(this.makeConnectionElement(start.x, start.y, this.connectionDrag.x, this.connectionDrag.y, true, null))
+      let start = this.connectionDrag.fromPortType === 'input'
+        ? this.getPortCenter(this.connectionDrag.nodeId, 'input', this.connectionDrag.inputName)
+        : this.getPortCenter(this.connectionDrag.nodeId, 'output')
+      if (start && dragPreview) {
+        let d = this.makeBezierPath(start.x, start.y, this.connectionDrag.x, this.connectionDrag.y)
+        dragPreview.setAttribute('d', d)
+        dragPreview.removeAttribute('display')
+      }
+    } else if (dragPreview) {
+      dragPreview.setAttribute('display', 'none')
     }
   }
 
@@ -628,6 +1252,7 @@ class Vision {
       id:`vision-${DOM.UID()}`,
       type:type,
       sourceId:null,
+      sourceIds:{},
       params:defaults.sanitize({}),
       x:position ? position.x : previous ? previous.x + 250 : 320,
       y:position ? position.y : previous ? previous.y : 96
@@ -641,19 +1266,41 @@ class Vision {
     if (ev)
       ev.stopPropagation()
 
-    if (nodeId === this.nodes[0].id)
+    let nodeToRemove = this.findNode(nodeId)
+    if (!nodeToRemove)
       return
 
-    let nodes = this.nodes.filter((node) => node.id !== nodeId)
+    if (nodeToRemove.type === 'input' && this.nodes.filter((node) => node.type === 'input').length <= 1)
+      return
+
+    if (this.nodeDrag && this.nodeDrag.nodeId === nodeId)
+      this.nodeDrag = null
+    if (this.connectionDrag && this.connectionDrag.nodeId === nodeId)
+      this.connectionDrag = null
+
+    delete this.expandedNodeHelp[nodeId]
+    delete this.outputCache[nodeId]
+    delete this.inputImages[nodeId]
+
+    let nodes = this.cloneNodes(this.nodes.filter((node) => node.id !== nodeId))
     let fallback = nodes[0] ? nodes[0].id : null
+
     nodes.forEach((node) => {
       if (node.type === 'input')
         return
-      if (!nodes.some((item) => item.id === node.sourceId))
+
+      if (node.sourceId === nodeId)
         node.sourceId = null
+      if (node.sourceIds && typeof node.sourceIds == 'object') {
+        Object.keys(node.sourceIds).forEach((inputName) => {
+          if (node.sourceIds[inputName] === nodeId)
+            delete node.sourceIds[inputName]
+        })
+      }
     })
-    this.nodes = nodes
-    if (!this.findNode(this.selectedNodeId))
+
+    this.nodes = this.normalizeNodes(nodes)
+    if (!this.findNode(this.selectedNodeId) || this.selectedNodeId === nodeId)
       this.selectedNodeId = fallback
     this.changed()
   }
@@ -665,7 +1312,7 @@ class Vision {
   }
 
   clearSelection (ev){
-    if (ev.target !== this.$.graphBoard.$ && ev.target !== this.$.graphConnections.$ && ev.target !== this.$.nodes.$)
+    if (ev.target !== this.$.graphBoard.$ && ev.target !== this.$.connectionsSvg.$ && ev.target !== this.$.nodes.$)
       return
     this.selectedNodeId = null
     this.closeContextMenu()
@@ -675,10 +1322,13 @@ class Vision {
   resetGraph (){
     this.nodes = this.cloneNodes(this.defaultNodes)
     this.selectedNodeId = this.nodes[0].id
+    this.inputImages = {}
+    this.originalImageData = null
+    this.originalFilename = ''
+    this.expandedNodeHelp = {}
     this.invalidateOutputs()
-    this.syncProject()
+    this.changed()
     this.closeContextMenu()
-    this.render()
   }
 
   changeNodeParam (nodeId, name, type, ev){
@@ -688,11 +1338,17 @@ class Vision {
 
     let control = (VisionNodeTypes[node.type] && VisionNodeTypes[node.type].controls || []).find((item) => item.name === name)
     let resolvedControl = this.resolveControlForNode(node, control)
+    let rawValue = (type === 'range' && typeof ev.target.valueAsNumber == 'number' && Number.isFinite(ev.target.valueAsNumber))
+      ? ev.target.valueAsNumber
+      : ev.target.value
     let value = type === 'range' || type === 'number'
-      ? this.clampControlValue(resolvedControl, ev.target.value)
+      ? this.clampControlValue(resolvedControl, rawValue)
       : ev.target.value
     node.params[name] = value
-    ev.target.value = String(value)
+    if (type === 'range')
+      this.applyRangeInputState(ev.target, resolvedControl, value)
+    else
+      ev.target.value = String(value)
     let wrapper = ev.target.closest('.vision-field')
     if (wrapper) {
       wrapper.querySelectorAll(`[data-value-target="${name}"]`).forEach((input) => {
@@ -715,19 +1371,36 @@ class Vision {
 
   changed (){
     this.invalidateOutputs()
+    this.saveCurrentGraphState()
     this.syncProject()
     this.render()
   }
 
   syncProject (){
-    if (!project.currentUID)
+    if (this.loadingProjectState || !project.currentUID)
       return
 
-    project.update({
-      vision:{
-        nodes:this.cloneNodes(this.nodes)
+    let currentProject = project.projects[project.currentUID]
+    if (!currentProject)
+      return
+
+    this.saveCurrentGraphState()
+
+    let tree = {}
+    Object.keys(this.tree).forEach((sid) => {
+      tree[sid] = {
+        name:this.tree[sid].name,
+        nodes:this.cloneNodes(this.tree[sid].nodes)
       }
     })
+
+    currentProject.vision = {
+      selectedGraphId:this.selectedGraphId,
+      tree:tree
+    }
+    if (currentProject.project)
+      currentProject.project.lastEdited = +new Date()/1000
+    project.write(project.currentUID)
   }
 
   findNode (nodeId){
@@ -761,12 +1434,18 @@ class Vision {
   }
 
   startConnection (nodeId, ev){
+    this.startConnectionFromOutput(nodeId, ev)
+  }
+
+  startConnectionFromOutput (nodeId, ev){
     if (typeof ev.button !== 'undefined' && ev.button !== 0)
       return
 
     let pointer = this.getPointerPositionInBoard(ev)
     this.connectionDrag = {
+      fromPortType:'output',
       nodeId:nodeId,
+      inputName:null,
       x:pointer.x,
       y:pointer.y
     }
@@ -775,17 +1454,54 @@ class Vision {
     this.renderConnections()
   }
 
-  completeConnection (targetNodeId){
-    if (!this.connectionDrag)
+  startConnectionFromInput (nodeId, inputName, ev){
+    if (typeof ev.button !== 'undefined' && ev.button !== 0)
       return
 
-    this.connectNodes(this.connectionDrag.nodeId, targetNodeId)
-    this.connectionDrag = null
+    let node = this.findNode(nodeId)
+    if (!node || node.type === 'input')
+      return
+
+    let pointer = this.getPointerPositionInBoard(ev)
+    this.connectionDrag = {
+      fromPortType:'input',
+      nodeId:nodeId,
+      inputName:inputName,
+      x:pointer.x,
+      y:pointer.y
+    }
+    this.selectedNodeId = nodeId
+    this.closeContextMenu()
+    this.renderConnections()
   }
 
-  connectNodes (sourceNodeId, targetNodeId){
+  completeConnection (targetNodeId, targetInputName){
+    this.completeConnectionOnInput(targetNodeId, targetInputName)
+  }
+
+  completeConnectionOnInput (targetNodeId, targetInputName){
+    if (!this.connectionDrag || this.connectionDrag.fromPortType !== 'output')
+      return
+
+    this.connectNodes(this.connectionDrag.nodeId, targetNodeId, targetInputName)
+    this.connectionDrag = null
+    this.renderConnections()
+  }
+
+  completeConnectionOnOutput (sourceNodeId){
+    if (!this.connectionDrag || this.connectionDrag.fromPortType !== 'input')
+      return
+
+    this.connectNodes(sourceNodeId, this.connectionDrag.nodeId, this.connectionDrag.inputName)
+    this.connectionDrag = null
+    this.renderConnections()
+  }
+
+  connectNodes (sourceNodeId, targetNodeId, targetInputName){
+    let sourceNode = this.findNode(sourceNodeId)
     let targetNode = this.findNode(targetNodeId)
-    if (!targetNode || targetNode.type === 'input')
+
+    if (!sourceNode || !targetNode || targetNode.type === 'input')
       return
 
     if (sourceNodeId === targetNodeId)
@@ -794,31 +1510,54 @@ class Vision {
     if (this.wouldCreateCycle(sourceNodeId, targetNodeId))
       return
 
-    targetNode.sourceId = sourceNodeId
+    this.setNodeSourceId(targetNode, sourceNodeId, targetInputName)
     this.changed()
   }
 
-  disconnectNode (targetNodeId){
+  disconnectNode (targetNodeId, targetInputName){
     let node = this.findNode(targetNodeId)
     if (!node || node.type === 'input')
       return
 
-    node.sourceId = null
+    if (targetInputName)
+      this.setNodeSourceId(node, null, targetInputName)
+    else {
+      this.getNodeInputSlots(node).forEach((slot) => {
+        this.setNodeSourceId(node, null, slot.name)
+      })
+    }
     this.changed()
   }
 
   wouldCreateCycle (sourceNodeId, targetNodeId){
-    let current = sourceNodeId
-    while (current) {
+    let stack = [sourceNodeId]
+    let visited = {}
+
+    while (stack.length > 0) {
+      let current = stack.pop()
+      if (!current || visited[current])
+        continue
+      visited[current] = true
+
       if (current === targetNodeId)
         return true
       let node = this.findNode(current)
-      current = node ? node.sourceId : null
+      if (!node)
+        continue
+
+      this.getNodeInputSlots(node).forEach((slot) => {
+        let sourceId = this.getNodeSourceId(node, slot.name)
+        if (sourceId)
+          stack.push(sourceId)
+      })
     }
     return false
   }
 
   onPointerMove (ev){
+    if (!this.inited || !this.$.graphBoard)
+      return
+
     if (this.nodeDrag) {
       let pointer = this.getPointerPositionInBoard(ev)
       let node = this.findNode(this.nodeDrag.nodeId)
@@ -841,16 +1580,26 @@ class Vision {
   }
 
   onPointerUp (ev){
+    if (!this.inited || !this.$.graphBoard)
+      return
+
     if (this.nodeDrag) {
       this.nodeDrag = null
+      this.saveCurrentGraphState()
       this.syncProject()
       this.renderConnections()
     }
 
     if (this.connectionDrag) {
-      let targetNodeId = this.getInputPortTargetIdAtPoint(ev.clientX, ev.clientY)
-      if (targetNodeId)
-        this.connectNodes(this.connectionDrag.nodeId, targetNodeId)
+      if (this.connectionDrag.fromPortType === 'output') {
+        let target = this.getInputPortTargetAtPoint(ev.clientX, ev.clientY)
+        if (target)
+          this.connectNodes(this.connectionDrag.nodeId, target.nodeId, target.inputName)
+      } else {
+        let source = this.getOutputPortTargetAtPoint(ev.clientX, ev.clientY)
+        if (source)
+          this.connectNodes(source.nodeId, this.connectionDrag.nodeId, this.connectionDrag.inputName)
+      }
       this.connectionDrag = null
       this.renderConnections()
     }
@@ -874,8 +1623,11 @@ class Vision {
     }
   }
 
-  getPortCenter (nodeId, type){
-    let port = DOM.get(`[data-port-node-id="${nodeId}"][data-port-type="${type}"]`, this.$.graphBoard.$)
+  getPortCenter (nodeId, type, inputName){
+    let selector = `[data-port-node-id="${nodeId}"][data-port-type="${type}"]`
+    if (inputName)
+      selector += `[data-port-input-name="${inputName}"]`
+    let port = DOM.get(selector, this.$.graphBoard.$)
     if (!port)
       return null
     let rect = port.getBoundingClientRect()
@@ -886,7 +1638,7 @@ class Vision {
     }
   }
 
-  getInputPortTargetIdAtPoint (clientX, clientY){
+  getInputPortTargetAtPoint (clientX, clientY){
     let element = document.elementFromPoint(clientX, clientY)
     if (!element || typeof element.closest != 'function')
       return null
@@ -895,7 +1647,24 @@ class Vision {
     if (!port || !this.$.graphBoard.$.contains(port))
       return null
 
-    return port.dataset.portNodeId || null
+    return {
+      nodeId:port.dataset.portNodeId || null,
+      inputName:port.dataset.portInputName || null
+    }
+  }
+
+  getOutputPortTargetAtPoint (clientX, clientY){
+    let element = document.elementFromPoint(clientX, clientY)
+    if (!element || typeof element.closest != 'function')
+      return null
+
+    let port = element.closest('[data-port-type="output"][data-port-node-id]')
+    if (!port || !this.$.graphBoard.$.contains(port))
+      return null
+
+    return {
+      nodeId:port.dataset.portNodeId || null
+    }
   }
 
   makeContextMenu (){
@@ -987,7 +1756,7 @@ class Vision {
     if (!target)
       return
     if (typeof target.closest == 'function') {
-      if (target.closest('.vision-node') || target.closest('.vision-connection-wrap')) {
+      if (target.closest('.vision-node') || target.closest('.vision-conn')) {
         this.closeContextMenu()
         return
       }
@@ -1036,61 +1805,134 @@ class Vision {
       this.$.contextMenu.$.classList.remove('open', 'submenu-open')
   }
 
-  makeConnectionElement (x1, y1, x2, y2, active, targetNodeId){
-    let dx = x2 - x1
-    let dy = y2 - y1
-    let distance = Math.max(1, Math.hypot(dx, dy))
-    let angle = Math.atan2(dy, dx)
+  toggleAddNodeMenu (){
+    if (this.addNodeMenuOpen) {
+      this.closeAddNodeMenu()
+    } else {
+      this.openAddNodeMenu()
+    }
+  }
 
-    let wrapper = new DOM('div', {
-      className:`vision-connection-wrap${targetNodeId ? ' interactive' : ''}${active ? ' active' : ''}`
-    })
-    wrapper.style.left = `${x1}px`
-    wrapper.style.top = `${y1}px`
-    wrapper.style.width = `${distance}px`
-    wrapper.style.transform = `rotate(${angle}rad)`
+  openAddNodeMenu (){
+    let popup = this.$.addNodePopup
+    if (!popup) return
 
-    if (targetNodeId) {
-      let removeConnection = (ev) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.disconnectNode(targetNodeId)
-      }
-      wrapper.$.dataset.targetNodeId = targetNodeId
-      wrapper.$.addEventListener('contextmenu', removeConnection)
-      wrapper.$.addEventListener('pointerdown', (ev) => {
-        if (ev.button === 2)
-          removeConnection(ev)
+    popup.$.innerHTML = ''
+    let card = document.createElement('div')
+    card.className = 'vision-node-popup-card'
+
+    let header = document.createElement('div')
+    header.className = 'vision-node-popup-header'
+
+    let title = document.createElement('h2')
+    title.className = 'vision-node-popup-title'
+    title.textContent = visionMsg('VisionAddNode', 'Add node')
+    header.appendChild(title)
+
+    let tabBar = document.createElement('div')
+    tabBar.className = 'vision-node-popup-tabs'
+
+    let grid = document.createElement('div')
+    grid.className = 'vision-node-group-grid'
+
+    const showGroup = (groupIndex) => {
+      grid.innerHTML = ''
+      tabBar.querySelectorAll('.vision-node-tab').forEach((t, i) => {
+        t.classList.toggle('on', i === groupIndex)
+      })
+      VisionPaletteGroups[groupIndex].nodes.forEach((type) => {
+        let btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'vision-node-btn'
+        btn.innerHTML = `${VISION_NODE_ICONS[type] || VISION_NODE_ICONS['_default']}<span>${this.getNodeTypeLabel(type)}</span>`
+        btn.addEventListener('click', () => {
+          this.addNode(type)
+          this.closeAddNodeMenu()
+        })
+        grid.appendChild(btn)
       })
     }
 
-    let hitbox = new DOM('div', {
-      className:`vision-connection-hitbox${targetNodeId ? ' interactive' : ''}`
+    VisionPaletteGroups.forEach((group, i) => {
+      let tab = document.createElement('button')
+      tab.type = 'button'
+      tab.className = 'vision-node-tab'
+      tab.textContent = group.label
+      tab.addEventListener('click', () => showGroup(i))
+      tabBar.appendChild(tab)
     })
+
+    header.appendChild(tabBar)
+    card.appendChild(header)
+    card.appendChild(grid)
+    popup.$.appendChild(card)
+    showGroup(0)
+    this.addNodeMenuOpen = true
+    Animate.on(popup.$)
+  }
+
+  closeAddNodeMenu (){
+    if (!this.$.addNodePopup) return
+    this.addNodeMenuOpen = false
+    Animate.off(this.$.addNodePopup.$)
+  }
+
+  makeBezierPath (x1, y1, x2, y2){
+    let offset = Math.max(60, Math.hypot(x2 - x1, y2 - y1) * 0.4)
+    return `M${x1},${y1} C${x1 + offset},${y1} ${x2 - offset},${y2} ${x2},${y2}`
+  }
+
+  makeSvgConnection (x1, y1, x2, y2, _active, targetNodeId, targetInputName){
+    let ns = 'http://www.w3.org/2000/svg'
+    let g = document.createElementNS(ns, 'g')
+    g.setAttribute('class', 'vision-conn')
+
+    let d = this.makeBezierPath(x1, y1, x2, y2)
+
+    let hit = document.createElementNS(ns, 'path')
+    hit.setAttribute('d', d)
+    hit.setAttribute('fill', 'none')
+    hit.setAttribute('stroke', 'transparent')
+    hit.setAttribute('stroke-width', '12')
+    hit.setAttribute('pointer-events', 'none')
+
+    let line = document.createElementNS(ns, 'path')
+    line.setAttribute('d', d)
+    line.setAttribute('fill', 'none')
+    line.setAttribute('stroke', '#38bdf8')
+    line.setAttribute('stroke-width', '1.8')
+    line.setAttribute('marker-end', 'url(#vision-arr)')
+    line.style.pointerEvents = 'none'
+
     if (targetNodeId) {
+      g.setAttribute('pointer-events', 'all')
+      hit.setAttribute('pointer-events', 'stroke')
       let removeConnection = (ev) => {
         ev.preventDefault()
         ev.stopPropagation()
-        this.disconnectNode(targetNodeId)
+        this.disconnectNode(targetNodeId, targetInputName)
       }
-      hitbox.$.addEventListener('contextmenu', removeConnection)
-      hitbox.$.addEventListener('mousedown', (ev) => {
+      g.dataset.targetNodeId = targetNodeId
+      if (targetInputName)
+        g.dataset.targetInputName = targetInputName
+      g.addEventListener('contextmenu', removeConnection)
+      g.addEventListener('mousedown', (ev) => {
         if (ev.button === 2)
           removeConnection(ev)
       })
-      hitbox.$.addEventListener('mouseup', (ev) => {
-        if (ev.button === 2)
-          removeConnection(ev)
+      g.addEventListener('mouseenter', () => {
+        line.setAttribute('stroke', '#facc15')
+        line.setAttribute('marker-end', 'url(#vision-arr-active)')
       })
-      hitbox.$.addEventListener('auxclick', (ev) => {
-        if (ev.button === 2)
-          removeConnection(ev)
+      g.addEventListener('mouseleave', () => {
+        line.setAttribute('stroke', '#38bdf8')
+        line.setAttribute('marker-end', 'url(#vision-arr)')
       })
     }
-    let line = new DOM('div', {className:'vision-connection'})
 
-    wrapper.append([hitbox, line])
-    return wrapper
+    g.appendChild(hit)
+    g.appendChild(line)
+    return g
   }
 
   updateBoardSize (){
@@ -1100,11 +1942,38 @@ class Vision {
       maxX = Math.max(maxX, node.x + 320)
       maxY = Math.max(maxY, node.y + 280)
     })
-    this.$.graphBoard.style.width = `${maxX + this.boardPadding}px`
-    this.$.graphBoard.style.height = `${maxY + this.boardPadding}px`
+    let w = maxX + this.boardPadding
+    let h = maxY + this.boardPadding
+    this.$.graphBoard.style.width = `${w}px`
+    this.$.graphBoard.style.height = `${h}px`
+    if (this.$.connectionsSvg && this.$.connectionsSvg.$) {
+      // Read actual rendered board size (min-width:100% may make it wider than w)
+      let actualW = this.$.graphBoard.$.offsetWidth || w
+      let actualH = this.$.graphBoard.$.offsetHeight || h
+      let svg = this.$.connectionsSvg.$
+      svg.setAttribute('width', String(actualW))
+      svg.setAttribute('height', String(actualH))
+      svg.setAttribute('viewBox', `0 0 ${actualW} ${actualH}`)
+    }
   }
 
-  uploadImage (ev){
+  getInputNodeImageData (node){
+    if (node && this.inputImages[node.id] && this.inputImages[node.id].imageData)
+      return this.inputImages[node.id].imageData
+
+    let firstInputNode = this.nodes.find((item) => item.type === 'input')
+    return !node || (firstInputNode && node.id === firstInputNode.id) ? this.originalImageData : null
+  }
+
+  getInputNodeFilename (node){
+    if (node && this.inputImages[node.id] && this.inputImages[node.id].filename)
+      return this.inputImages[node.id].filename
+
+    let firstInputNode = this.nodes.find((item) => item.type === 'input')
+    return !node || (firstInputNode && node.id === firstInputNode.id) ? this.originalFilename : ''
+  }
+
+  uploadImage (nodeId, ev){
     let file = ev.target.files && ev.target.files[0]
     if (!file)
       return
@@ -1120,9 +1989,17 @@ class Vision {
       this.processingCanvas.height = height
       this.processingContext.clearRect(0, 0, width, height)
       this.processingContext.drawImage(image, 0, 0, width, height)
-      this.originalImageData = this.processingContext.getImageData(0, 0, width, height)
-      this.originalFilename = file.name
+      let imageData = this.processingContext.getImageData(0, 0, width, height)
+      this.inputImages[nodeId] = {
+        imageData:imageData,
+        filename:file.name
+      }
+      if (!this.originalImageData || nodeId === this.nodes[0].id) {
+        this.originalImageData = imageData
+        this.originalFilename = file.name
+      }
       this.invalidateOutputs()
+      this.saveCurrentGraphState()
       this.render()
       ev.target.value = ''
       URL.revokeObjectURL(objectUrl)
@@ -1180,15 +2057,34 @@ class Vision {
 
     let output
     if (node.type === 'input')
-      output = this.originalImageData ? this.cloneImageData(this.originalImageData) : null
+      output = this.getInputNodeImageData(node) ? this.cloneImageData(this.getInputNodeImageData(node)) : null
     else {
-      let source = this.getNodeOutput(node.sourceId)
+      let nodeType = VisionNodeTypes[node.type]
       let params = this.getEffectiveNodeParams(node)
-      output = source ? VisionNodeTypes[node.type].run(source, params, this) : null
+      if (nodeType.runInputs)
+        output = nodeType.runInputs(this.getNodeInputs(node), params, this, node)
+      else {
+        let source = this.getNodeOutput(this.getNodeSourceId(node))
+        output = source ? nodeType.run(source, params, this, node) : null
+      }
     }
 
     this.outputCache[nodeId] = output
     return output
+  }
+
+  getNodeInputs (node){
+    let inputs = {}
+    this.getNodeInputSlots(node).forEach((slot) => {
+      let sourceId = this.getNodeSourceId(node, slot.name)
+      let output = sourceId ? this.getNodeOutput(sourceId) : null
+      inputs[slot.name] = {
+        sourceId:sourceId,
+        output:output,
+        imageData:this.getOutputImageData(output)
+      }
+    })
+    return inputs
   }
 
   getNodeStatus (node){
@@ -1200,8 +2096,8 @@ class Vision {
 
   getNodeDescription (node){
     if (node.type === 'input')
-      return this.originalFilename === '' ? Msg['VisionInspectorEmpty'] : this.originalFilename
-    let source = this.findNode(node.sourceId)
+      return this.getInputNodeFilename(node) === '' ? Msg['VisionInspectorEmpty'] : this.getInputNodeFilename(node)
+    let source = this.findNode(this.getNodeSourceId(node))
     let sourceLabel = source ? this.getNodeTypeLabel(source.type) : Msg['VisionWireHelp']
     return Msg['VisionInspectorSource'].replace('{0}', sourceLabel)
   }
@@ -1277,12 +2173,14 @@ class Vision {
   }
 
   getSetups (){
-    return [{
-      id:'current',
-      name:'Current vision setup',
-      nodes:this.cloneNodes(this.nodes),
-      runsOn:['browser']
-    }]
+    return Object.keys(this.tree).map((sid) => {
+      return {
+        id:sid,
+        name:this.tree[sid].name,
+        nodes:this.cloneNodes(this.tree[sid].nodes),
+        runsOn:['browser']
+      }
+    })
   }
 
   getSetup (setupId){
@@ -1290,15 +2188,41 @@ class Vision {
     return setups.find((setup) => setup.id === setupId) || setups[0]
   }
 
+  getSetupInputNodes (setupId){
+    let setup = this.getSetup(setupId)
+    let nodes = this.normalizeNodes(setup.nodes)
+    return nodes.filter((node) => node.type === 'input')
+  }
+
   getFinalNodeId (nodes){
     let consumed = {}
     nodes.forEach((node) => {
-      if (node.sourceId)
-        consumed[node.sourceId] = true
+      this.getNodeInputSlots(node).forEach((slot) => {
+        let sourceId = this.getNodeSourceId(node, slot.name)
+        if (sourceId)
+          consumed[sourceId] = true
+      })
     })
 
     let terminals = nodes.filter((node) => !consumed[node.id])
+    let processingTerminals = terminals.filter((node) => node.type !== 'input')
+    if (processingTerminals.length > 0)
+      return processingTerminals[processingTerminals.length - 1].id
+
     return terminals.length > 0 ? terminals[terminals.length - 1].id : nodes[nodes.length - 1].id
+  }
+
+  getRuntimeInputImageData (node, inputImages){
+    if (this.isImageDataOutput(inputImages))
+      return inputImages
+
+    if (inputImages && typeof inputImages == 'object') {
+      let imageData = inputImages[node.id] || inputImages.default || inputImages.imageData
+      if (this.isImageDataOutput(imageData))
+        return imageData
+    }
+
+    return null
   }
 
   runSetupOnImageData (setupId, imageData){
@@ -1317,11 +2241,28 @@ class Vision {
 
       let output = null
       if (node.type === 'input')
-        output = this.cloneImageData(imageData)
+        output = this.getRuntimeInputImageData(node, imageData)
+          ? this.cloneImageData(this.getRuntimeInputImageData(node, imageData))
+          : null
       else {
-        let source = runNode(node.sourceId)
+        let nodeType = VisionNodeTypes[node.type]
         let params = this.getEffectiveNodeParams(node)
-        output = source ? VisionNodeTypes[node.type].run(source, params, this) : null
+        if (nodeType.runInputs) {
+          let inputs = {}
+          this.getNodeInputSlots(node).forEach((slot) => {
+            let sourceId = this.getNodeSourceId(node, slot.name)
+            let sourceOutput = sourceId ? runNode(sourceId) : null
+            inputs[slot.name] = {
+              sourceId:sourceId,
+              output:sourceOutput,
+              imageData:this.getOutputImageData(sourceOutput)
+            }
+          })
+          output = nodeType.runInputs(inputs, params, this, node)
+        } else {
+          let source = runNode(this.getNodeSourceId(node))
+          output = source ? nodeType.run(source, params, this, node) : null
+        }
       }
 
       cache[nodeId] = output
@@ -1721,6 +2662,13 @@ class Vision {
     let width = Math.max(16, Math.min(720, Number(params.width) || imageData.width))
     let height = Math.max(16, Math.min(720, Number(params.height) || imageData.height))
 
+    return this.resizeImageDataTo(imageData, width, height)
+  }
+
+  resizeImageDataTo (imageData, width, height){
+    width = Math.max(1, Math.round(width))
+    height = Math.max(1, Math.round(height))
+
     this.bufferCanvas.width = imageData.width
     this.bufferCanvas.height = imageData.height
     this.bufferContext.putImageData(imageData, 0, 0)
@@ -1843,6 +2791,174 @@ class Vision {
     }
 
     return new ImageData(output, width, height)
+  }
+
+  runConvolutionMatrix (imageData, params){
+    let width = imageData.width
+    let height = imageData.height
+    let data = imageData.data
+    let output = new Uint8ClampedArray(data.length)
+    let kernel = [
+      Number(params.k00) || 0,
+      Number(params.k01) || 0,
+      Number(params.k02) || 0,
+      Number(params.k10) || 0,
+      Number(params.k11) || 0,
+      Number(params.k12) || 0,
+      Number(params.k20) || 0,
+      Number(params.k21) || 0,
+      Number(params.k22) || 0
+    ]
+    let divisor = Number(params.divisor)
+    if (!Number.isFinite(divisor) || divisor === 0) {
+      divisor = kernel.reduce((sum, value) => sum + value, 0)
+      if (divisor === 0)
+        divisor = 1
+    }
+    let bias = Number(params.bias) || 0
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let red = 0
+        let green = 0
+        let blue = 0
+
+        for (let ky = -1; ky <= 1; ky++) {
+          let sampleY = Math.max(0, Math.min(height - 1, y + ky))
+          for (let kx = -1; kx <= 1; kx++) {
+            let sampleX = Math.max(0, Math.min(width - 1, x + kx))
+            let kernelValue = kernel[(ky + 1) * 3 + (kx + 1)]
+            let sourceBase = (sampleY * width + sampleX) * 4
+            red += data[sourceBase] * kernelValue
+            green += data[sourceBase + 1] * kernelValue
+            blue += data[sourceBase + 2] * kernelValue
+          }
+        }
+
+        let targetBase = (y * width + x) * 4
+        output[targetBase] = this.clampByte(red / divisor + bias)
+        output[targetBase + 1] = this.clampByte(green / divisor + bias)
+        output[targetBase + 2] = this.clampByte(blue / divisor + bias)
+        output[targetBase + 3] = data[targetBase + 3]
+      }
+    }
+
+    return new ImageData(output, width, height)
+  }
+
+  runBlendMatrix (primaryImageData, secondaryImageData, params){
+    if (!primaryImageData)
+      return null
+    if (!secondaryImageData)
+      return this.cloneImageData(primaryImageData)
+
+    let width = primaryImageData.width
+    let height = primaryImageData.height
+    let secondary = secondaryImageData
+    if (secondary.width !== width || secondary.height !== height)
+      secondary = this.resizeImageDataTo(secondary, width, height)
+
+    let output = new Uint8ClampedArray(primaryImageData.data.length)
+    let weightA = Number(params.weightA)
+    let weightB = Number(params.weightB)
+    let bias = Number(params.bias) || 0
+    if (!Number.isFinite(weightA))
+      weightA = 1
+    if (!Number.isFinite(weightB))
+      weightB = 1
+
+    for (let index = 0; index < output.length; index += 4) {
+      output[index] = this.clampByte(primaryImageData.data[index] * weightA + secondary.data[index] * weightB + bias)
+      output[index + 1] = this.clampByte(primaryImageData.data[index + 1] * weightA + secondary.data[index + 1] * weightB + bias)
+      output[index + 2] = this.clampByte(primaryImageData.data[index + 2] * weightA + secondary.data[index + 2] * weightB + bias)
+      output[index + 3] = this.clampByte(primaryImageData.data[index + 3] * weightA + secondary.data[index + 3] * weightB)
+    }
+
+    return new ImageData(output, width, height)
+  }
+
+  runDifferenceMatrix (primaryImageData, secondaryImageData, params){
+    if (!primaryImageData)
+      return null
+    if (!secondaryImageData)
+      return this.cloneImageData(primaryImageData)
+
+    let width = primaryImageData.width
+    let height = primaryImageData.height
+    let secondary = secondaryImageData
+    if (secondary.width !== width || secondary.height !== height)
+      secondary = this.resizeImageDataTo(secondary, width, height)
+
+    let gain = Number(params.gain)
+    let bias = Number(params.bias) || 0
+    if (!Number.isFinite(gain))
+      gain = 1
+
+    let output = new Uint8ClampedArray(primaryImageData.data.length)
+    for (let index = 0; index < output.length; index += 4) {
+      output[index] = this.clampByte(Math.abs(primaryImageData.data[index] - secondary.data[index]) * gain + bias)
+      output[index + 1] = this.clampByte(Math.abs(primaryImageData.data[index + 1] - secondary.data[index + 1]) * gain + bias)
+      output[index + 2] = this.clampByte(Math.abs(primaryImageData.data[index + 2] - secondary.data[index + 2]) * gain + bias)
+      output[index + 3] = Math.max(primaryImageData.data[index + 3], secondary.data[index + 3])
+    }
+
+    return new ImageData(output, width, height)
+  }
+
+  runMultiplyMatrix (primaryImageData, secondaryImageData, params){
+    if (!primaryImageData)
+      return null
+    if (!secondaryImageData)
+      return this.cloneImageData(primaryImageData)
+
+    let width = primaryImageData.width
+    let height = primaryImageData.height
+    let secondary = secondaryImageData
+    if (secondary.width !== width || secondary.height !== height)
+      secondary = this.resizeImageDataTo(secondary, width, height)
+
+    let scale = Number(params.scale)
+    let bias = Number(params.bias) || 0
+    if (!Number.isFinite(scale))
+      scale = 1
+
+    let output = new Uint8ClampedArray(primaryImageData.data.length)
+    for (let index = 0; index < output.length; index += 4) {
+      output[index] = this.clampByte(primaryImageData.data[index] * secondary.data[index] / 255 * scale + bias)
+      output[index + 1] = this.clampByte(primaryImageData.data[index + 1] * secondary.data[index + 1] / 255 * scale + bias)
+      output[index + 2] = this.clampByte(primaryImageData.data[index + 2] * secondary.data[index + 2] / 255 * scale + bias)
+      output[index + 3] = this.clampByte(primaryImageData.data[index + 3] * secondary.data[index + 3] / 255)
+    }
+
+    return new ImageData(output, width, height)
+  }
+
+  runColorMatrix (imageData, params){
+    let output = new Uint8ClampedArray(imageData.data.length)
+    let matrix = [
+      Number(params.rr) || 0,
+      Number(params.rg) || 0,
+      Number(params.rb) || 0,
+      Number(params.gr) || 0,
+      Number(params.gg) || 0,
+      Number(params.gb) || 0,
+      Number(params.br) || 0,
+      Number(params.bg) || 0,
+      Number(params.bb) || 0
+    ]
+    let bias = Number(params.bias) || 0
+
+    for (let index = 0; index < output.length; index += 4) {
+      let red = imageData.data[index]
+      let green = imageData.data[index + 1]
+      let blue = imageData.data[index + 2]
+      output[index] = this.clampByte(red * matrix[0] + green * matrix[1] + blue * matrix[2] + bias)
+      output[index + 1] = this.clampByte(red * matrix[3] + green * matrix[4] + blue * matrix[5] + bias)
+      output[index + 2] = this.clampByte(red * matrix[6] + green * matrix[7] + blue * matrix[8] + bias)
+      output[index + 3] = imageData.data[index + 3]
+    }
+
+    return new ImageData(output, imageData.width, imageData.height)
   }
 
   runAdaptiveThresholdBuiltin (imageData, params){
@@ -2070,12 +3186,48 @@ class Vision {
 
     return output
   }
+
+  componentOutputData (components){
+    let objects = components.map((component, index) => {
+      return {
+        index:index,
+        area:component.area,
+        areaPercent:component.areaPercent,
+        centerX:component.centerX,
+        centerY:component.centerY,
+        bboxX:component.bboxX,
+        bboxY:component.bboxY,
+        bboxWidth:component.bboxWidth,
+        bboxHeight:component.bboxHeight,
+        rotationDeg:component.rotationDeg,
+        rotationRad:component.rotationRad
+      }
+    })
+
+    let indexedFields = {}
+    objects.forEach((object, index) => {
+      Object.keys(object).forEach((key) => {
+        if (key === 'index')
+          return
+        indexedFields[`object${index}${key.charAt(0).toUpperCase()}${key.slice(1)}`] = object[key]
+      })
+    })
+
+    return {
+      objects:objects,
+      objectsJson:JSON.stringify(objects),
+      indexedFields:indexedFields
+    }
+  }
 }
+
 
 const VisionNodeTypes = {
   input:{
     labelKey:'VisionNodeInput',
     fallbackLabel:'Input image',
+    fallbackDescription:'Load an image into the Vision pipeline.',
+    fallbackHelp:'Use this node to upload the starting image for your setup. Every other node in the pipeline reads its input directly or indirectly from this image.',
     controls:[],
     sanitize:() => {
       return {}
@@ -2085,6 +3237,8 @@ const VisionNodeTypes = {
   grayscale:{
     labelKey:'VisionNodeGrayscale',
     fallbackLabel:'Grayscale',
+    fallbackDescription:'Convert the image to grayscale.',
+    fallbackHelp:'This node converts each pixel to a gray intensity value. It is often a good first step before thresholding, edge detection, or contour-based analysis.',
     controls:[],
     sanitize:() => {
       return {}
@@ -2096,6 +3250,8 @@ const VisionNodeTypes = {
   resize:{
     labelKey:'VisionNodeResize',
     fallbackLabel:'Resize',
+    fallbackDescription:'Resize the image to a new width and height.',
+    fallbackHelp:'Use this node to make the image smaller for faster processing or larger for easier visual inspection. Downstream nodes will work on the resized image dimensions.',
     controls:[{
       name:'width',
       type:'range',
@@ -2126,6 +3282,8 @@ const VisionNodeTypes = {
   crop:{
     labelKey:'VisionNodeCrop',
     fallbackLabel:'Crop',
+    fallbackDescription:'Crop a region of interest from the image.',
+    fallbackHelp:'This node keeps only the selected area of the image. Use it to focus later processing on the part of the scene that matters and ignore the rest.',
     controls:[{
       name:'x',
       type:'range',
@@ -2174,6 +3332,8 @@ const VisionNodeTypes = {
   brightness:{
     labelKey:'VisionNodeBrightness',
     fallbackLabel:'Brightness',
+    fallbackDescription:'Make the image brighter or darker.',
+    fallbackHelp:'This node shifts pixel intensity up or down. It is useful when the camera image is consistently too dark or too bright before later analysis steps.',
     controls:[{
       name:'amount',
       type:'range',
@@ -2195,6 +3355,8 @@ const VisionNodeTypes = {
   contrast:{
     labelKey:'VisionNodeContrast',
     fallbackLabel:'Contrast',
+    fallbackDescription:'Increase or decrease the image contrast.',
+    fallbackHelp:'This node spreads or compresses the difference between dark and bright areas. Higher contrast can make segmentation easier when objects blend into the background.',
     controls:[{
       name:'amount',
       type:'range',
@@ -2216,6 +3378,8 @@ const VisionNodeTypes = {
   blur:{
     labelKey:'VisionNodeBlur',
     fallbackLabel:'Blur',
+    fallbackDescription:'Smooth the image to reduce noise and small details.',
+    fallbackHelp:'Blur averages nearby pixels to smooth the image. Use it before thresholding or edge detection when small specks and sharp texture create unstable results.',
     controls:[{
       name:'radius',
       type:'range',
@@ -2234,9 +3398,382 @@ const VisionNodeTypes = {
       return vision.runBoxBlur(imageData, params)
     }
   },
+  convolutionMatrix:{
+    labelKey:'VisionNodeConvolutionMatrix',
+    fallbackLabel:'Convolution matrix',
+    fallbackDescription:'Apply a custom 3x3 kernel to every pixel.',
+    fallbackHelp:'This node multiplies the 3x3 neighborhood around each pixel by your matrix. Try sharpen: 0 -1 0 / -1 5 -1 / 0 -1 0, or blur with all ones and divisor 9.',
+    controls:[{
+      name:'k00',
+      type:'number',
+      labelKey:'VisionMatrixK00',
+      fallbackLabel:'Top-left',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k01',
+      type:'number',
+      labelKey:'VisionMatrixK01',
+      fallbackLabel:'Top',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k02',
+      type:'number',
+      labelKey:'VisionMatrixK02',
+      fallbackLabel:'Top-right',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k10',
+      type:'number',
+      labelKey:'VisionMatrixK10',
+      fallbackLabel:'Left',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k11',
+      type:'number',
+      labelKey:'VisionMatrixK11',
+      fallbackLabel:'Center',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k12',
+      type:'number',
+      labelKey:'VisionMatrixK12',
+      fallbackLabel:'Right',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k20',
+      type:'number',
+      labelKey:'VisionMatrixK20',
+      fallbackLabel:'Bottom-left',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k21',
+      type:'number',
+      labelKey:'VisionMatrixK21',
+      fallbackLabel:'Bottom',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'k22',
+      type:'number',
+      labelKey:'VisionMatrixK22',
+      fallbackLabel:'Bottom-right',
+      min:-10,
+      max:10,
+      step:0.1
+    }, {
+      name:'divisor',
+      type:'number',
+      labelKey:'VisionMatrixDivisor',
+      fallbackLabel:'Divisor',
+      min:-100,
+      max:100,
+      step:0.1
+    }, {
+      name:'bias',
+      type:'number',
+      labelKey:'VisionMatrixBias',
+      fallbackLabel:'Bias',
+      min:-255,
+      max:255,
+      step:1
+    }],
+    sanitize:(params) => {
+      let clamp = (value, fallback, min, max) => {
+        let numeric = Number(value)
+        if (!Number.isFinite(numeric))
+          numeric = fallback
+        return Math.min(max, Math.max(min, numeric))
+      }
+      return {
+        k00:clamp(params.k00, 0, -10, 10),
+        k01:clamp(params.k01, -1, -10, 10),
+        k02:clamp(params.k02, 0, -10, 10),
+        k10:clamp(params.k10, -1, -10, 10),
+        k11:clamp(params.k11, 5, -10, 10),
+        k12:clamp(params.k12, -1, -10, 10),
+        k20:clamp(params.k20, 0, -10, 10),
+        k21:clamp(params.k21, -1, -10, 10),
+        k22:clamp(params.k22, 0, -10, 10),
+        divisor:clamp(params.divisor, 1, -100, 100),
+        bias:clamp(params.bias, 0, -255, 255)
+      }
+    },
+    run:(imageData, params, vision) => {
+      return vision.runConvolutionMatrix(imageData, params)
+    }
+  },
+  blendMatrix:{
+    labelKey:'VisionNodeBlendMatrix',
+    fallbackLabel:'Blend matrix',
+    fallbackDescription:'Combine two image inputs with linear weights.',
+    fallbackHelp:'This node has two input ports. Each output pixel is A × weight A plus B × weight B plus bias. Use it to add, subtract, average, or compare two branches.',
+    inputSlots:[{
+      name:'a',
+      labelKey:'VisionInputSlotA',
+      fallbackLabel:'A'
+    }, {
+      name:'b',
+      labelKey:'VisionInputSlotB',
+      fallbackLabel:'B'
+    }],
+    controls:[{
+      name:'weightA',
+      type:'number',
+      labelKey:'VisionMatrixWeightA',
+      fallbackLabel:'Weight A',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'weightB',
+      type:'number',
+      labelKey:'VisionMatrixWeightB',
+      fallbackLabel:'Weight B',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'bias',
+      type:'number',
+      labelKey:'VisionMatrixBias',
+      fallbackLabel:'Bias',
+      min:-255,
+      max:255,
+      step:1
+    }],
+    sanitize:(params) => {
+      let clamp = (value, fallback, min, max) => {
+        let numeric = Number(value)
+        if (!Number.isFinite(numeric))
+          numeric = fallback
+        return Math.min(max, Math.max(min, numeric))
+      }
+      return {
+        weightA:clamp(params.weightA, 0.5, -2, 2),
+        weightB:clamp(params.weightB, 0.5, -2, 2),
+        bias:clamp(params.bias, 0, -255, 255)
+      }
+    },
+    runInputs:(inputs, params, vision) => {
+      return vision.runBlendMatrix(inputs.a && inputs.a.imageData, inputs.b && inputs.b.imageData, params)
+    }
+  },
+  differenceMatrix:{
+    labelKey:'VisionNodeDifferenceMatrix',
+    fallbackLabel:'Difference matrix',
+    fallbackDescription:'Show the absolute difference between two image inputs.',
+    fallbackHelp:'This two-input node computes abs(A - B) for every pixel. It is useful for comparing two images, detecting movement, or seeing what changed between branches.',
+    inputSlots:[{
+      name:'a',
+      labelKey:'VisionInputSlotA',
+      fallbackLabel:'A'
+    }, {
+      name:'b',
+      labelKey:'VisionInputSlotB',
+      fallbackLabel:'B'
+    }],
+    controls:[{
+      name:'gain',
+      type:'number',
+      labelKey:'VisionMatrixGain',
+      fallbackLabel:'Gain',
+      min:0,
+      max:10,
+      step:0.1
+    }, {
+      name:'bias',
+      type:'number',
+      labelKey:'VisionMatrixBias',
+      fallbackLabel:'Bias',
+      min:-255,
+      max:255,
+      step:1
+    }],
+    sanitize:(params) => {
+      let gain = Number(params.gain)
+      let bias = Number(params.bias)
+      return {
+        gain:Number.isFinite(gain) ? Math.min(10, Math.max(0, gain)) : 1,
+        bias:Number.isFinite(bias) ? Math.min(255, Math.max(-255, bias)) : 0
+      }
+    },
+    runInputs:(inputs, params, vision) => {
+      return vision.runDifferenceMatrix(inputs.a && inputs.a.imageData, inputs.b && inputs.b.imageData, params)
+    }
+  },
+  multiplyMatrix:{
+    labelKey:'VisionNodeMultiplyMatrix',
+    fallbackLabel:'Multiply matrix',
+    fallbackDescription:'Multiply two image inputs pixel by pixel.',
+    fallbackHelp:'This two-input node multiplies A and B per pixel. It behaves like a mask operation when one input is black and white, and can darken or combine image branches.',
+    inputSlots:[{
+      name:'a',
+      labelKey:'VisionInputSlotA',
+      fallbackLabel:'A'
+    }, {
+      name:'b',
+      labelKey:'VisionInputSlotB',
+      fallbackLabel:'B'
+    }],
+    controls:[{
+      name:'scale',
+      type:'number',
+      labelKey:'VisionMatrixScale',
+      fallbackLabel:'Scale',
+      min:0,
+      max:10,
+      step:0.1
+    }, {
+      name:'bias',
+      type:'number',
+      labelKey:'VisionMatrixBias',
+      fallbackLabel:'Bias',
+      min:-255,
+      max:255,
+      step:1
+    }],
+    sanitize:(params) => {
+      let scale = Number(params.scale)
+      let bias = Number(params.bias)
+      return {
+        scale:Number.isFinite(scale) ? Math.min(10, Math.max(0, scale)) : 1,
+        bias:Number.isFinite(bias) ? Math.min(255, Math.max(-255, bias)) : 0
+      }
+    },
+    runInputs:(inputs, params, vision) => {
+      return vision.runMultiplyMatrix(inputs.a && inputs.a.imageData, inputs.b && inputs.b.imageData, params)
+    }
+  },
+  colorMatrix:{
+    labelKey:'VisionNodeColorMatrix',
+    fallbackLabel:'Color matrix',
+    fallbackDescription:'Mix RGB channels with a 3x3 color matrix.',
+    fallbackHelp:'This node creates each output channel from a weighted mix of input red, green, and blue. Use it for channel swapping, tinting, grayscale variants, or color isolation experiments.',
+    controls:[{
+      name:'rr',
+      type:'number',
+      labelKey:'VisionColorMatrixRR',
+      fallbackLabel:'R from R',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'rg',
+      type:'number',
+      labelKey:'VisionColorMatrixRG',
+      fallbackLabel:'R from G',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'rb',
+      type:'number',
+      labelKey:'VisionColorMatrixRB',
+      fallbackLabel:'R from B',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'gr',
+      type:'number',
+      labelKey:'VisionColorMatrixGR',
+      fallbackLabel:'G from R',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'gg',
+      type:'number',
+      labelKey:'VisionColorMatrixGG',
+      fallbackLabel:'G from G',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'gb',
+      type:'number',
+      labelKey:'VisionColorMatrixGB',
+      fallbackLabel:'G from B',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'br',
+      type:'number',
+      labelKey:'VisionColorMatrixBR',
+      fallbackLabel:'B from R',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'bg',
+      type:'number',
+      labelKey:'VisionColorMatrixBG',
+      fallbackLabel:'B from G',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'bb',
+      type:'number',
+      labelKey:'VisionColorMatrixBB',
+      fallbackLabel:'B from B',
+      min:-2,
+      max:2,
+      step:0.05
+    }, {
+      name:'bias',
+      type:'number',
+      labelKey:'VisionMatrixBias',
+      fallbackLabel:'Bias',
+      min:-255,
+      max:255,
+      step:1
+    }],
+    sanitize:(params) => {
+      let clamp = (value, fallback, min, max) => {
+        let numeric = Number(value)
+        if (!Number.isFinite(numeric))
+          numeric = fallback
+        return Math.min(max, Math.max(min, numeric))
+      }
+      return {
+        rr:clamp(params.rr, 1, -2, 2),
+        rg:clamp(params.rg, 0, -2, 2),
+        rb:clamp(params.rb, 0, -2, 2),
+        gr:clamp(params.gr, 0, -2, 2),
+        gg:clamp(params.gg, 1, -2, 2),
+        gb:clamp(params.gb, 0, -2, 2),
+        br:clamp(params.br, 0, -2, 2),
+        bg:clamp(params.bg, 0, -2, 2),
+        bb:clamp(params.bb, 1, -2, 2),
+        bias:clamp(params.bias, 0, -255, 255)
+      }
+    },
+    run:(imageData, params, vision) => {
+      return vision.runColorMatrix(imageData, params)
+    }
+  },
   threshold:{
     labelKey:'VisionNodeThreshold',
     fallbackLabel:'Threshold',
+    fallbackDescription:'Turn the image into black and white using one threshold value.',
+    fallbackHelp:'Pixels above the threshold become white and pixels below become black. This is best when the lighting is even and the object stands out clearly from the background.',
     controls:[{
       name:'value',
       type:'range',
@@ -2258,6 +3795,8 @@ const VisionNodeTypes = {
   adaptiveThreshold:{
     labelKey:'VisionNodeAdaptiveThreshold',
     fallbackLabel:'Adaptive threshold',
+    fallbackDescription:'Turn the image into black and white using local brightness in each area.',
+    fallbackHelp:'This node computes a threshold from each local neighborhood instead of one global value. It is useful when lighting changes across the image or the background is uneven.',
     controls:[{
       name:'blockSize',
       type:'range',
@@ -2291,6 +3830,8 @@ const VisionNodeTypes = {
   dilate:{
     labelKey:'VisionNodeDilate',
     fallbackLabel:'Dilate',
+    fallbackDescription:'Grow bright regions to fill small gaps.',
+    fallbackHelp:'Dilation expands white regions outward. Use it to connect nearby bright areas or close thin breaks after thresholding.',
     controls:[{
       name:'radius',
       type:'range',
@@ -2312,6 +3853,8 @@ const VisionNodeTypes = {
   erode:{
     labelKey:'VisionNodeErode',
     fallbackLabel:'Erode',
+    fallbackDescription:'Shrink bright regions to remove small specks.',
+    fallbackHelp:'Erosion contracts white regions inward. It is useful for removing tiny bright noise and separating objects that are only lightly touching.',
     controls:[{
       name:'radius',
       type:'range',
@@ -2333,6 +3876,8 @@ const VisionNodeTypes = {
   open:{
     labelKey:'VisionNodeOpen',
     fallbackLabel:'Open',
+    fallbackDescription:'Remove small bright noise by eroding and then dilating.',
+    fallbackHelp:'Opening removes small isolated white specks while keeping larger shapes. It is a strong cleanup step before contour or object extraction.',
     controls:[{
       name:'radius',
       type:'range',
@@ -2354,6 +3899,8 @@ const VisionNodeTypes = {
   close:{
     labelKey:'VisionNodeClose',
     fallbackLabel:'Close',
+    fallbackDescription:'Fill small holes and gaps by dilating and then eroding.',
+    fallbackHelp:'Closing fills small dark gaps inside bright objects and connects narrow breaks. Use it when your thresholded objects look fragmented.',
     controls:[{
       name:'radius',
       type:'range',
@@ -2375,6 +3922,8 @@ const VisionNodeTypes = {
   edges:{
     labelKey:'VisionNodeEdges',
     fallbackLabel:'Edges',
+    fallbackDescription:'Highlight strong brightness changes as edges.',
+    fallbackHelp:'This node emphasizes boundaries where image intensity changes quickly. It is useful for outline-based inspection but usually needs tuning and clean input.',
     controls:[{
       name:'threshold',
       type:'range',
@@ -2396,6 +3945,8 @@ const VisionNodeTypes = {
   contours:{
     labelKey:'VisionNodeContours',
     fallbackLabel:'Contours',
+    fallbackDescription:'Extract object outlines from the image.',
+    fallbackHelp:'Contours trace the borders of detected bright regions. This is often the preparation step before object-level outputs such as bounding boxes, centers, and rotations.',
     controls:[{
       name:'threshold',
       type:'range',
@@ -2417,6 +3968,8 @@ const VisionNodeTypes = {
   invert:{
     labelKey:'VisionNodeInvert',
     fallbackLabel:'Invert',
+    fallbackDescription:'Invert dark and bright pixels.',
+    fallbackHelp:'This flips black to white and white to black. Use it when your object is dark on a bright background but later nodes expect bright foreground objects.',
     controls:[],
     sanitize:() => {
       return {}
@@ -2428,6 +3981,8 @@ const VisionNodeTypes = {
   stateOutput:{
     labelKey:'VisionNodeStateOutput',
     fallbackLabel:'State output',
+    fallbackDescription:'Output one of two values based on how much of the image is detected.',
+    fallbackHelp:'This node compares the detected white area against the configured threshold and returns either the On value or the Off value. Use it when you want a simple state such as detected/clear or open/closed.',
     controls:[{
       name:'thresholdPercent',
       type:'range',
@@ -2482,7 +4037,9 @@ const VisionNodeTypes = {
   },
   objectCountOutput:{
     labelKey:'VisionNodeObjectCountOutput',
-    fallbackLabel:'Object count output',
+    fallbackLabel:'All detected objects output',
+    fallbackDescription:'Detect all objects above the minimum area and output their count plus per-object data.',
+    fallbackHelp:'This node finds every detected foreground object that is at least the chosen minimum area. It outputs the total count, a structured objects array, a JSON string version, and indexed fields like object0CenterX, object1BboxHeight, and object2RotationDeg for easy templates and MQTT messages.',
     controls:[{
       name:'minAreaPixels',
       type:'range',
@@ -2502,6 +4059,7 @@ const VisionNodeTypes = {
       let components = vision.findForegroundComponents(imageData, params.minAreaPixels)
       let largest = components[0] || null
       let annotated = components.length > 0 ? vision.annotateComponents(imageData, components, {showBox:true, showCenter:true, limit:Math.min(components.length, 12)}) : imageData
+      let componentData = vision.componentOutputData(components)
 
       return {
         kind:'vision-output',
@@ -2515,9 +4073,12 @@ const VisionNodeTypes = {
           state:components.length > 0 ? 'objects' : 'none',
           count:components.length,
           objectCount:components.length,
+          objects:componentData.objects,
+          objectsJson:componentData.objectsJson,
           minAreaPixels:params.minAreaPixels,
           largestArea:largest ? largest.area : 0,
           largestAreaPercent:largest ? largest.areaPercent : 0,
+          ...componentData.indexedFields,
           ...metrics
         },
         metrics:metrics,
@@ -2528,6 +4089,8 @@ const VisionNodeTypes = {
   boundingBoxOutput:{
     labelKey:'VisionNodeBoundingBoxOutput',
     fallbackLabel:'Bounding box output',
+    fallbackDescription:'Output the position and size of the largest detected object.',
+    fallbackHelp:'This node selects the largest detected object and reports its bounding box as x, y, width, and height. It also includes the object center and area fields so you can position or size-follow the object.',
     controls:[{
       name:'minAreaPixels',
       type:'range',
@@ -2578,6 +4141,8 @@ const VisionNodeTypes = {
   rotationOutput:{
     labelKey:'VisionNodeRotationOutput',
     fallbackLabel:'Rotation output',
+    fallbackDescription:'Output the angle of the largest detected object.',
+    fallbackHelp:'This node selects the largest detected object and estimates its orientation from its shape. It outputs the rotation in degrees and radians, along with center, bounding box, and area fields for the same object.',
     controls:[{
       name:'minAreaPixels',
       type:'range',
@@ -2629,6 +4194,8 @@ const VisionNodeTypes = {
   objectCenterOutput:{
     labelKey:'VisionNodeObjectCenterOutput',
     fallbackLabel:'Object center output',
+    fallbackDescription:'Output the center point of the largest detected object.',
+    fallbackHelp:'This node selects the largest detected object and reports its center position as x and y coordinates. It also includes bounding box and area fields so you can combine location with object size.',
     controls:[{
       name:'minAreaPixels',
       type:'range',
@@ -2677,9 +4244,45 @@ const VisionNodeTypes = {
   }
 }
 
+const VISION_NODE_ICONS = {
+  'input':              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="16" height="12" rx="2"/><circle cx="10" cy="10" r="3"/><circle cx="14.5" cy="5.5" r="0.8" fill="currentColor"/></svg>',
+  'grayscale':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M10 3v14" stroke-linecap="round"/></svg>',
+  'brightness':         '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/><line x1="4.5" y1="4.5" x2="5.9" y2="5.9"/><line x1="14.1" y1="14.1" x2="15.5" y2="15.5"/><line x1="15.5" y1="4.5" x2="14.1" y2="5.9"/><line x1="5.9" y1="14.1" x2="4.5" y2="15.5"/></svg>',
+  'contrast':           '<svg viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7" fill="none"/><path d="M10 3 A7 7 0 0 1 10 17Z" fill="currentColor" opacity="0.5" stroke="none"/></svg>',
+  'invert':             '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="7" width="5.5" height="6" rx="1"/><rect x="11.5" y="7" width="5.5" height="6" rx="1" fill="currentColor" opacity="0.4" stroke="none"/><rect x="11.5" y="7" width="5.5" height="6" rx="1"/><path d="M9.5 10h1"/></svg>',
+  'resize':             '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V3h4M17 7V3h-4M3 13v4h4M17 13v4h-4"/><rect x="6.5" y="6.5" width="7" height="7" rx="1"/></svg>',
+  'crop':               '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 2v11h11"/><path d="M2 5h11v11"/></svg>',
+  'blur':               '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="3.5"/><circle cx="10" cy="10" r="6" stroke-dasharray="2 2"/><circle cx="10" cy="10" r="8.5" stroke-dasharray="2 2" opacity="0.4"/></svg>',
+  'threshold':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="6" height="12" rx="1" fill="currentColor" opacity="0.35" stroke="currentColor"/><rect x="11" y="4" width="6" height="12" rx="1"/><line x1="9" y1="10" x2="11" y2="10" stroke-dasharray="1.5 1"/></svg>',
+  'adaptiveThreshold':  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="14" height="12" rx="2"/><polyline points="5,13 8,7 11,13 14,7 17,13" stroke-linejoin="round"/></svg>',
+  'dilate':             '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="3" fill="currentColor" opacity="0.3"/><circle cx="10" cy="10" r="6"/><path d="M10 4v2M10 14v2M4 10h2M14 10h2"/></svg>',
+  'erode':              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="6" stroke-dasharray="2 2"/><circle cx="10" cy="10" r="3" fill="currentColor" opacity="0.3"/></svg>',
+  'open':               '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="10" r="3.5"/><circle cx="13" cy="10" r="3.5"/><path d="M7 6.5l-3-3M13 6.5l3-3"/></svg>',
+  'close':              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="10" r="3.5"/><circle cx="13" cy="10" r="3.5"/><path d="M7 13.5l-3 3M13 13.5l3 3"/></svg>',
+  'edges':              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="12" height="12" rx="2" stroke-dasharray="3 2"/><rect x="7" y="7" width="6" height="6" rx="1"/></svg>',
+  'contours':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 3C6.13 3 3 6.13 3 10s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7z"/><path d="M10 6.5C8.07 6.5 6.5 8.07 6.5 10s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5S11.93 6.5 10 6.5z"/></svg>',
+  'convolutionMatrix':  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="4" height="4" rx="0.5"/><rect x="8" y="2.5" width="4" height="4" rx="0.5"/><rect x="13.5" y="2.5" width="4" height="4" rx="0.5"/><rect x="2.5" y="8" width="4" height="4" rx="0.5"/><rect x="8" y="8" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.3"/><rect x="13.5" y="8" width="4" height="4" rx="0.5"/><rect x="2.5" y="13.5" width="4" height="4" rx="0.5"/><rect x="8" y="13.5" width="4" height="4" rx="0.5"/><rect x="13.5" y="13.5" width="4" height="4" rx="0.5"/></svg>',
+  'colorMatrix':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="4" height="4" rx="0.5" fill="#f87171" stroke="#f87171"/><rect x="8" y="2.5" width="4" height="4" rx="0.5" fill="#4ade80" stroke="#4ade80"/><rect x="13.5" y="2.5" width="4" height="4" rx="0.5" fill="#60a5fa" stroke="#60a5fa"/><rect x="2.5" y="8" width="4" height="4" rx="0.5"/><rect x="8" y="8" width="4" height="4" rx="0.5"/><rect x="13.5" y="8" width="4" height="4" rx="0.5"/><rect x="2.5" y="13.5" width="4" height="4" rx="0.5"/><rect x="8" y="13.5" width="4" height="4" rx="0.5"/><rect x="13.5" y="13.5" width="4" height="4" rx="0.5"/></svg>',
+  'blendMatrix':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7.5" cy="10" r="5" fill="currentColor" opacity="0.25" stroke="currentColor"/><circle cx="12.5" cy="10" r="5" fill="currentColor" opacity="0.25" stroke="currentColor"/></svg>',
+  'differenceMatrix':   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1" fill="currentColor" opacity="0.3"/><rect x="9" y="9" width="8" height="8" rx="1" fill="currentColor" opacity="0.3"/></svg>',
+  'multiplyMatrix':     '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="6" x2="14" y2="14"/><line x1="14" y1="6" x2="6" y2="14"/><circle cx="10" cy="10" r="7"/></svg>',
+  'stateOutput':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="2.5" fill="currentColor" opacity="0.5"/><path d="M10 3v4M10 13v4M3 10h4M13 10h4"/></svg>',
+  'objectCountOutput':  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><path d="M14 12v5M12 14.5h5"/></svg>',
+  'objectCenterOutput': '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="2"/><line x1="10" y1="3" x2="10" y2="7.5"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="3" y1="10" x2="7.5" y2="10"/><line x1="12.5" y1="10" x2="17" y2="10"/></svg>',
+  'boundingBoxOutput':  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 3H3v2M15 3h2v2M5 17H3v-2M15 17h2v-2"/><rect x="5" y="5" width="10" height="10" rx="1" stroke-dasharray="2 1.5"/></svg>',
+  'rotationOutput':     '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 7-7"/><path d="M3 5v5h5"/></svg>',
+  '_default':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M8 10h4M10 8v4"/></svg>'
+}
+
 const VisionPaletteGroups = [{
+  label:'Sources',
+  nodes:['input']
+}, {
   label:'Basic transforms',
   nodes:['grayscale', 'resize', 'crop', 'brightness', 'contrast', 'blur', 'invert']
+}, {
+  label:'Matrix operations',
+  nodes:['convolutionMatrix', 'colorMatrix', 'blendMatrix', 'differenceMatrix', 'multiplyMatrix']
 }, {
   label:'Segmentation',
   nodes:['threshold', 'adaptiveThreshold', 'edges', 'contours']

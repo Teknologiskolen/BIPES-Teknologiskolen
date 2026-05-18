@@ -1,7 +1,6 @@
 Blockly.Blocks["ds1302__create"] = {
   init: function() {
     this.appendDummyInput().appendField("Create DS1302");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("clk_pin").setCheck("Number").appendField("CLK Pin");
     this.appendValueInput("dat_pin").setCheck("Number").appendField("DAT Pin");
     this.appendValueInput("rst_pin").setCheck("Number").appendField("RST Pin");
@@ -17,7 +16,6 @@ Blockly.Blocks["ds1302__create"] = {
 Blockly.Blocks["ds1302__get_time"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Time");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -29,7 +27,6 @@ Blockly.Blocks["ds1302__get_time"] = {
 Blockly.Blocks["ds1302__get_year"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Year");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -41,7 +38,6 @@ Blockly.Blocks["ds1302__get_year"] = {
 Blockly.Blocks["ds1302__get_month"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Month");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -53,7 +49,6 @@ Blockly.Blocks["ds1302__get_month"] = {
 Blockly.Blocks["ds1302__get_day"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Day");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -65,7 +60,6 @@ Blockly.Blocks["ds1302__get_day"] = {
 Blockly.Blocks["ds1302__get_hour"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Hour");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -77,7 +71,6 @@ Blockly.Blocks["ds1302__get_hour"] = {
 Blockly.Blocks["ds1302__get_minute"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Minute");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -89,7 +82,6 @@ Blockly.Blocks["ds1302__get_minute"] = {
 Blockly.Blocks["ds1302__get_second"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Second");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -101,7 +93,6 @@ Blockly.Blocks["ds1302__get_second"] = {
 Blockly.Blocks["ds1302__get_time_text"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Time Text");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("show_seconds").setCheck("Boolean").appendField("Show Seconds");
     this.setOutput(true, null);
     this.setColour(35);
@@ -114,7 +105,6 @@ Blockly.Blocks["ds1302__get_time_text"] = {
 Blockly.Blocks["ds1302__get_date_text"] = {
   init: function() {
     this.appendDummyInput().appendField("Get Date Text");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setOutput(true, null);
     this.setColour(35);
     this.setInputsInline(false);
@@ -126,7 +116,6 @@ Blockly.Blocks["ds1302__get_date_text"] = {
 Blockly.Blocks["ds1302__set_time"] = {
   init: function() {
     this.appendDummyInput().appendField("Set Time");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("year").setCheck("Number").appendField("Year");
     this.appendValueInput("month").setCheck("Number").appendField("Month");
     this.appendValueInput("day").setCheck("Number").appendField("Day");

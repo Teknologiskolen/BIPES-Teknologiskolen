@@ -15,22 +15,224 @@ section#vision > .container.vision-container {
   padding-bottom: 1.25rem;
 }
 
-section#vision .vision-intro {
-  padding: 0 1rem;
-  margin: 0 0 1rem 0;
-  max-width: 64rem;
-}
-
-section#vision .vision-actions {
+section#vision .vision-header {
+  width: 100%;
+  height: 2.5rem;
   display: flex;
-  gap: 0.75rem;
-  padding: 0 1rem 1rem 1rem;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0;
   align-items: center;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  min-height: 2.5rem;
+  box-shadow: 0 0 .25em rgba(0,0,0,.25);
 }
 
-section#vision .vision-actions input[type="file"],
-section#vision .vision-upload-control input[type="file"] {
+section#vision .vision-header-left {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+section#vision .vision-header-right {
+  height: 2.5rem;
+  border-left: 1px solid #7d7d7d;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+section#vision .vision-header-right button {
+  background-color: rgba(84,190,255,0);
+  border: none;
+  border-radius: 0;
+  transition: background-color ease .125s;
+  padding: 0.5rem 0.75rem;
+  height: 2.5rem;
+}
+
+section#vision .vision-header-right button:hover,
+section#vision .vision-header-right button:focus {
+  background-color: rgba(84,190,255,0.5);
+}
+
+/* ── Floating add button ─────────────────────────────────────────────────── */
+
+section#vision #vision-add-node {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2;
+  background-image: linear-gradient(90deg,rgba(110,84,255,.5),rgba(110,84,255,.5));
+  box-shadow: 0 0.25rem .5rem rgba(0,0,0,.25);
+  width: 3rem;
+  height: 3rem;
+}
+
+section#vision #vision-add-node:before {
+  background-position: left calc(-1.5rem*6) top;
+  margin: 0.45rem;
+}
+
+body.light section#vision #vision-add-node {
+  background-color: #fff;
+}
+
+body.dark section#vision #vision-add-node {
+  background-color: #333;
+}
+
+/* ── Add-node popup modal ─────────────────────────────────────────────────── */
+
+section#vision #vision-node-popup > div {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: min(32rem, calc(100vh - 5rem));
+  padding: 1.25rem;
+  overflow-y: auto;
+  margin: 0;
+  transform: translate(-50%, calc(-50% + 1.5rem)) scale(.96);
+  transition: transform ease .25s, opacity ease .25s;
+  box-sizing: border-box;
+}
+
+section#vision #vision-node-popup.on > div {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+section#vision .vision-node-popup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+section#vision .vision-node-popup-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+section#vision .vision-node-popup-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+section#vision .vision-node-tab {
+  padding: 0.35rem 0.9rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(84,190,255,0.25);
+  background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color ease .125s, border-color ease .125s;
+  white-space: nowrap;
+}
+
+section#vision .vision-node-tab:hover {
+  background: rgba(84,190,255,0.12);
+  border-color: rgba(84,190,255,0.5);
+}
+
+section#vision .vision-node-tab.on {
+  background: rgba(84,190,255,0.2);
+  border-color: rgba(84,190,255,0.7);
+  font-weight: 600;
+}
+
+section#vision .vision-node-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.4rem;
+  min-height: 6rem;
+}
+
+section#vision .vision-node-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.8rem 0.6rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  background: rgba(84,190,255,0.08);
+  color: inherit;
+  font-size: 0.8rem;
+  min-height: 4.5rem;
+  transition: background-color ease .125s;
+}
+
+section#vision .vision-node-btn:hover {
+  background: rgba(84,190,255,0.25);
+}
+
+section#vision .vision-node-btn svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex-shrink: 0;
+}
+
+section#vision .vision-node-btn span {
+  line-height: 1.2;
+}
+
+section#vision .vision-tabs {
+  display: flex;
+  gap: 0;
+  flex: 0 1 auto;
+  padding-left: .5rem;
+}
+
+section#vision .vision-header::-webkit-scrollbar {
+  height: 0.35rem;
+}
+
+section#vision .vision-tab {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  background-color: rgba(84,190,255,0);
+  transition: .125s ease background-color;
+  box-sizing: border-box;
+  min-width: 5rem;
+  text-align: center;
+  border-radius: 1rem;
+  margin: 0.25rem .125rem;
+  border: none;
+  color: inherit;
+}
+
+section#vision .vision-tab:hover,
+section#vision .vision-tab:focus {
+  background-color: rgba(84,190,255,0.5);
+}
+
+section#vision .vision-tab.on {
+  background-color: rgba(84,190,255,0.25);
+}
+
+section#vision .vision-tab h3 {
+  white-space: nowrap;
+  margin: 0;
+}
+
+
+section#vision .vision-header-left > #add {
+  flex: none;
+  height: 2.125rem;
+  margin: .25rem .125rem 0 .125rem;
+}
+
+section#vision .vision-upload-control input[type="file"],
+section#vision .vision-actions input[type="file"] {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -71,34 +273,13 @@ body.dark section#vision .vision-panel {
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-section#vision .vision-panel-header {
-  font-size: 0.95rem;
-  font-weight: bold;
-  letter-spacing: 0.02em;
-  padding: 0.85rem 1rem;
-}
-
-body.light section#vision .vision-panel-header {
-  background: rgba(37, 99, 235, 0.08);
-}
-
-body.dark section#vision .vision-panel-header {
-  background: rgba(96, 165, 250, 0.12);
-}
-
-section#vision .vision-panel-copy {
-  margin: 0;
-  padding: 0 1rem 1rem 1rem;
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
 
 section#vision .vision-workspace-panel {
   min-height: 36rem;
 }
 
 section#vision .vision-graph-scroll {
-  padding: 0 1rem 1rem 1rem;
+  padding: 1rem;
   overflow: auto;
 }
 
@@ -215,63 +396,12 @@ section#vision .vision-context-submenu button {
   margin: 0;
 }
 
-section#vision .vision-connections {
+section#vision .vision-connections-svg {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
   z-index: 3;
-}
-
-section#vision .vision-connection-wrap {
-  position: absolute;
-  height: 2.25rem;
-  margin-top: -1.125rem;
-  transform-origin: 0 50%;
-  pointer-events: none;
-}
-
-section#vision .vision-connection-wrap.interactive {
-  pointer-events: auto;
-}
-
-section#vision .vision-connection-hitbox {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  cursor: pointer;
-}
-
-section#vision .vision-connection-hitbox.interactive {
-  pointer-events: auto;
-}
-
-section#vision .vision-connection {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 0.32rem;
-  margin-top: -0.16rem;
-  border-radius: 999px;
-  background: rgba(14, 165, 233, 0.98);
-  box-shadow: 0 0 0.6rem rgba(56, 189, 248, 0.38);
-  pointer-events: none;
-}
-
-section#vision .vision-connection-wrap.active .vision-connection {
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(250, 204, 21, 0.95) 0 0.7rem,
-      rgba(250, 204, 21, 0.25) 0.7rem 1.1rem
-    );
-  box-shadow: 0 0 0.7rem rgba(250, 204, 21, 0.4);
-}
-
-section#vision .vision-connection-wrap.interactive:hover .vision-connection {
-  background: rgba(250, 204, 21, 0.98);
-  box-shadow: 0 0 0.75rem rgba(250, 204, 21, 0.45);
 }
 
 
@@ -283,22 +413,71 @@ section#vision .vision-node-list {
 }
 
 section#vision .vision-node {
-  position: relative;
   position: absolute;
   width: 18rem;
-  border-radius: 1rem;
+  border-radius: 16px;
+  border: 2px solid rgba(15,23,42,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 body.light section#vision .vision-node {
   background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 body.dark section#vision .vision-node {
   background: #0f172a;
-  border: 1px solid rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.08);
+}
+
+section#vision .vision-node::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+
+/* input: amber */
+section#vision .vision-node[data-node-type="input"]::before {
+  background: #f59e0b;
+}
+
+/* tone adjustments: orange */
+section#vision .vision-node[data-node-type="grayscale"]::before,
+section#vision .vision-node[data-node-type="brightness"]::before,
+section#vision .vision-node[data-node-type="contrast"]::before,
+section#vision .vision-node[data-node-type="invert"]::before {
+  background: #f97316;
+}
+
+/* geometry: teal */
+section#vision .vision-node[data-node-type="resize"]::before,
+section#vision .vision-node[data-node-type="crop"]::before {
+  background: #14b8a6;
+}
+
+/* filter: sky */
+section#vision .vision-node[data-node-type="blur"]::before {
+  background: #0284c7;
+}
+
+/* morphology: purple */
+section#vision .vision-node[data-node-type="threshold"]::before,
+section#vision .vision-node[data-node-type="dilate"]::before,
+section#vision .vision-node[data-node-type="erode"]::before,
+section#vision .vision-node[data-node-type="open"]::before,
+section#vision .vision-node[data-node-type="close"]::before {
+  background: #7c3aed;
+}
+
+/* detection: cyan */
+section#vision .vision-node[data-node-type="edges"]::before,
+section#vision .vision-node[data-node-type="contours"]::before {
+  background: #0891b2;
 }
 
 section#vision .vision-node:hover,
@@ -316,8 +495,9 @@ section#vision .vision-node-header {
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.9rem 1rem 0.6rem 1rem;
+  padding: 0.75rem 1rem 0.5rem 1rem;
   cursor: grab;
+  background: none;
 }
 
 section#vision .vision-node-header:active {
@@ -326,6 +506,43 @@ section#vision .vision-node-header:active {
 
 section#vision .vision-node-title {
   font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+section#vision .vision-node-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+section#vision .vision-node-help-toggle {
+  min-width: 1.35rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-weight: bold;
+}
+
+body.light section#vision .vision-node-help-toggle {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  color: #0369a1;
+}
+
+body.dark section#vision .vision-node-help-toggle {
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: #7dd3fc;
 }
 
 section#vision .vision-node-badge {
@@ -386,15 +603,42 @@ section#vision .vision-port {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.85);
+  background: #94a3b8;
+  border: 2px solid #fff;
   padding: 0;
   pointer-events: auto;
   cursor: crosshair;
-  box-shadow: 0 0 0 0.22rem rgba(14, 165, 233, 0.18);
+  box-shadow: 0 0 0 2px rgba(100,116,139,0.2);
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+
+section#vision .vision-port:hover {
+  background: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20,184,166,0.28);
 }
 
 section#vision .vision-port.input {
   left: -0.55rem;
+}
+
+section#vision .vision-port.input::after {
+  content: attr(data-port-label);
+  position: absolute;
+  left: 1.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 1rem;
+  padding: 0.08rem 0.28rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: bold;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+section#vision .vision-port.input[data-port-label=""]::after {
+  display: none;
 }
 
 section#vision .vision-port.output {
@@ -406,12 +650,18 @@ section#vision .vision-port.disabled {
   cursor: default;
 }
 
-body.light section#vision .vision-port {
-  background: #0f766e;
+body.dark section#vision .vision-port {
+  border-color: #1e293b;
 }
 
-body.dark section#vision .vision-port {
-  background: #38bdf8;
+section#vision .vision-port.input::after {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+}
+
+body.dark section#vision .vision-port.input::after {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
 }
 
 section#vision .vision-field {
@@ -464,8 +714,41 @@ section#vision .vision-node-preview {
 
 section#vision .vision-node-meta {
   font-size: 0.82rem;
-  padding: 0 1rem 1rem 1rem;
+  padding: 0;
   opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+section#vision .vision-node-meta-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0 1rem 1rem 1rem;
+}
+
+section#vision .vision-node-meta-row .vision-node-meta {
+  flex: 1 1 auto;
+}
+
+section#vision .vision-node-help {
+  font-size: 0.8rem;
+  margin: 0 1rem 1rem 1rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.75rem;
+  line-height: 1.45;
+}
+
+body.light section#vision .vision-node-help {
+  background: rgba(15, 23, 42, 0.05);
+  color: #1f2937;
+}
+
+body.dark section#vision .vision-node-help {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
 }
 
 section#vision .vision-inspector {

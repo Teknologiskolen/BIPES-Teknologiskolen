@@ -1,9 +1,6 @@
 const CACHE_NAME = 'v{{app_version}}';
 const urlsToCache = [
   'ide',
-  {% for key, value in available_lang.items() -%}
-  'ide-{{ key }}',
-  {% endfor %}
   'static/style.css',
   'static/media/icons.svg',
   'static/media/icon/icon-192x192.png',

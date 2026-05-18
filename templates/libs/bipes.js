@@ -12,9 +12,10 @@ languages['{{ key }}'] = "{{ value }}"
 {% endfor %}
 
 export default function Bipes (){
+  const url = new URL(window.location.href)
   window.bipes = {}
-  bipes.theme = '{{ theme }}'
-  bipes.lang = '{{ lang }}'
+  bipes.theme = url.searchParams.get('theme') || document.body.className || 'light'
+  bipes.lang = url.searchParams.get('lang') || document.documentElement.lang || 'en'
   bipes.page = {}
 
   // Make bipes enviroment acessible

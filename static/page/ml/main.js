@@ -1,6 +1,9 @@
 "use strict";
 
-import {DOM} from '../../base/dom.js'
+import {DOM, ContextMenu} from '../../base/dom.js'
+import {Tool} from '../../base/tool.js'
+import {command} from '../../base/command.js'
+import {channel} from '../../base/channel.js'
 
 import {project} from '../project/main.js'
 
@@ -21,6 +24,15 @@ const ML_STORAGE_SAMPLES = 'samples'
 const ML_STORAGE_MODELS = 'models'
 
 let mlStoragePromise = null
+
+function escapeHTML (value){
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
 
 function openMLStorage (){
   if (!window.indexedDB)
@@ -107,6 +119,7 @@ class MLPage {
     this.available = false
     this.inited = false
     this.tree = {}
+    this.currentSID = undefined
     this.selectedModelId = null
     this.sessionState = {}
     this.stream = null
@@ -119,8 +132,9 @@ class MLPage {
     this.livePredictAt = 0
     this.livePredictBusy = false
     this.addMenuOpen = false
-    this.tabMenuState = null
     this.restoreToken = 0
+    this.sourceDeviceId = ''
+    this.sourceCaptureBusy = false
 
     let $ = this.$ = {}
     const section = DOM.get('section#ml')
@@ -131,7 +145,20 @@ class MLPage {
     $.section = new DOM(section)
     $.section.$.classList.add('default')
     $.container = new DOM('div', {className:'container ml-container'})
-    $.section.append($.container)
+    $.contextMenu = new DOM('div')
+
+    this.contextMenu = new ContextMenu($.contextMenu, this)
+
+    $.section.append([
+      $.container,
+      $.contextMenu
+    ])
+
+    command.add(this, {
+      add: this._add,
+      remove: this._remove,
+      rename: this._rename
+    })
 
     this.load(this.empty())
   }
@@ -140,8 +167,22 @@ class MLPage {
     if (!this.available || this.inited)
       return
 
+    this.closeMenus()
+
+    if (this.tree instanceof Array)
+      this.tree = {}
+
+    if (!this.tree || Object.keys(this.tree).length === 0) {
+      let workspace = this.makeWorkspace()
+      this.tree[workspace.id] = workspace
+      this.selectedModelId = workspace.id
+    }
+
+    this.renderShell()
+    this.restore()
     this.inited = true
-    this.render()
+    this.select(this.selectedModelId || Object.keys(this.tree)[0])
+    this.restorePersistedState()
   }
 
   deinit (){
@@ -151,111 +192,420 @@ class MLPage {
     this.stopLivePredictionLoop()
     this.stopWebcam()
     this.stopRecording(true)
+    this.closeMenus()
+
+    if (this.$.tabs)
+      this.$.tabs.removeChilds()
+
+    if (this.$.container)
+      this.$.container.$.innerHTML = ''
+
+    this.currentSID = undefined
     this.inited = false
   }
 
   empty (){
-    let workspace = this.makeWorkspace()
-    let tree = {}
-    tree[workspace.id] = workspace
     return {
-      selectedModelId:workspace.id,
-      tree:tree
+      selectedModelId:null,
+      tree:{}
     }
   }
 
   load (obj){
+    let wasInited = this.inited
+
+    if (wasInited)
+      this.deinit()
+
     let data = this.normalizeData(obj)
+
     this.tree = data.tree
     this.selectedModelId = data.selectedModelId
+    this.currentSID = undefined
+
     this.stopLivePredictionLoop()
     this.stopWebcam()
     this.stopRecording(true)
-    if (this.available)
+
+    if (wasInited)
+      this.init()
+    else
+      this.restorePersistedState()
+  }
+
+  renderShell (){
+    let $ = this.$
+
+    $.container.$.innerHTML = ''
+    this.closeMenus()
+
+    let tabs = new DOM('div', {className:'ml-tabs'})
+    let add = new DOM('button', {
+      className:'icon',
+      id:'add',
+      title:Msg['MLNewWorkspace']
+    }).onclick(this, this.toggleAddMenu)
+    let addMenu = new DOM('div', {className:'ml-add-menu'})
+    let classesPanel = new DOM('div', {className:'ml-panel ml-classes-panel'})
+    let trainPanel = new DOM('div', {className:'ml-panel ml-train-panel'})
+    let previewPanel = new DOM('div', {className:'ml-panel ml-preview-panel'})
+
+    $.tabs = tabs
+    $.add = add
+    $.addMenu = addMenu
+    $.classesPanel = classesPanel.$
+    $.trainPanel = trainPanel.$
+    $.previewPanel = previewPanel.$
+
+    let workspace = new DOM('div', {className:'ml-workspace'}).append([
+      new DOM('div', {className:'ml-grid'}).append([
+        classesPanel,
+        trainPanel,
+        previewPanel
+      ])
+    ])
+
+    workspace.$.addEventListener('click', (ev) => {
+      this.handleWorkspaceClick(ev)
+    }, true)
+
+    $.workspace = workspace.$
+
+    $.shell = new DOM('div', {className:'ml-shell'}).append([
+      new DOM('div', {className:'ml-header'}).append([
+        tabs,
+        add
+      ]),
+      addMenu,
+      workspace
+    ])
+
+    $.container.append($.shell)
+
+    $.container.$.addEventListener('click', (ev) => {
+      if (ev.target.closest('.ml-add-menu, .ml-tabs, #add'))
+        return
+
+      if (this.addMenuOpen) {
+        this.addMenuOpen = false
+        this.renderAddMenu()
+      }
+    })
+
+    this.renderAddMenu()
+  }
+
+  handleWorkspaceClick (ev){
+    if (!this.$.workspace || !this.$.workspace.contains(ev.target))
+      return
+
+    let control = ev.target.closest([
+      '[data-kind]',
+      '[data-action]',
+      '[data-select]',
+      '[data-delete]',
+      '[data-webcam]',
+      '[data-capture]',
+      '[data-source-capture]',
+      '[data-record]',
+      '[data-stop-recording]',
+      '[data-upload-trigger]',
+      '[data-remove-sample]',
+      '[data-source-capture-selected]'
+    ].join(','))
+
+    if (!control || !this.$.workspace.contains(control) || control.disabled)
+      return
+
+    let workspace = this.getCurrentWorkspace()
+    if (!workspace)
+      return
+
+    ev.preventDefault()
+    ev.stopImmediatePropagation()
+
+    if (control.dataset.kind) {
+      this.configureWorkspaceKind(workspace.id, control.dataset.kind)
+      return
+    }
+
+    if (control.dataset.select) {
+      workspace.selectedClassId = control.dataset.select
+      this.syncProject()
       this.render()
-    this.restorePersistedState()
+      return
+    }
+
+    if (control.dataset.delete) {
+      this.removeClass(control.dataset.delete)
+      return
+    }
+
+    if (control.dataset.webcam) {
+      let runtime = this.getWorkspaceSession(workspace.id)
+      if (runtime.captureClassId === control.dataset.webcam) {
+        this.stopClassWebcam(workspace.id, control.dataset.webcam)
+        this.render()
+        return
+      }
+      this.startWebcam(control.dataset.webcam)
+      return
+    }
+
+    if (control.dataset.capture) {
+      this.captureImageExample(control.dataset.capture)
+      return
+    }
+
+    if (control.dataset.sourceCapture) {
+      this.captureSourceDeviceExample(control.dataset.sourceCapture)
+      return
+    }
+
+    if (control.dataset.record) {
+      this.startRecording(control.dataset.record)
+      return
+    }
+
+    if (control.dataset.stopRecording) {
+      workspace.selectedClassId = control.dataset.stopRecording
+      this.syncProject()
+      this.stopRecording(false)
+      return
+    }
+
+    if (control.dataset.uploadTrigger) {
+      let input = this.$.workspace.querySelector(`#${CSS.escape(control.dataset.uploadTrigger)}`)
+      let classId = input ? input.dataset.uploadInput : null
+      if (classId) {
+        workspace.selectedClassId = classId
+        this.syncProject()
+      }
+      this.openFilePicker(input)
+      return
+    }
+
+    if (control.dataset.removeSample) {
+      this.removeSample(control.dataset.classId, control.dataset.removeSample)
+      return
+    }
+
+    if (control.hasAttribute('data-source-capture-selected')) {
+      this.captureSourceDeviceExample(workspace.selectedClassId)
+      return
+    }
+
+    switch (control.dataset.action) {
+      case 'add-class':
+        this.addClass()
+        break
+      case 'train-model':
+        this.prepareTraining()
+        break
+      case 'export-model':
+        this.prepareExport()
+        break
+      case 'toggle-live-preview': {
+        let runtime = this.getWorkspaceSession(workspace.id)
+        if (runtime.previewLive)
+          this.stopLivePreview(workspace.id)
+        else
+          this.startLivePreview(workspace.id)
+        break
+      }
+      case 'stop-webcam':
+        this.stopWebcam()
+        this.render()
+        break
+      case 'stop-audio':
+        this.stopRecording(false)
+        break
+    }
   }
 
   render (){
-    this.renderShell()
+    if (!this.available || !this.inited)
+      return
+
     this.renderTabs()
+    this.renderWorkspace()
+  }
+
+  renderWorkspace (){
     this.renderClassesPanel()
     this.renderTrainPanel()
     this.renderPreviewPanel()
     this.attachVideoStream()
   }
 
-  renderShell (){
-    this.$.container.$.innerHTML = ''
-
-    this.$.container.append(
-      new DOM('div', {className:'ml-shell'}).append([
-        new DOM('div', {className:'ml-header'}).append([
-          new DOM('div', {className:'ml-tabs'}),
-          new DOM('div', {className:'ml-header-actions'}).append([
-            new DOM('button', {
-              className:'icon',
-              id:'add',
-              title:Msg['MLNewWorkspace']
-            }).onclick(this, this.toggleAddMenu)
-          ])
-        ]),
-        new DOM('div', {className:`ml-add-menu${this.addMenuOpen ? ' on' : ''}`}),
-        new DOM('div', {className:`ml-tab-menu${this.tabMenuState ? ' on' : ''}`}),
-        new DOM('div', {className:'ml-workspace'}).append([
-          new DOM('div', {className:'ml-grid'}).append([
-            new DOM('section', {className:'ml-panel ml-classes-panel'}),
-            new DOM('section', {className:'ml-panel ml-train-panel'}),
-            new DOM('section', {className:'ml-panel ml-preview-panel'})
-          ])
-        ])
-      ])
-    )
-
-    this.$.tabs = DOM.get('.ml-tabs', this.$.container.$)
-    this.$.addMenu = DOM.get('.ml-add-menu', this.$.container.$)
-    this.$.tabMenu = DOM.get('.ml-tab-menu', this.$.container.$)
-    this.$.classesPanel = DOM.get('.ml-classes-panel', this.$.container.$)
-    this.$.trainPanel = DOM.get('.ml-train-panel', this.$.container.$)
-    this.$.previewPanel = DOM.get('.ml-preview-panel', this.$.container.$)
-
-    this.$.container.$.addEventListener('click', (ev) => {
-      if (ev.target.closest('.ml-add-menu, .ml-tab-menu, .ml-tabs, #add'))
-        return
-      if (this.addMenuOpen || this.tabMenuState) {
-        this.addMenuOpen = false
-        this.tabMenuState = null
-        this.renderTabs()
-      }
-    })
+  restore (){
+    this.renderTabs()
   }
 
   renderTabs (){
-    let selected = this.getCurrentWorkspace()
-    this.$.tabs.innerHTML = ''
+    if (!this.$.tabs)
+      return
 
-    Object.keys(this.tree).forEach((workspaceId) => {
-      let workspace = this.tree[workspaceId]
-      let button = document.createElement('button')
-      button.className = `ml-tab${selected && selected.id === workspaceId ? ' on' : ''}`
-      button.dataset.sid = workspaceId
-      button.innerHTML = `<h3>${workspace.name}</h3>`
-      button.addEventListener('click', () => {
-        this.selectWorkspace(workspaceId)
-      })
-      button.addEventListener('contextmenu', (ev) => {
-        ev.preventDefault()
-        this.openTabMenu(workspaceId, ev.clientX, ev.clientY)
-      })
-      this.$.tabs.appendChild(button)
-    })
+    this.$.tabs.removeChilds()
+
+    for (const sid in this.tree)
+      this.include(sid, this.tree[sid])
 
     this.renderAddMenu()
-    this.renderTabMenu()
   }
 
-  renderSummaryBand (){
-    return
+  include (sid, obj){
+    let h3 = new DOM('h3', {innerText:obj.name})
+
+    obj.dom = new DOM('button', {
+      sid:sid,
+      className:`ml-tab${sid === this.selectedModelId ? ' on' : ''}`
+    })
+      .append([h3])
+      .onevent('contextmenu', this, (ev) => {
+        ev.preventDefault()
+
+        this.contextMenu.open([
+          {
+            id:'rename',
+            innerText:Msg['Rename'],
+            fun:this.rename,
+            args:[sid, obj.name]
+          }, {
+            id:'remove',
+            innerText:Msg['Remove'],
+            fun:this.remove,
+            args:[sid]
+          }
+        ], ev)
+      })
+      .onclick(this, this.select, [sid])
+
+    this.$.tabs.append(obj.dom)
+  }
+
+  renderAddMenu (){
+    if (!this.$.addMenu)
+      return
+
+    this.$.addMenu.$.className = `ml-add-menu${this.addMenuOpen ? ' on' : ''}`
+    this.$.addMenu.$.innerHTML = `
+      <button data-kind="image">${Msg['MLConfigureImageModel']}</button>
+      <button data-kind="audio">${Msg['MLConfigureAudioModel']}</button>
+      <button data-kind="pose">${Msg['MLConfigurePoseModel']}</button>
+    `
+
+    this.$.addMenu.$.querySelectorAll('[data-kind]').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.add(button.dataset.kind, true)
+      })
+    })
+  }
+
+  toggleAddMenu (){
+    this.addMenuOpen = !this.addMenuOpen
+    this.renderAddMenu()
+  }
+
+  closeMenus (){
+    this.addMenuOpen = false
+    if (this.contextMenu)
+      this.contextMenu.close()
+    if (this.$ && this.$.addMenu)
+      this.$.addMenu.$.className = 'ml-add-menu'
+  }
+
+  commit (){
+    this.syncProject()
+  }
+
+  add (kind, select){
+    let sid = `ml-workspace-${Tool.SID()}`
+
+    command.dispatch(this, 'add', [
+      sid,
+      kind,
+      project.currentUID
+    ])
+
+    this.commit()
+
+    if (select === true)
+      this.select(sid)
+  }
+
+  _add (sid, kind, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    let workspace = this.makeWorkspace(sid)
+
+    if (kind) {
+      workspace.kind = kind === 'audio' || kind === 'pose' ? kind : 'image'
+      workspace.classes = this.makeDefaultClasses()
+      workspace.selectedClassId = workspace.classes[0].id
+    }
+
+    this.tree[sid] = workspace
+
+    if (this.inited)
+      this.renderTabs()
+  }
+
+  remove (sid){
+    this.contextMenu.close()
+
+    if (!this.tree[sid] || Object.keys(this.tree).length <= 1)
+      return
+
+    command.dispatch(this, 'remove', [
+      sid,
+      project.currentUID
+    ])
+
+    this.commit()
+  }
+
+  _remove (sid, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    if (!this.tree[sid] || Object.keys(this.tree).length <= 1)
+      return
+
+    if (sid === this.currentSID)
+      this.unselect()
+
+    this.clearWorkspaceSession(sid)
+    delete this.tree[sid]
+
+    if (!this.tree[this.selectedModelId])
+      this.selectedModelId = Object.keys(this.tree)[0] || null
+
+    if (this.inited) {
+      this.renderTabs()
+
+      if (this.selectedModelId)
+        this.select(this.selectedModelId)
+    }
+  }
+
+  rename (sid, name){
+    this.contextMenu.oninput({
+      title:Msg['MLWorkspaceName'],
+      placeholder:name,
+      value:name
+    }, (input, ev) => {
+      ev.preventDefault()
+
+      let next = input.value
+      this.contextMenu.close()
+
+      if (next == undefined || next.trim() === '')
+        return
+
+      this.renameWorkspace(sid, next)
+    })
   }
 
   renameCurrentWorkspace (){
@@ -263,9 +613,7 @@ class MLPage {
     if (!workspace)
       return
 
-    let next = window.prompt(Msg['MLWorkspaceName'], workspace.name)
-    if (next !== null)
-      this.renameWorkspace(workspace.id, next)
+    this.rename(workspace.id, workspace.name)
   }
 
   removeCurrentWorkspace (){
@@ -274,6 +622,80 @@ class MLPage {
       return
 
     this.removeWorkspace(workspace.id)
+  }
+
+  renameWorkspace (sid, name){
+    command.dispatch(this, 'rename', [
+      sid,
+      name,
+      project.currentUID
+    ])
+
+    this.commit()
+  }
+
+  _rename (sid, name, projectUID){
+    if (projectUID !== project.currentUID)
+      return
+
+    let workspace = this.tree[sid]
+    let trimmed = String(name || '').trim()
+
+    if (!workspace || trimmed === '')
+      return
+
+    workspace.name = trimmed
+
+    if (this.inited) {
+      let title = DOM.get(`[data-sid='${sid}'] h3`, this.$.tabs)
+      if (title)
+        title.innerText = trimmed
+    }
+  }
+
+  select (sid){
+    if (!this.tree[sid])
+      return
+
+    if (this.currentSID !== undefined && this.currentSID !== sid)
+      this.unselect()
+
+    this.currentSID = sid
+    this.selectedModelId = sid
+    this.addMenuOpen = false
+
+    let tab = DOM.get(`[data-sid='${sid}']`, this.$.tabs)
+    if (tab)
+      tab.classList.add('on')
+
+    this.commit()
+    this.renderWorkspace()
+  }
+
+  unselect (){
+    if (this.currentSID === undefined)
+      return
+
+    this.stopWebcam()
+    this.stopRecording(true)
+
+    let tab = DOM.get(`[data-sid='${this.currentSID}']`, this.$.tabs)
+    if (tab)
+      tab.classList.remove('on')
+
+    this.currentSID = undefined
+  }
+
+  addWorkspace (kind){
+    this.add(kind, true)
+  }
+
+  removeWorkspace (workspaceId){
+    this.remove(workspaceId)
+  }
+
+  selectWorkspace (workspaceId){
+    this.select(workspaceId)
   }
 
   renderClassesPanel (){
@@ -292,7 +714,7 @@ class MLPage {
         <div class="ml-model-config">
           <label for="ml-workspace-name">
             <span>${Msg['MLWorkspaceName']}</span>
-            <input type="text" id="ml-workspace-name" name="ml-workspace-name" value="${workspace.name}" autocomplete="off">
+            <input type="text" id="ml-workspace-name" name="ml-workspace-name" value="${escapeHTML(workspace.name)}" autocomplete="off">
           </label>
           <div class="ml-kind-picker">
             <button class="primary" data-kind="image">${Msg['MLConfigureImageModel']}</button>
@@ -336,6 +758,7 @@ class MLPage {
       let classLive = !!(this.stream && runtime.captureClassId === item.id)
       let renameId = `ml-rename-${workspace.id}-${item.id}`
       let uploadId = `ml-upload-${workspace.id}-${item.id}`
+      let imageActionsMarkup = this.renderImageClassActions(workspace, item, classLive, uploadId)
       let samplesMarkup = this.renderClassSamples(workspace, item)
       let stageMarkup = this.renderClassStage(workspace, item, isActive)
       let countLabel = this.getClassCountLabel(workspace.kind, count)
@@ -348,7 +771,7 @@ class MLPage {
           <div class="ml-class-title">
             <span class="ml-class-dot"></span>
             <label class="ml-class-name" for="${renameId}" title="${Msg['MLRenameClass']}">
-              <input type="text" id="${renameId}" name="${renameId}" value="${item.name}" data-rename="${item.id}" autocomplete="off">
+              <input type="text" id="${renameId}" name="${renameId}" value="${escapeHTML(item.name)}" data-rename="${item.id}" autocomplete="off">
             </label>
           </div>
           <button class="ml-class-delete" data-delete="${item.id}" title="${Msg['MLDeleteClass']}">×</button>
@@ -356,19 +779,12 @@ class MLPage {
         <div class="ml-class-body">
           <div class="ml-class-input-pane">
             <button class="ml-class-select" data-select="${item.id}">
-              <span class="ml-class-source-label">${workspace.kind === 'audio' ? Msg['MLReadyForAudio'] : Msg['MLStartWebcam']}</span>
+              <span class="ml-class-source-label">${workspace.kind === 'audio' ? Msg['MLReadyForAudio'] : this.getClassSourceLabel()}</span>
             </button>
             ${stageMarkup ? `<div class="ml-class-stage-wrap">${stageMarkup}</div>` : ''}
             <div class="ml-class-actions">
           ${(workspace.kind === 'image' || workspace.kind === 'pose') ? `
-            ${classLive ? `
-              <button class="ghost" data-webcam="${item.id}">${Msg['MLStopWebcam']}</button>
-              <button class="primary" data-capture="${item.id}">${Msg['MLCaptureExample']}</button>
-              <button class="ghost" data-upload-trigger="${uploadId}">${Msg['MLUploadExamples']}</button>
-            ` : `
-              <button class="ghost" data-webcam="${item.id}">${Msg['MLStartWebcam']}</button>
-              <button class="ghost" data-upload-trigger="${uploadId}">${Msg['MLUploadExamples']}</button>
-            `}
+            ${imageActionsMarkup}
           ` : `
             ${this.mediaRecorder && this.mediaRecorder.state === 'recording' && isActive ? `
               <button class="ghost" data-stop-recording="${item.id}">${Msg['MLStopRecording']}</button>
@@ -444,6 +860,12 @@ class MLPage {
       })
     })
 
+    list.querySelectorAll('[data-source-capture]').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.captureSourceDeviceExample(button.dataset.sourceCapture)
+      })
+    })
+
     list.querySelectorAll('[data-record]').forEach((button) => {
       button.addEventListener('click', () => {
         this.startRecording(button.dataset.record)
@@ -486,6 +908,64 @@ class MLPage {
         this.removeSample(button.dataset.classId, button.dataset.removeSample)
       })
     })
+  }
+
+  renderSourceDeviceControls (workspace, selected){
+    if (!workspace || (workspace.kind !== 'image' && workspace.kind !== 'pose'))
+      return ''
+
+    let options = this.sourceDeviceOptions()
+    let selectedUid = this.selectedSourceDeviceUid(options)
+    let disabled = !selected || !selectedUid || this.sourceCaptureBusy ? 'disabled' : ''
+
+    return `
+      <div class="ml-source-device-card">
+        <label>
+          <span>${Msg['MLSourceDevice'] || 'Source device'}</span>
+          <select id="ml-source-device-select" name="ml-source-device-select" data-source-device-select>
+            <option value="">${Msg['MLChooseSourceDevice'] || 'Choose source device'}</option>
+            ${options.map((device) => `
+              <option value="${escapeHTML(device.uid)}" ${device.uid === selectedUid ? 'selected' : ''}>${escapeHTML(device.label)}</option>
+            `).join('')}
+          </select>
+        </label>
+        <button class="ghost" data-source-capture-selected ${disabled}>${this.sourceCaptureBusy ? (Msg['MLRequestingSourceImage'] || 'Requesting image...') : (Msg['MLRequestSourceImage'] || 'Request source image')}</button>
+      </div>
+    `
+  }
+
+  getClassSourceLabel (){
+    return Msg['MLStartWebcam']
+  }
+
+  renderImageClassActions (workspace, item, classLive, uploadId){
+    if (classLive)
+      return `
+        <button class="ghost" data-webcam="${item.id}">${Msg['MLStopWebcam']}</button>
+        <button class="primary" data-capture="${item.id}">${Msg['MLCaptureExample']}</button>
+      `
+
+    return `
+      <button class="ghost" data-webcam="${item.id}">${Msg['MLStartWebcam']}</button>
+      <button class="ghost" data-upload-trigger="${uploadId}">${Msg['MLUploadExamples']}</button>
+    `
+  }
+
+  attachSourceDeviceControls (workspace){
+    if (!workspace || (workspace.kind !== 'image' && workspace.kind !== 'pose'))
+      return
+
+    let select = this.$.classesPanel.querySelector('[data-source-device-select]')
+    if (select) {
+      select.addEventListener('change', (ev) => {
+        this.sourceDeviceId = ev.target.value
+        this.renderClassesPanel()
+      })
+    }
+
+    let capture = this.$.classesPanel.querySelector('[data-source-capture-selected]')
+    if (capture)
+      capture.addEventListener('click', () => {this.captureSourceDeviceExample(workspace.selectedClassId)})
   }
 
   renderTrainPanel (){
@@ -604,7 +1084,7 @@ class MLPage {
     return `
       <div class="ml-stage">
         ${this.stream ? '<video class="ml-video" playsinline muted></video>' : ''}
-        ${!this.stream && latest ? `<img src="${latest.url}" alt="${latest.name}">` : ''}
+        ${!this.stream && latest ? `<img src="${latest.url}" alt="${escapeHTML(latest.name)}">` : ''}
         <div class="ml-stage-placeholder"${this.stream || latest ? ' hidden' : ''}>${Msg['MLCapturePlaceholder']}</div>
       </div>
       <div class="ml-control-row">
@@ -625,7 +1105,7 @@ class MLPage {
           </div>
         ` : latest ? `
           <audio controls src="${latest.url}"></audio>
-          <div class="ml-audio-name">${latest.name}</div>
+          <div class="ml-audio-name">${escapeHTML(latest.name)}</div>
         ` : `
           <div class="ml-test-empty">${Msg['MLAudioPlaceholder']}</div>
         `}
@@ -674,7 +1154,7 @@ class MLPage {
     return `
       <div class="ml-prediction-card">
         <span>${Msg['MLPredictionResult']}</span>
-        <strong>${result.label}</strong>
+        <strong>${escapeHTML(result.label)}</strong>
         <em>${Msg['MLPredictionConfidence']}: ${(result.confidence * 100).toFixed(1)}%</em>
       </div>
     `
@@ -691,134 +1171,6 @@ class MLPage {
         <span>${text}</span>
       </div>
     `
-  }
-
-  renderAddMenu (){
-    if (!this.$.addMenu)
-      return
-
-    this.$.addMenu.className = `ml-add-menu${this.addMenuOpen ? ' on' : ''}`
-    this.$.addMenu.innerHTML = `
-      <button data-kind="image">${Msg['MLConfigureImageModel']}</button>
-      <button data-kind="audio">${Msg['MLConfigureAudioModel']}</button>
-      <button data-kind="pose">${Msg['MLConfigurePoseModel']}</button>
-    `
-
-    this.$.addMenu.querySelectorAll('[data-kind]').forEach((button) => {
-      button.addEventListener('click', () => {
-        this.addWorkspace(button.dataset.kind)
-      })
-    })
-  }
-
-  renderTabMenu (){
-    if (!this.$.tabMenu)
-      return
-
-    if (!this.tabMenuState) {
-      this.$.tabMenu.className = 'ml-tab-menu'
-      this.$.tabMenu.innerHTML = ''
-      return
-    }
-
-    this.$.tabMenu.className = 'ml-tab-menu on'
-    this.$.tabMenu.style.left = `${this.tabMenuState.x}px`
-    this.$.tabMenu.style.top = `${this.tabMenuState.y}px`
-    this.$.tabMenu.innerHTML = `
-      <button data-action="rename">${Msg['Rename']}</button>
-      <button data-action="remove" ${Object.keys(this.tree).length <= 1 ? 'disabled' : ''}>${Msg['Remove']}</button>
-    `
-
-    this.$.tabMenu.querySelector('[data-action="rename"]').addEventListener('click', () => {
-      let workspaceId = this.tabMenuState.workspaceId
-      let next = window.prompt(Msg['MLWorkspaceName'], this.tree[workspaceId].name)
-      this.closeTabMenu()
-      if (next !== null)
-        this.renameWorkspace(workspaceId, next)
-    })
-
-    this.$.tabMenu.querySelector('[data-action="remove"]').addEventListener('click', () => {
-      let id = this.tabMenuState.workspaceId
-      this.closeTabMenu()
-      this.removeWorkspace(id)
-    })
-  }
-
-  toggleAddMenu (){
-    this.addMenuOpen = !this.addMenuOpen
-    this.tabMenuState = null
-    this.renderTabs()
-  }
-
-  openTabMenu (workspaceId, x, y){
-    let rect = this.$.container.$.getBoundingClientRect()
-    this.addMenuOpen = false
-    this.tabMenuState = {
-      workspaceId:workspaceId,
-      x:Math.max(12, x - rect.left),
-      y:Math.max(12, y - rect.top)
-    }
-    this.renderTabs()
-  }
-
-  closeTabMenu (){
-    this.tabMenuState = null
-    this.renderTabs()
-  }
-
-  addWorkspace (kind){
-    this.stopWebcam()
-    this.stopRecording(true)
-    let workspace = this.makeWorkspace()
-    workspace.kind = kind === 'audio' || kind === 'pose' ? kind : 'image'
-    workspace.classes = this.makeDefaultClasses()
-    workspace.selectedClassId = workspace.classes[0].id
-    this.tree[workspace.id] = workspace
-    this.selectedModelId = workspace.id
-    this.addMenuOpen = false
-    this.syncProject()
-    this.render()
-  }
-
-  removeWorkspace (workspaceId){
-    if (!this.tree[workspaceId] || Object.keys(this.tree).length <= 1)
-      return
-
-    if (this.selectedModelId === workspaceId) {
-      this.stopWebcam()
-      this.stopRecording(true)
-    }
-
-    this.clearWorkspaceSession(workspaceId)
-    delete this.tree[workspaceId]
-    if (!this.tree[this.selectedModelId])
-      this.selectedModelId = Object.keys(this.tree)[0] || null
-    this.syncProject()
-    this.render()
-  }
-
-  selectWorkspace (workspaceId){
-    if (!this.tree[workspaceId] || this.selectedModelId === workspaceId)
-      return
-
-    this.stopWebcam()
-    this.stopRecording(true)
-    this.selectedModelId = workspaceId
-    this.addMenuOpen = false
-    this.tabMenuState = null
-    this.syncProject()
-    this.render()
-  }
-
-  renameWorkspace (workspaceId, name){
-    let workspace = this.tree[workspaceId]
-    let trimmed = String(name || '').trim()
-    if (!workspace)
-      return
-
-    workspace.name = trimmed === '' ? workspace.name : trimmed
-    this.syncProject()
-    this.renderTabs()
   }
 
   configureWorkspaceKind (workspaceId, kind){
@@ -1156,6 +1508,102 @@ class MLPage {
     target.innerHTML = this.renderPredictionCard(runtime.livePrediction)
   }
 
+  sourceDeviceOptions (){
+    let options = []
+    let known = new Set()
+    let pageDevices = window.bipes && bipes.page && bipes.page.device && Array.isArray(bipes.page.device.devices)
+      ? bipes.page.device.devices
+      : []
+
+    pageDevices.forEach((device) => {
+      if (!device || !device.uid || !channel.hasConnection(device.uid) || known.has(device.uid))
+        return
+      known.add(device.uid)
+      options.push({
+        uid:device.uid,
+        label:this.formatSourceDeviceLabel(device)
+      })
+    })
+
+    Object.keys(channel.connections || {}).forEach((uid) => {
+      if (known.has(uid))
+        return
+      known.add(uid)
+      options.push({
+        uid,
+        label:this.formatSourceDeviceLabel({uid})
+      })
+    })
+
+    return options
+  }
+
+  formatSourceDeviceLabel (device){
+    let name = device && device.nodename ? device.nodename : (Msg['MLSourceDevice'] || 'Source device')
+    let version = device && device.version && device.version !== '-' ? ` ${device.version}` : ''
+    let protocol = device && device.protocol ? device.protocol : 'device'
+    return `${name}${version} (${protocol})`
+  }
+
+  selectedSourceDeviceUid (options){
+    options = options || this.sourceDeviceOptions()
+    if (this.sourceDeviceId && options.some((device) => device.uid === this.sourceDeviceId))
+      return this.sourceDeviceId
+    if (options.length === 1)
+      return options[0].uid
+    return ''
+  }
+
+  async captureSourceDeviceExample (classId){
+    let workspace = this.getCurrentWorkspace()
+    if (!workspace || (workspace.kind !== 'image' && workspace.kind !== 'pose') || this.sourceCaptureBusy)
+      return
+
+    if (classId) {
+      workspace.selectedClassId = classId
+      this.syncProject()
+    }
+
+    let selected = this.getSelectedClass(workspace)
+    let runtime = this.getWorkspaceSession(workspace.id)
+    let sourceUid = this.selectedSourceDeviceUid()
+    if (!selected || !sourceUid || !channel.hasConnection(sourceUid)) {
+      runtime.trainingNote = Msg['MLChooseSourceDevice'] || 'Choose source device'
+      this.renderTrainPanel()
+      return
+    }
+
+    let feed = channel.getImageFeed(sourceUid)
+    if (!feed || typeof feed.getFrame != 'function') {
+      runtime.trainingNote = Msg['MLSourceDeviceUnavailable'] || 'Source device is not ready for image capture.'
+      this.renderTrainPanel()
+      return
+    }
+
+    this.sourceCaptureBusy = true
+    runtime.trainingNote = Msg['MLRequestingSourceImage'] || 'Requesting image from source device...'
+    this.renderClassesPanel()
+    this.renderTrainPanel()
+
+    try {
+      let frame = await feed.getFrame()
+      if (!frame || !frame.blob)
+        throw new Error(Msg['MLSourceDeviceUnavailable'] || 'Source device is not ready for image capture.')
+
+      this.sourceDeviceId = sourceUid
+      this.addSample(selected.id, frame.blob, `source-${Date.now()}.${frame.contentType === 'image/jpeg' ? 'jpg' : 'png'}`)
+      runtime.trainingNote = Msg['MLSourceImageCaptured'] || 'Captured image from source device.'
+    } catch (err) {
+      console.error('Failed to capture ML source device image:', err)
+      runtime.trainingNote = (err && err.message) || (Msg['MLSourceCaptureFailed'] || 'Could not capture image from source device.')
+    } finally {
+      this.sourceCaptureBusy = false
+      this.renderClassesPanel()
+      this.renderTrainPanel()
+      this.renderPreviewPanel()
+    }
+  }
+
   captureImageExample (classId){
     let workspace = this.getCurrentWorkspace()
     if (!workspace || (workspace.kind !== 'image' && workspace.kind !== 'pose'))
@@ -1279,7 +1727,7 @@ class MLPage {
       if (sample.kind === 'image' || sample.kind === 'pose') {
         return `
           <div class="ml-class-sample image">
-            <img src="${sample.url}" alt="${sample.name}">
+            <img src="${sample.url}" alt="${escapeHTML(sample.name)}">
             <button class="ml-class-sample-delete" data-class-id="${classItem.id}" data-remove-sample="${sample.id}" title="${Msg['MLDeleteExample']}">×</button>
           </div>
         `
@@ -1287,7 +1735,7 @@ class MLPage {
 
       return `
         <div class="ml-class-sample audio">
-          <span>${sample.name}</span>
+          <span>${escapeHTML(sample.name)}</span>
           <button class="ml-class-sample-delete" data-class-id="${classItem.id}" data-remove-sample="${sample.id}" title="${Msg['MLDeleteExample']}">×</button>
         </div>
       `
@@ -1588,7 +2036,7 @@ class MLPage {
 
     if (changed)
       this.syncProject()
-    if (this.available)
+    if (this.available && this.inited)
       this.render()
   }
 
@@ -1935,7 +2383,8 @@ class MLPage {
   }
 
   getCurrentWorkspace (){
-    return this.selectedModelId ? this.tree[this.selectedModelId] || null : null
+    let sid = this.currentSID || this.selectedModelId
+    return sid ? this.tree[sid] || null : null
   }
 
   getSelectedClass (workspace){
@@ -2011,10 +2460,10 @@ class MLPage {
     return workspace.classes.filter((item) => this.getSamplesForClass(workspaceId, item.id).length > 0).length
   }
 
-  makeWorkspace (){
-    let workspaceNumber = Object.keys(this.tree).length + 1
+  makeWorkspace (sid){
+    let workspaceNumber = Object.keys(this.tree || {}).length + 1
     return {
-      id:`ml-workspace-${DOM.UID()}`,
+      id:sid || `ml-workspace-${DOM.UID()}`,
       name:`${Msg['MLWorkspace']} ${workspaceNumber}`,
       kind:null,
       classes:[],
@@ -2065,7 +2514,10 @@ class MLPage {
       return {selectedModelId:workspace.id, tree:tree}
     }
 
-    return this.empty()
+    let workspace = this.makeWorkspace()
+    let tree = {}
+    tree[workspace.id] = workspace
+    return {selectedModelId:workspace.id, tree:tree}
   }
 
   normalizeTree (tree){
@@ -2073,10 +2525,10 @@ class MLPage {
     Object.keys(tree || {}).forEach((workspaceId, index) => {
       let item = tree[workspaceId] || {}
       let classes = this.normalizeClasses(item.classes)
-      let kind = item.kind === 'audio' || item.kind === 'image' || item.kind === 'pose' ? item.kind : 'image'
+      let kind = item.kind === 'audio' || item.kind === 'image' || item.kind === 'pose' ? item.kind : null
       let selectedClassId = kind && classes.some((entry) => entry.id === item.selectedClassId)
         ? item.selectedClassId
-        : (classes[0] ? classes[0].id : null)
+        : (kind && classes[0] ? classes[0].id : null)
       normalized[workspaceId] = {
         id:workspaceId,
         name:typeof item.name === 'string' && item.name.trim() !== '' ? item.name.trim() : `${Msg['MLWorkspace']} ${index + 1}`,
@@ -2189,6 +2641,10 @@ class MLPage {
     if (!project.currentUID)
       return
 
+    let currentProject = project.projects[project.currentUID]
+    if (!currentProject)
+      return
+
     let tree = {}
     Object.keys(this.tree).forEach((workspaceId) => {
       let workspace = this.tree[workspaceId]
@@ -2203,13 +2659,13 @@ class MLPage {
       }
     })
 
-    project.update({
-      load:false,
-      ml:{
-        selectedModelId:this.selectedModelId,
-        tree:tree
-      }
-    })
+    currentProject.ml = {
+      selectedModelId:this.selectedModelId,
+      tree:tree
+    }
+    if (currentProject.project)
+      currentProject.project.lastEdited = +new Date()/1000
+    project.write(project.currentUID)
   }
 }
 

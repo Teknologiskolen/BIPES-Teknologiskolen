@@ -6,6 +6,78 @@ import {storage} from '../../base/storage.js'
 
 import {Tool} from '../../base/tool.js'
 
+function escapeHtml (text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function escapeAttribute (text) {
+  return escapeHtml(text).replace(/"/g, '&quot;')
+}
+
+function renderInlineMarkdown (text) {
+  let html = escapeHtml(text)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) =>
+    `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+  return html
+}
+
+function renderMarkdown (markdown) {
+  let lines = markdown.replace(/\r\n/g, '\n').split('\n')
+  let html = []
+  let paragraph = []
+  let list = []
+
+  function flushParagraph () {
+    if (paragraph.length == 0)
+      return
+    html.push(`<p>${renderInlineMarkdown(paragraph.join(' '))}</p>`)
+    paragraph = []
+  }
+
+  function flushList () {
+    if (list.length == 0)
+      return
+    html.push(`<ul>${list.map(item => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</ul>`)
+    list = []
+  }
+
+  lines.forEach(rawLine => {
+    let line = rawLine.trim()
+    if (!line.length) {
+      flushParagraph()
+      flushList()
+      return
+    }
+
+    let heading = line.match(/^(#{1,3})\s+(.*)$/)
+    if (heading) {
+      flushParagraph()
+      flushList()
+      let level = heading[1].length
+      html.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`)
+      return
+    }
+
+    if (line.startsWith('- ')) {
+      flushParagraph()
+      list.push(line.slice(2).trim())
+      return
+    }
+
+    flushList()
+    paragraph.push(line)
+  })
+
+  flushParagraph()
+  flushList()
+  return html.join('')
+}
+
 class Notification {
   constructor (){
     this.name = 'notification'
@@ -29,9 +101,9 @@ class Notification {
     $.splashHeader = new DOM('h2', {
       innerText:Msg['NewsAndAbout']
     })
+    $.splashBody = new DOM('div', {className:'markdown-body'})
     $.splash = new DOM('div', {id:'splash'}).append([
-      new DOM('h3', {innerText:Msg['splash_welcome']}),
-      new DOM('div', {innerHTML:Msg['splash_message']})
+      $.splashBody
     ])
 
     $.container = new DOM('div', {className:'container'})
@@ -52,6 +124,8 @@ class Notification {
         open('https://github.com/BIPES/BIPES/discussions', '_blank').focus()
       })
     ])
+
+    this.loadSplashNews()
 
     // Cross tabs event handler on sending and deleting messages
     command.add(this, {
@@ -127,6 +201,31 @@ class Notification {
       new DOM('span', {innerText:Msg['NoNotification']})
     )
   }
+  getSplashNewsLanguage (){
+    let lang = storage.fetch('lang') || document.documentElement.lang || navigator.language || 'en'
+    lang = String(lang).toLowerCase()
+    return lang.startsWith('da') ? 'da' : 'en'
+  }
+  async loadSplashNews (){
+    let langs = [this.getSplashNewsLanguage()]
+    if (langs[0] != 'en')
+      langs.push('en')
+
+    for (let lang of langs) {
+      try {
+        let url = new URL(`./news/${lang}.md`, import.meta.url)
+        let response = await fetch(url)
+        if (!response.ok)
+          continue
+
+        let markdown = await response.text()
+        this.$.splashBody.$.innerHTML = renderMarkdown(markdown)
+        return
+      } catch (error) {}
+    }
+
+    this.$.splashBody.$.innerHTML = '<p>Unable to load news.</p>'
+  }
   // Creates a DOM notificaton card
   $Card (item){
     return new DOM('span', {uid: item.uid}).append([
@@ -162,7 +261,8 @@ class Notification {
   }
   // Visual and instance object
   _discard (uid){
-    this.nav.classList.remove('new')
+    if (this.nav)
+      this.nav.classList.remove('new')
 
     if (!this.inited)
       return
@@ -190,7 +290,8 @@ class Notification {
    * Clear all notifications
    */
   _clearAll (){
-    this.nav.classList.remove('new')
+    if (this.nav)
+      this.nav.classList.remove('new')
 
     if (!this.inited)
       return

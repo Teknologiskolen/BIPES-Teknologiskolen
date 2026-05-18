@@ -8,7 +8,8 @@ import time
 #   "category": "DS1302 DSL",
 #   "color": 35,
 #   "url": "https://github.com/micropython/micropython",
-#   "instanceMode": "multiple",
+#   "instanceMode": "singleton",
+#   "instanceName": "ds1302",
 #   "methodInstanceMode": "key_input"
 # }
 # DS1302 real-time clock blocks generated from the Python library.
@@ -23,18 +24,16 @@ class DS1302:
 
     # @block {
     #   "params": {
-    #     "id": {"checkType": "Number", "defaultValue": 1},
     #     "clk_pin": {"checkType": "Number"},
     #     "dat_pin": {"checkType": "Number"},
     #     "rst_pin": {"checkType": "Number"}
     #   }
     # }
     # Create a DS1302 RTC instance.
-    def __init__(self, clk_pin, dat_pin, rst_pin, id=1):
-        self.id = id
-        self.clk = self._ensure_output_pin(clk_pin)
-        self.dat = self._ensure_pin(dat_pin)
-        self.rst = self._ensure_output_pin(rst_pin)
+    def __init__(self, clk_pin, dat_pin, rst_pin):
+        self.clk = Pin(clk_pin, Pin.OUT)
+        self.dat = Pin(dat_pin)
+        self.rst = Pin(rst_pin, Pin.OUT)
         self.rst.value(0)
         self.clk.value(0)
         self._write_byte(self.REG_WP, 0x00)
@@ -42,12 +41,6 @@ class DS1302:
         if sec & 0x80:
             print("Enabling DS1302 oscillator...")
             self._write_byte(self.REG_SECOND, sec & 0x7F)
-
-    def _ensure_pin(self, value):
-        return value if isinstance(value, Pin) else Pin(int(value))
-
-    def _ensure_output_pin(self, value):
-        return value if isinstance(value, Pin) else Pin(int(value), Pin.OUT)
 
     def _write_raw(self, byte):
         self.dat.init(Pin.OUT)

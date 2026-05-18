@@ -6,6 +6,7 @@ BIPES Help&Development
    :caption: Get started
 
    get-started/tech-details
+   get-started/source-frame-headers
    get-started/development
    get-started/roadmap
 

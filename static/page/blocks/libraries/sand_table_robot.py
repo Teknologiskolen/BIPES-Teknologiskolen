@@ -7,7 +7,8 @@ import stepper
 # @block {
 #   "category": "Sand Drawing Machine DSL",
 #   "color": 20,
-#   "instanceMode": "multiple",
+#   "instanceMode": "singleton",
+#   "instanceName": "sandMachine",
 #   "methodInstanceMode": "key_input"
 # }
 # Sand table robot blocks generated from the Python library.
@@ -67,9 +68,8 @@ class SandTableRobot:
     # Constructor / configuration
     # -----------------------------
     # @block {
-    #   "label": "create sand robot # {id} shoulder motor pins {motor1_pins} elbow motor pins {motor2_pins} shoulder sensor {sensor_shoulder_pin} elbow sensor {sensor_elbow_pin}",
+    #   "label": "create sand robot shoulder motor pins {motor1_pins} elbow motor pins {motor2_pins} shoulder sensor {sensor_shoulder_pin} elbow sensor {sensor_elbow_pin}",
     #   "params": {
-    #     "id": {"checkType": "Number", "defaultValue": 1},
     #     "motor1_pins": {"defaultValue": [17, 16, 15, 14]},
     #     "motor2_pins": {"defaultValue": [21, 20, 19, 18]},
     #     "sensor_shoulder_pin": {"checkType": "Number"},
@@ -92,7 +92,6 @@ class SandTableRobot:
         motor2_pins,  # elbow motor pins
         sensor_shoulder_pin,
         sensor_elbow_pin,
-        id=1,
         L1=31.0,
         L2=31.0,
         steps_per_rev=4096.0,
@@ -106,7 +105,6 @@ class SandTableRobot:
         self.L1 = float(L1)
         self.L2 = float(L2)
         self.STEPS_PER_REV = float(steps_per_rev)
-        self.id = id
 
         self.HOMING_DIR_SKULDER = int(homing_dir_shoulder)
         self.HOMING_DIR_ALBUE = int(homing_dir_elbow)
@@ -144,9 +142,9 @@ class SandTableRobot:
     # Internal helpers
     # -----------------------------
     # @block {
-    #   "label": "sand robot # {id} turn motors off"
+    #   "label": "sand robot turn motors off"
     # }
-    # Turn off both motors for a selected robot instance.
+    # Turn off both motors
     def off(self):
         self.skulder.reset()
         self.albue.reset()
@@ -319,10 +317,8 @@ class SandTableRobot:
     # -----------------------------
     # Public: Homing
     # -----------------------------
-    # @block {
-    #   "label": "sand robot # {id} home"
-    # }
-    # Home the selected sand robot.
+    # @block {}
+    # Move the robot to its home position.
     def home(self):
         print("Starter Homing...")
 
@@ -371,7 +367,7 @@ class SandTableRobot:
     # --- PUBLIC DRAWING API (now uses your IK + step deltas)
     # ==========================================================
     # @block {
-    #   "label": "sand robot # {id} move line to x {target_x} y {target_y} segments {segments} speed {speed}",
+    #   "label": "Move line to x {target_x} y {target_y} segments {segments} speed {speed}",
     #   "params": {
     #     "target_x": {"checkType": "Number"},
     #     "target_y": {"checkType": "Number"},
@@ -434,7 +430,7 @@ class SandTableRobot:
         self.last_y = float(reached_y)
 
     # @block {
-    #   "label": "sand robot # {id} move arc center x {center_x} center y {center_y} radius {radius} start angle {start_angle} end angle {end_angle} segments {segments} speed {speed}",
+    #   "label": "Move arc center x {center_x} center y {center_y} radius {radius} start angle {start_angle} end angle {end_angle} segments {segments} speed {speed}",
     #   "params": {
     #     "center_x": {"checkType": "Number"},
     #     "center_y": {"checkType": "Number"},
@@ -465,7 +461,7 @@ class SandTableRobot:
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
     # @block {
-    #   "label": "sand robot # {id} draw spiral max radius {max_radius} turns {vindinger} segments per turn {segments_pr_omgang} speed {speed}",
+    #   "label": "Draw spiral max radius {max_radius} turns {vindinger} segments per turn {segments_pr_omgang} speed {speed}",
     #   "params": {
     #     "max_radius": {"checkType": "Number"},
     #     "vindinger": {"checkType": "Number"},
@@ -492,7 +488,7 @@ class SandTableRobot:
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
     # @block {
-    #   "label": "sand robot # {id} draw flower radius {max_radius} petals {petals} speed {speed}",
+    #   "label": "Draw flower radius {max_radius} petals {petals} speed {speed}",
     #   "params": {
     #     "max_radius": {"checkType": "Number"},
     #     "petals": {"checkType": "Number"},
@@ -518,7 +514,7 @@ class SandTableRobot:
     # --- PUBLIC: Run G-code (unchanged)
     # ==========================================================
     # @block {
-    #   "label": "sand robot # {id} run gcode text {gcode_text} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
+    #   "label": "Run gcode text {gcode_text} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
     #   "params": {
     #     "segments": {"checkType": "Number"},
     #     "draw_speed_ms": {"checkType": "Number"},
@@ -534,7 +530,7 @@ class SandTableRobot:
             self._gcode_process_line(raw, segments=segments, draw_speed_ms=draw_speed_ms, travel_speed_ms=travel_speed_ms)
 
     # @block {
-    #   "label": "sand robot # {id} run gcode file {path} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
+    #   "label": "Run gcode file {path} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
     #   "params": {
     #     "segments": {"checkType": "Number"},
     #     "draw_speed_ms": {"checkType": "Number"},

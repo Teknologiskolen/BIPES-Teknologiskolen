@@ -1,102 +1,170 @@
-# BIPES: Block based Integrated Platform for Embedded Systems
+# BIPES — Block based Integrated Platform for Embedded Systems
 
-<img src="docs/media/inviting-cover.svg" alt="Inviting cover" width="800" height="300"/>
+A web-based visual programming IDE for embedded devices. Students and teachers write MicroPython programs using drag-and-drop Blockly blocks, connect to physical hardware over MQTT, and run ML/Vision pipelines — all from the browser.
 
-## Build from source
+---
 
-To build BIPES in your system, run
+## System Structure
 
 ```
+Internet
+    │
+    ▼
+┌─────────────┐
+│   nginx     │  Ports 80 (→ HTTPS) and 443
+│  (HTTPS)    │  Serves /static/* directly from disk
+└──────┬──────┘  Proxies everything else to Flask
+       │
+       ▼
+┌─────────────┐
+│    Flask    │  Port 5000 (internal)
+│  Gunicorn   │  Application logic, API, dynamic content
+└──┬──────┬───┘
+   │      │
+   ▼      ▼
+PostgreSQL  Mosquitto
+ (database)  (MQTT broker)
+```
+
+All four containers share a private bridge network. Only nginx is exposed to the host.
+
+### Key directories
+
+| Path | Purpose |
+|---|---|
+| `app.py` | Flask entry point — routes, startup, dynamic file generation |
+| `server/block_dsl/` | Block DSL pipeline (textX grammar → Blockly JS artefacts) |
+| `server/common/` | Auth utilities, API Blueprint, MQTT integration |
+| `server/postgresql/` | PostgreSQL query implementations |
+| `server/sqlite/` | SQLite fallback (development only) |
+| `static/page/` | Frontend page modules (blocks, dashboard, device, ml, vision, …) |
+| `static/base/` | Core JS framework (channel, dataflow, navigation, dom) |
+| `templates/` | Jinja2 HTML templates |
+| `docker/` | Container configuration (nginx, Gunicorn, Mosquitto, Dockerfile) |
+| `Information/` | Project documentation |
+
+### User types
+
+| Type | Access |
+|---|---|
+| Guest | IDE only — projects saved in browser localStorage |
+| Student | IDE + their projects — created by a teacher |
+| Teacher | IDE + class management + student creation |
+
+---
+
+## Development
+
+### First run
+
+```bash
 make
 ```
 
-in the repository's root directory and follow the prompts.
-
-It will install the dependencies, fetch and "compile" 
-some JavaScript libraries and run a development server on port 5001.
-
-Just enter http://127.0.0.1:5001/ide in the browser!
-
-For subsequent runs in development mode, do 
+Installs dependencies, fetches JavaScript libraries, and starts a dev server on port 5001.
 
 ```
+http://127.0.0.1:5001/ide
+```
+
+Language variants: `ide-da` (Danish), `ide-de` (German), `ide-en` (English), etc.
+
+### Subsequent runs
+
+```bash
 make run
 ```
 
-In development mode, different languages are acessed by including the language 
-code to the link, e.g. http://127.0.0.1:5001/ide-de loads the IDE in german.
+Flask serves everything directly — no nginx, no Gunicorn, SQLite database.
 
-When configuring mosquitto MQTT broker, it will require root access to configure
-it in the system.
-Alternatively, you can setup inside docker.
+---
 
-### Using Docker
+## Production Deployment
 
-To build BIPES inside a docker container, run
+### Prerequisites
 
-```
-make docker-build
-```
+- Docker and Docker Compose
+- Ports 80 and 443 free (HTTP/HTTPS)
+- Ports 1883 and 9001 free (MQTT and WebSocket)
 
-after installing *docker* and *docker-compose-plugin*, and adding your user to the
-*docker* group (to run Docker without root).
+### 1. Configure environment
 
-For subsequent runs in development mode, do 
-
-```
-make docker-run
-``` 
-
-The Docker version uses Docker Composes to connect a image running BIPES and
-other running Mosquitto, this is an elegant solution to manage two independent
-servicecs that communicate with each other.
-
-Note: most parameters are not available for Docker, but you can pass explicitly 
-modify the Makefiles and app.py defaults to achieve the same.
-
-### Windows notes
-
-On Windows, please use [WSL2](https://docs.microsoft.com/en-us/windows/wsl/install#install-wsl-command).
-
-Install the usual stuff like `make` and `git` in WSL, then proceed with `make` in the
-repository root directory.
-
-## Documentation
-
-The documentation provides tutorials on how to implement new blocks, help
-with translation and even how to deploy your own version of BIPES.
-
-Access it live at [bipes.net.br/3/docs](https://bipes.net.br/3/docs) or
-build it from the clone with:
-
-```
-make docs
+```bash
+cp .env.example .env
+nano .env
 ```
 
-Then open *docs/_build/html/index.html*.
+Set these values:
 
-Note: requires [sphinx](https://www.sphinx-doc.org/en/master/), 
-[sphinx-js](https://pypi.org/project/sphinx-js/) and 
-[furo](https://github.com/pradyunsg/furo).
-
-## Build release
-
-The release is a static version of BIPES than can be run serverless.
-
-BIPES serverless provides all functionalities that do not require a dynamic loading.
-
-To generate this version do
-
+```env
+FLASK_SECRET_KEY=<random-secret-at-least-32-chars>
+PASSWORD_PEPPER=<random-pepper-string>
+POSTGRES_PASSWORD=<strong-database-password>
+MOSQUITTO_PASSWORD=<mqtt-bridge-password>
+MOSQUITTO_DYNSEC_ADMIN_PASSWORD=<mqtt-admin-password>
 ```
+
+### 2. Deploy
+
+```bash
+make deploy-prod
+```
+
+Checks for `.env`, generates self-signed SSL certificates if absent, builds all containers, and starts the stack.
+
+### 3. First-time setup
+
+Navigate to `https://localhost`. The app detects an empty database and redirects to `/setup` to create the first teacher account.
+
+### Management commands
+
+```bash
+make deploy-prod       # Build and start
+make deploy-restart    # Restart without rebuild
+make deploy-down       # Stop and remove containers
+make deploy-logs       # Tail logs from all containers
+```
+
+### SSL — Let's Encrypt (public domain)
+
+```bash
+sudo certbot certonly --standalone -d yourdomain.com
+
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem docker/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem  docker/ssl/key.pem
+sudo chmod 644 docker/ssl/cert.pem
+sudo chmod 600 docker/ssl/key.pem
+
+make deploy-restart
+```
+
+### Development vs Production
+
+| Feature | `make run` | `make deploy-prod` |
+|---|---|---|
+| Web server | Flask dev server | Gunicorn |
+| Database | SQLite | PostgreSQL |
+| HTTPS | No | Yes (nginx) |
+| Static files | Flask | nginx (fast path) |
+| Auto-reload | Yes | No |
+
+---
+
+## Serverless Build
+
+```bash
 make release
 ```
 
-it will generate a tiny BIPES.zip file, which contain only the essential files 
-plus many *ide-\*.html* files, each linking to language, e.g. *ide-es.html* 
-loads the spanish version.
+Generates `BIPES.zip` containing pre-rendered HTML files and all static assets. Runs without a server — no authentication or class management.
 
-With this, extract anywhere and open the desired *ide-\*.html* file to use BIPES 
-serverless.
+---
 
-For more options, see the documentation.
+## Documentation
 
+Full documentation lives in [`Information/`](Information/):
+
+| Document | Contents |
+|---|---|
+| [`system_overview.md`](Information/system_overview.md) | Architecture, request flow, auth, database, frontend, Block DSL, MQTT, ML pipeline |
+| [`blockdef_dsl_reference.md`](Information/blockdef_dsl_reference.md) | `.blockdef` grammar, metamodel, syntax guide, implementation walkthrough |

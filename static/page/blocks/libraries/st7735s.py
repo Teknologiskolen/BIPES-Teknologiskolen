@@ -1,36 +1,38 @@
 """ST7735S TFT Display Driver for MicroPython (128x160, SPI, 16-bit color)"""
 
 import time
-from machine import Pin
+from machine import Pin, SPI
 
 
 # @block {
 #   "category": "ST7735S DSL",
 #   "color": 210,
 #   "url": "https://github.com/micropython/micropython",
-#   "instanceMode": "multiple",
+#   "instanceMode": "singleton",
+#   "instanceName": "st7735s",
 #   "methodInstanceMode": "key_input"
 # }
 # ST7735S display blocks generated from the Python library.
 class ST7735S:
     # @block {
     #   "params": {
-    #     "id": {"checkType": "Number", "defaultValue": 1},
-    #     "spi": {"inputKind": "variable"},
-    #     "dc_pin": {"checkType": "Number"},
-    #     "rst_pin": {"checkType": "Number"},
-    #     "cs_pin": {"checkType": "Number"},
+    #     "sck_pin": {"checkType": "Number", "defaultValue": 18},
+    #     "mosi_pin": {"checkType": "Number", "defaultValue": 19},
+    #     "dc_pin": {"checkType": "Number", "defaultValue": 16},
+    #     "rst_pin": {"checkType": "Number", "defaultValue": 20},
+    #     "cs_pin": {"checkType": "Number", "defaultValue": 17},
     #     "width": {"checkType": "Number", "defaultValue": 160},
     #     "height": {"checkType": "Number", "defaultValue": 128}
     #   }
     # }
     # Create an ST7735S display instance.
-    def __init__(self, id, spi, dc_pin, rst_pin, cs_pin, width=160, height=128):
-        self.id = id
-        self.spi = spi
+    def __init__(self, dc_pin, sck_pin, mosi_pin, rst_pin, cs_pin, width=160, height=128):
+        self.sck = self._ensure_output_pin(sck_pin)
+        self.mosi = self._ensure_output_pin(mosi_pin)
         self.dc = self._ensure_output_pin(dc_pin)
         self.rst = self._ensure_output_pin(rst_pin)
         self.cs = self._ensure_output_pin(cs_pin)
+        self.spi = SPI(0, baudrate=40000000, polarity=0, phase=0, sck=self.sck, mosi=self.mosi)
         self.width = width
         self.height = height
         self.line_buffer = bytearray(self.width * 2)

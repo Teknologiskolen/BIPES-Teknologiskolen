@@ -34,13 +34,14 @@ class DOM {
       if (typeof deferredValue != 'undefined')
         this.$.value = deferredValue
 
-      if (
-        ['input', 'select', 'textarea'].includes(dom) &&
-        !this.$.id &&
-        !this.$.name
-      )
-        this.$.name = `${dom}-${DOM.UID()}`
     }
+
+    if (
+      ['input', 'select', 'textarea'].includes(dom) &&
+      !this.$.id &&
+      !this.$.name
+    )
+      this.$.name = `${dom}-${DOM.UID()}`
   }
   /**
    * Set DOM innerText.

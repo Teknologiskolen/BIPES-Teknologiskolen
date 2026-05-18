@@ -29,7 +29,7 @@ class PythonGeneratorBuilder:
         class_ref = f"{block.source_module_name}.{cls}"
 
         if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.FIXED_NAME:
-            name = block.instance_ref.fixed_instance_name or "board"
+            name = block.instance_ref.fixed_instance_name
             return f"{name} = {class_ref}({args})"
 
         if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.KEY_INPUT:
@@ -43,7 +43,7 @@ class PythonGeneratorBuilder:
         call_args = ", ".join(f"{{{inp.name}}}" for inp in block.inputs if not inp.is_instance_selector)
 
         if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.FIXED_NAME:
-            name = block.instance_ref.fixed_instance_name or "board"
+            name = block.instance_ref.fixed_instance_name
             return f"{name}.{block.source_function_name}({call_args})"
 
         if block.instance_ref and block.instance_ref.mode == MethodInstanceMode.KEY_INPUT:

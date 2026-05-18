@@ -1,7 +1,6 @@
 Blockly.Blocks["sand_table_robot__create"] = {
   init: function() {
     this.appendDummyInput().appendField("Create Sand Table Robot");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("motor1_pins").appendField("Motor 1 Pins");
     this.appendValueInput("motor2_pins").appendField("Motor 2 Pins");
     this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField("Sensor Shoulder Pin");
@@ -27,12 +26,11 @@ Blockly.Blocks["sand_table_robot__create"] = {
 Blockly.Blocks["sand_table_robot__off"] = {
   init: function() {
     this.appendDummyInput().appendField("Off");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
     this.setInputsInline(false);
-    this.setTooltip("Turn off both motors for a selected robot instance.");
+    this.setTooltip("Turn off both motors");
     this.setHelpUrl("");
   }
 };
@@ -40,12 +38,11 @@ Blockly.Blocks["sand_table_robot__off"] = {
 Blockly.Blocks["sand_table_robot__home"] = {
   init: function() {
     this.appendDummyInput().appendField("Home");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
     this.setInputsInline(false);
-    this.setTooltip("Home the selected sand robot.");
+    this.setTooltip("Move the robot to its home position.");
     this.setHelpUrl("");
   }
 };
@@ -53,7 +50,6 @@ Blockly.Blocks["sand_table_robot__home"] = {
 Blockly.Blocks["sand_table_robot__move_line"] = {
   init: function() {
     this.appendDummyInput().appendField("Move Line");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("target_x").setCheck("Number").appendField("Target X");
     this.appendValueInput("target_y").setCheck("Number").appendField("Target Y");
     this.appendValueInput("segments").setCheck("Number").appendField("Segments");
@@ -70,7 +66,6 @@ Blockly.Blocks["sand_table_robot__move_line"] = {
 Blockly.Blocks["sand_table_robot__move_arc"] = {
   init: function() {
     this.appendDummyInput().appendField("Move Arc");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("center_x").setCheck("Number").appendField("Center X");
     this.appendValueInput("center_y").setCheck("Number").appendField("Center Y");
     this.appendValueInput("radius").setCheck("Number").appendField("Radius");
@@ -90,7 +85,6 @@ Blockly.Blocks["sand_table_robot__move_arc"] = {
 Blockly.Blocks["sand_table_robot__draw_spiral"] = {
   init: function() {
     this.appendDummyInput().appendField("Draw Spiral");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("max_radius").setCheck("Number").appendField("Max Radius");
     this.appendValueInput("vindinger").setCheck("Number").appendField("Vindinger");
     this.appendValueInput("segments_pr_omgang").setCheck("Number").appendField("Segments Pr Omgang");
@@ -107,7 +101,6 @@ Blockly.Blocks["sand_table_robot__draw_spiral"] = {
 Blockly.Blocks["sand_table_robot__draw_flower"] = {
   init: function() {
     this.appendDummyInput().appendField("Draw Flower");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("max_radius").setCheck("Number").appendField("Max Radius");
     this.appendValueInput("petals").setCheck("Number").appendField("Petals");
     this.appendValueInput("speed").setCheck("Number").appendField("Speed");
@@ -123,7 +116,6 @@ Blockly.Blocks["sand_table_robot__draw_flower"] = {
 Blockly.Blocks["sand_table_robot__run_gcode_text"] = {
   init: function() {
     this.appendDummyInput().appendField("Run Gcode Text");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("gcode_text").appendField("Gcode Text");
     this.appendValueInput("segments").setCheck("Number").appendField("Segments");
     this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("Draw Speed Ms");
@@ -141,7 +133,6 @@ Blockly.Blocks["sand_table_robot__run_gcode_text"] = {
 Blockly.Blocks["sand_table_robot__run_gcode_file"] = {
   init: function() {
     this.appendDummyInput().appendField("Run Gcode File");
-    this.appendValueInput("id").setCheck("Number").appendField("ID #");
     this.appendValueInput("path").appendField("Path");
     this.appendValueInput("segments").setCheck("Number").appendField("Segments");
     this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("Draw Speed Ms");

@@ -6,13 +6,14 @@ import os
 import glob
 import socket
 import re
+from urllib.parse import urlencode
 from configparser import ConfigParser
 from werkzeug.middleware.proxy_fix import ProxyFix
 from server.block_dsl import generate_default_artifacts
 from server.common import auth as auth_module
 
 app_name = 'BIPES'
-app_version = '3.0.13'
+app_version = '3.0.74'
 
 
 def ensure_postgres_auth_schema(app):
@@ -254,7 +255,7 @@ auth_text = {
 # Note: Default theme is in the static/base/tool.js urlDefaults function.
 
 # Preferred order in the navigation bar
-pref_order = ['blocks', 'dashboard', 'device', 'prompt', 'files', 'notification']
+pref_order = ['blocks', 'dashboard', 'architecture', 'device', 'prompt', 'files', 'notification']
 last_in_order = 'project'
 def preferred_page_order(page):
     _page = []
@@ -347,7 +348,18 @@ def create_app(database="sqlite"):
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        if request.path.startswith('/static/') and request.path.endswith('.js'):
+            response.headers['Cache-Control'] = 'no-store'
         return auth_module.finalize_auth_response(response)
+
+    def canonical_ide_redirect(path_lang=None):
+        args = request.args.to_dict(flat=True)
+        if path_lang and 'lang' not in args:
+            args['lang'] = path_lang
+        if args.get('lang') and args['lang'] not in available_lang:
+            args['lang'] = default_lang
+        query = urlencode(args)
+        return redirect('/ide' + (f'?{query}' if query else ''))
 
     if database == "postgresql":
         # Check for environment variables first (Docker), then fall back to conf.ini
@@ -441,8 +453,7 @@ def create_app(database="sqlite"):
         @app.route("/")
         def root():
             context = auth_page_context()
-            target = '/ide' if context['lang'] == default_lang else f"/ide-{context['lang']}"
-            return redirect(f"{target}?theme={context['theme']}&lang={context['lang']}")
+            return redirect(f"/ide?theme={context['theme']}&lang={context['lang']}")
 
         # Authentication routes - no-cache to prevent stale auth state
         @app.route("/login")
@@ -492,27 +503,37 @@ def create_app(database="sqlite"):
 
         # Return "compiled" html file. No-cache to prevent stale auth state.
         @app.route("/ide")
+        def call_ide(import_type='module'):
+            return no_store_response(make_response(ide(import_type=import_type)))
+
         @app.route("/ide-<lang>")
-        def call_ide(lang=None, import_type='module'):
-            return no_store_response(make_response(ide(lang, import_type)))
+        def call_ide_legacy(lang=None):
+            return no_store_response(make_response(canonical_ide_redirect(lang)))
 
     else:
         # Guest-only mode: / and /ide both go straight to the IDE
         @app.route("/")
         @app.route("/ide")
+        def call_ide(import_type='module'):
+            response = make_response(ide(import_type=import_type))
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+
         @app.route("/ide-<lang>")
-        def call_ide(lang=None, import_type='module'):
-            response = make_response(ide(lang, import_type))
+        def call_ide_legacy(lang=None):
+            response = make_response(canonical_ide_redirect(lang))
             response.headers['Cache-Control'] = 'no-store'
             return response
         
     # Return concatanate styles.
     @app.route("/static/style.css")
     def style():
-        return Response(
+        response = Response(
             concat_files("static/style/*.css") + \
             concat_files("static/page/*/style.css"),
             mimetype='text/css')
+        response.headers['Cache-Control'] = 'no-store'
+        return response
 
     # Return "compiled" toolboxes xml embedded in a js file.
     @app.route("/static/page/blocks/toolbox.umd.js")
@@ -531,7 +552,9 @@ def create_app(database="sqlite"):
     
     @app.route("/static/libs/bipes.umd.js")
     def bipes():
-        return Response(bipes_imports(), mimetype='application/javascript')
+        response = Response(bipes_imports(), mimetype='application/javascript')
+        response.headers['Cache-Control'] = 'no-store'
+        return response
     
     
     @app.route("/empty")
@@ -636,11 +659,10 @@ def build_release():
         f.write(concat_files("static/page/blocks/pythonic/*.js", "basic.js"))
 
     app = create_app(None)
-    # "Compile" ide template as ide/index.html (default filename for servers)
+    # Compile the canonical preference-style IDE entry point.
     with app.app_context():
-        for ln in available_lang:
-            with open('ide-' + ln + '.html','w') as f:
-                f.write(ide(import_type='text/javascript', lang=ln))
+        with open('ide.html','w') as f:
+            f.write(ide(import_type='text/javascript', lang=default_lang))
 
     with open("templates/libs/bipes.temp.js",'w') as f:
         with app.app_context():
@@ -792,7 +814,8 @@ def bipes_imports(import_type='module'):
 
     return render_template('libs/bipes.js', base=base,
                            page=page, import_type=import_type,
-                           available_lang=available_lang)
+                           available_lang=available_lang,
+                           app_version=app_version)
 
 # Return service worker imports.
 def service_worker_imports(lang=None, import_type='module'):

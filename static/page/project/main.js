@@ -3,6 +3,7 @@
 import {Tool, API} from '../../base/tool.js'
 import {DOM, Animate, ContextMenu} from '../../base/dom.js'
 import {command} from '../../base/command.js'
+import {dataflow} from '../../base/dataflow.js'
 import {storage} from '../../base/storage.js'
 import {navigation} from '../../base/navigation.js'
 import {session} from '../../base/session.js'
@@ -151,13 +152,23 @@ class Project {
       this.new()
       return
     }
-    let key
-    if (storage.has('current_project'))
+    this.ensureCurrent()
+  }
+  ensureCurrent (){
+    if (this.currentUID && this.projects.hasOwnProperty(this.currentUID) && this.projects[this.currentUID])
+      return this.currentUID
+
+    let key = ''
+    if (storage.has('current_project') && this.projects.hasOwnProperty(storage.fetch('current_project')))
       key = storage.fetch('current_project')
     else
-      key = Object.keys(this.projects)[0]
+      key = Object.keys(this.projects)[0] || ''
+
+    if (!key)
+      return this.new()
 
     this.select(key)
+    return this.currentUID
   }
   /*
    * Save project to localStorage.
@@ -259,6 +270,9 @@ class Project {
   load (uid){
     this.currentUID = uid
     this.current = this._normalizeProjectAuthor(this.projects[uid])
+    if (this.projects[uid].data == undefined)
+      this.projects[uid].data = dataflow.empty()
+    dataflow.load(this.projects[uid].data)
     for (const key in bipes.page) {
       if (typeof window.bipes.page[key].load === "function" && this.projects.hasOwnProperty(uid) && key != 'project') {
         // If don't exist, create empty
@@ -561,8 +575,18 @@ class Project {
     }
   }
   select (uid){
-    if (uid == this.currentUID || !this.projects.hasOwnProperty(uid))
-      return
+    if (!uid || !this.projects.hasOwnProperty(uid)) {
+      uid = Object.keys(this.projects)[0]
+      if (!uid)
+        return this.new()
+    }
+
+    if (uid == this.currentUID && this.projects[uid])
+      return uid
+    if (uid == this.currentUID && !this.projects[uid]) {
+      this.currentUID = undefined
+      this.current = undefined
+    }
 
     // Search the whole section for cards (own + student projects)
     const searchRoot = this.$.section?.$ || this.$.projects.$
@@ -575,7 +599,7 @@ class Project {
           DOM.get('#name', child).disabled = true
         }
       }
-      this.unload(uid)
+      this.unload(this.currentUID)
     }
 
     let proj = storage.fetch(`project-${uid}`)
@@ -601,6 +625,8 @@ class Project {
     let _username = storage.fetch('username')
     if (_username != this.current.project.author)
       this.current.project.author = _username
+
+    return this.currentUID
   }
   async _fetchAndSelect (uid){
     // Preserve assignedClassId from metadata before overwriting

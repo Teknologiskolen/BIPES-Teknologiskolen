@@ -7,6 +7,203 @@ import {Pipes} from './navigation.js'
 // Commom MicroPython outputs
 const BACKSPACE = '[K' // Backspace character
 const PASTEMODE = "paste mode; Ctrl-C to cancel, Ctrl-D to finish" // Paste mode output
+const CAMERA_FRAME_START = 'BIPES_CAMERA_FRAME'
+const CAMERA_FRAME_MARKER_BYTES = new TextEncoder().encode(CAMERA_FRAME_START)
+const CAMERA_CAPTURE_COMMAND = 'BIPES_CAPTURE\n'
+const CAMERA_DEFAULT_INTERVAL_MS = 3000
+
+class ChannelImageFeed {
+  constructor (channel, uid) {
+    this.channel = channel
+    this.uid = uid
+    this.listeners = new Map()
+    this.latestFrame = null
+    this.convertingFrame = false
+    this.droppedFrames = 0
+    this.timer = undefined
+    this.awaitingFrame = false
+    this.awaitingFrameTimer = undefined
+    this.pendingFrames = []
+    this.triggerBuffer = ''
+    this.lastTriggerAt = 0
+  }
+  subscribe (callback, options = {}) {
+    this.listeners.set(callback, {
+      mode: options.mode || 'interval',
+      intervalMs: Math.max(CAMERA_DEFAULT_INTERVAL_MS, Number(options.intervalMs) || CAMERA_DEFAULT_INTERVAL_MS)
+    })
+
+    if (this.latestFrame) {
+      try {
+        callback(this.latestFrame)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    return () => {
+      this.listeners.delete(callback)
+    }
+  }
+  hasIntervalListeners () {
+    for (let listener of this.listeners.values()) {
+      if (listener.mode == 'interval')
+        return true
+    }
+    return false
+  }
+  hasTriggerListeners () {
+    for (let listener of this.listeners.values()) {
+      if (listener.mode == 'newImage')
+        return true
+    }
+    return false
+  }
+  pollingIntervalMs () {
+    let intervalMs = null
+
+    for (let listener of this.listeners.values()) {
+      if (listener.mode != 'interval')
+        continue
+
+      intervalMs = intervalMs === null ? listener.intervalMs : Math.min(intervalMs, listener.intervalMs)
+    }
+
+    return intervalMs || CAMERA_DEFAULT_INTERVAL_MS
+  }
+  triggerIntervalMs () {
+    let intervalMs = null
+
+    for (let listener of this.listeners.values()) {
+      if (listener.mode != 'newImage')
+        continue
+
+      intervalMs = intervalMs === null ? listener.intervalMs : Math.min(intervalMs, listener.intervalMs)
+    }
+
+    return intervalMs || CAMERA_DEFAULT_INTERVAL_MS
+  }
+  isTriggerLine (line) {
+    return line == 'CAPTURE' ||
+      line.includes('BIPES_CAMERA_TRIGGER') ||
+      line.includes('BIPES_CAMERA_CAPTURE') ||
+      line.includes('$BIPES-CAMERA:') ||
+      line.includes('$BIPES_CAMERA:')
+  }
+  triggerFromChunk (chunk) {
+    if (!chunk || !this.hasTriggerListeners())
+      return
+
+    this.triggerBuffer = `${this.triggerBuffer}${chunk}`.slice(-4096)
+    let lines = this.triggerBuffer.split(/\r?\n/)
+    this.triggerBuffer = lines.pop() || ''
+
+    for (let line of lines) {
+      line = line.trim()
+      if (!this.isTriggerLine(line))
+        continue
+
+      if (this.awaitingFrame)
+        return
+
+      let now = Date.now()
+      let intervalMs = this.triggerIntervalMs()
+      if (now - this.lastTriggerAt < intervalMs)
+        return
+
+      this.lastTriggerAt = now
+      this.requestFrame().catch((error) => {
+        console.error(error)
+      })
+      return
+    }
+  }
+  syncTimer () {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = undefined
+    }
+  }
+  start () {
+    this.syncTimer()
+  }
+  stop () {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = undefined
+    }
+  }
+  armAwaitingFrameTimeout () {
+    if (this.awaitingFrameTimer)
+      clearTimeout(this.awaitingFrameTimer)
+
+    this.awaitingFrameTimer = setTimeout(() => {
+      this.awaitingFrame = false
+      this.awaitingFrameTimer = undefined
+    }, 15000)
+  }
+  async requestFrame () {
+    if (this.awaitingFrame)
+      return
+
+    let connection = this.channel.connections[this.uid]
+    if (!connection || !connection.current || typeof connection.current.writeRaw != 'function')
+      throw new Error('Source device is not ready for image capture.')
+
+    this.awaitingFrame = true
+    this.armAwaitingFrameTimeout()
+    await connection.current.writeRaw(CAMERA_CAPTURE_COMMAND)
+  }
+  async getFrame () {
+    await this.requestFrame()
+    return new Promise((resolve) => {
+      this.pendingFrames.push(resolve)
+    })
+  }
+  getLatestFrame () {
+    return this.latestFrame
+  }
+  acceptFrame (frame) {
+    frame.droppedFrames = this.droppedFrames
+    this.droppedFrames = 0
+    this.awaitingFrame = false
+    if (this.awaitingFrameTimer) {
+      clearTimeout(this.awaitingFrameTimer)
+      this.awaitingFrameTimer = undefined
+    }
+
+    this.latestFrame = frame
+
+    while (this.pendingFrames.length > 0) {
+      let resolve = this.pendingFrames.shift()
+      try {
+        resolve(frame)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    for (let [callback] of this.listeners) {
+      try {
+        callback(frame)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
+  shouldDropIncomingFrame () {
+    return this.convertingFrame
+  }
+  beginFrameConversion () {
+    this.convertingFrame = true
+  }
+  endFrameConversion () {
+    this.convertingFrame = false
+  }
+  dropIncomingFrame () {
+    this.droppedFrames += 1
+  }
+}
 
 class Channel {
    /**
@@ -31,6 +228,7 @@ class Channel {
     this.webbluetooth = new _WebBluetooth(this)
 
     this.connections = {}
+    this.textListeners = new Set()
     this.targetDevice
     this.ping = {      // Create a timer on connect and on message to check
       timer:undefined, // if the device is responding
@@ -39,7 +237,8 @@ class Channel {
     // Cross tabs event handler on muxing terminal
     command.add(this, {
       push: this.push,
-      rawPush: this.rawPush
+      rawPush: this.rawPush,
+      livePush: this.livePush
     })
 
     window.addEventListener("beforeunload", () => {
@@ -85,6 +284,317 @@ class Channel {
   }
   hasConnection (uid){
     return this.connections[uid] != undefined
+  }
+  getImageFeed (uid){
+    let connection = this.connections[uid]
+    return connection ? connection.imageFeed : undefined
+  }
+  subscribeText (callback) {
+    this.textListeners.add(callback)
+    return () => {
+      this.textListeners.delete(callback)
+    }
+  }
+  notifyTextListeners (chunk, uid) {
+    for (let callback of this.textListeners) {
+      try {
+        callback(chunk, uid)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
+  triggerImageFeedsFromChunk (chunk) {
+    Object.keys(this.connections).forEach((uid) => {
+      let connection = this.connections[uid]
+      if (connection && connection.imageFeed)
+        connection.imageFeed.triggerFromChunk(chunk)
+    })
+  }
+  _createImageParserState (){
+    return {
+      decoder: new TextDecoder(),
+      buffer: new Uint8Array(0),
+      pendingEndRequestId: null
+    }
+  }
+  _appendBytes (first, second) {
+    if (!first || first.length === 0)
+      return second ? second.slice() : new Uint8Array(0)
+    if (!second || second.length === 0)
+      return first.slice()
+
+    let merged = new Uint8Array(first.length + second.length)
+    merged.set(first, 0)
+    merged.set(second, first.length)
+    return merged
+  }
+  _findMarker (buffer, marker) {
+    if (!buffer || buffer.length < marker.length)
+      return -1
+
+    outer: for (let i = 0; i <= buffer.length - marker.length; i++) {
+      for (let j = 0; j < marker.length; j++) {
+        if (buffer[i + j] !== marker[j])
+          continue outer
+      }
+      return i
+    }
+
+    return -1
+  }
+  _findLineBreak (buffer, start = 0) {
+    for (let i = start; i < buffer.length; i++) {
+      if (buffer[i] === 10) {
+        let lineEnd = i
+        if (lineEnd > start && buffer[lineEnd - 1] === 13)
+          lineEnd--
+        return {
+          lineEnd,
+          nextIndex: i + 1
+        }
+      }
+    }
+    return null
+  }
+  _parseHeaderMetadata (text) {
+    let metadata = {}
+    if (!text)
+      return metadata
+
+    text.trim().split(/\s+/).forEach((part) => {
+      let index = part.indexOf('=')
+      if (index <= 0)
+        return
+      let key = part.slice(0, index).trim()
+      let value = part.slice(index + 1).trim()
+      if (!key)
+        return
+      metadata[key] = decodeURIComponent(value)
+    })
+
+    return metadata
+  }
+  _parseCameraHeader (line) {
+    let match = line.match(/^(GRAY8|RAW565|JPEG)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(.*))?$/)
+    if (!match)
+      return null
+
+    let metadata = this._parseHeaderMetadata(match[6] || '')
+    return {
+      type: match[1].toLowerCase(),
+      requestId: match[2],
+      width: Number(match[3]),
+      height: Number(match[4]),
+      length: Number(match[5]),
+      metadata: metadata,
+      dataType: metadata.data || metadata.kind || 'image',
+      contentType: metadata.contentType || metadata.mime || '',
+      visionInput: metadata.vision || metadata.visionInput || metadata.input || '',
+      label: metadata.label || metadata.name || ''
+    }
+  }
+  _emitTextBytes (uid, state, bytes, final = false) {
+    if (!bytes || bytes.length === 0)
+      return
+
+    let text = state.decoder.decode(bytes, {stream: !final})
+    if (text)
+      this.inString(text, uid)
+  }
+  _markerTailLength (buffer, marker) {
+    let max = Math.min(buffer.length, marker.length - 1)
+
+    for (let len = max; len > 0; len--) {
+      let matches = true
+      for (let i = 0; i < len; i++) {
+        if (buffer[buffer.length - len + i] !== marker[i]) {
+          matches = false
+          break
+        }
+      }
+      if (matches)
+        return len
+    }
+
+    return 0
+  }
+  _flushTextBuffer (uid, state, keepTail = 0) {
+    if (!state.buffer || state.buffer.length <= keepTail)
+      return
+
+    let flushLength = state.buffer.length - keepTail
+    let bytes = state.buffer.slice(0, flushLength)
+    state.buffer = state.buffer.slice(flushLength)
+    this._emitTextBytes(uid, state, bytes)
+  }
+  _consumeFrameEndMarker (state) {
+    if (!state.pendingEndRequestId)
+      return false
+
+    while (state.buffer.length > 0 && (state.buffer[0] === 10 || state.buffer[0] === 13)) {
+      state.buffer = state.buffer.slice(1)
+    }
+
+    if (state.buffer.length === 0)
+      return true
+
+    let line = this._findLineBreak(state.buffer, 0)
+    if (!line)
+      return true
+
+    let text = new TextDecoder().decode(state.buffer.slice(0, line.lineEnd)).trim()
+    if (text === `END ${state.pendingEndRequestId}`) {
+      state.buffer = state.buffer.slice(line.nextIndex)
+      state.pendingEndRequestId = null
+      return true
+    }
+
+    state.pendingEndRequestId = null
+    return false
+  }
+  async _frameToBlob (header, bytes) {
+    if (header.type == 'jpeg')
+      return new Blob([bytes], {type:'image/jpeg'})
+
+    let canvas = document.createElement('canvas')
+    canvas.width = header.width
+    canvas.height = header.height
+    let context = canvas.getContext('2d', {willReadFrequently:true})
+    let imageData = new ImageData(header.width, header.height)
+
+    if (header.type == 'gray8') {
+      let pixels = Math.min(header.width * header.height, bytes.length)
+      for (let i = 0; i < pixels; i++) {
+        let value = bytes[i]
+        let target = i * 4
+        imageData.data[target] = value
+        imageData.data[target + 1] = value
+        imageData.data[target + 2] = value
+        imageData.data[target + 3] = 255
+      }
+    } else {
+      let pixels = Math.min(header.width * header.height, Math.floor(bytes.length / 2))
+      for (let i = 0; i < pixels; i++) {
+        let source = i * 2
+        let value = bytes[source] | (bytes[source + 1] << 8)
+        let r = ((value >> 11) & 0x1f) * 255 / 31
+        let g = ((value >> 5) & 0x3f) * 255 / 63
+        let b = (value & 0x1f) * 255 / 31
+        let target = i * 4
+        imageData.data[target] = Math.round(r)
+        imageData.data[target + 1] = Math.round(g)
+        imageData.data[target + 2] = Math.round(b)
+        imageData.data[target + 3] = 255
+      }
+    }
+
+    context.putImageData(imageData, 0, 0)
+
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob)
+          resolve(blob)
+        else
+          reject(new Error('Could not convert source image frame to blob.'))
+      }, 'image/png')
+    })
+  }
+  _acceptCameraFrame (uid, header, payload) {
+    let connection = this.connections[uid]
+    if (!connection || !connection.imageFeed)
+      return
+
+    if (connection.imageFeed.shouldDropIncomingFrame()) {
+      connection.imageFeed.dropIncomingFrame()
+      return
+    }
+
+    connection.imageFeed.beginFrameConversion()
+    this._frameToBlob(header, payload).then((blob) => {
+      connection.imageFeed.acceptFrame({
+        blob,
+        width: header.width,
+        height: header.height,
+        byteLength: header.length,
+        header: header,
+        metadata: header.metadata || {},
+        dataType: header.dataType,
+        contentType: header.contentType,
+        visionInput: header.visionInput,
+        label: header.label,
+        changed: true,
+        signature: `${header.requestId}:${header.length}:${Date.now()}`
+      })
+    }).catch((error) => {
+      console.error(error)
+    }).finally(() => {
+      connection.imageFeed.endFrameConversion()
+    })
+  }
+  handleIncomingBytes (uint8, uid){
+    let connection = this.connections[uid]
+    if (!connection || !connection.imageState)
+      return
+
+    connection.ping.on = true
+    if (uid == this.targetDevice)
+      this.ping.on = true
+
+    let state = connection.imageState
+    state.buffer = this._appendBytes(state.buffer, uint8)
+
+    while (true) {
+      if (this._consumeFrameEndMarker(state))
+        if (state.pendingEndRequestId)
+          return
+
+      let markerIndex = this._findMarker(state.buffer, CAMERA_FRAME_MARKER_BYTES)
+
+      if (markerIndex === -1) {
+        this._flushTextBuffer(uid, state, this._markerTailLength(state.buffer, CAMERA_FRAME_MARKER_BYTES))
+        return
+      }
+
+      if (markerIndex > 0) {
+        this._emitTextBytes(uid, state, state.buffer.slice(0, markerIndex))
+        state.buffer = state.buffer.slice(markerIndex)
+        continue
+      }
+
+      let markerLine = this._findLineBreak(state.buffer, 0)
+      if (!markerLine)
+        return
+
+      let markerText = new TextDecoder().decode(state.buffer.slice(0, markerLine.lineEnd)).trim()
+      if (markerText !== CAMERA_FRAME_START) {
+        this._emitTextBytes(uid, state, state.buffer.slice(0, 1))
+        state.buffer = state.buffer.slice(1)
+        continue
+      }
+
+      let headerLine = this._findLineBreak(state.buffer, markerLine.nextIndex)
+      if (!headerLine)
+        return
+
+      let headerText = new TextDecoder().decode(state.buffer.slice(markerLine.nextIndex, headerLine.lineEnd)).trim()
+      let header = this._parseCameraHeader(headerText)
+
+      if (!header) {
+        this._emitTextBytes(uid, state, state.buffer.slice(0, headerLine.nextIndex))
+        state.buffer = state.buffer.slice(headerLine.nextIndex)
+        continue
+      }
+
+      let payloadStart = headerLine.nextIndex
+      if (state.buffer.length < payloadStart + header.length)
+        return
+
+      let payload = state.buffer.slice(payloadStart, payloadStart + header.length)
+      state.buffer = state.buffer.slice(payloadStart + header.length)
+      state.pendingEndRequestId = header.requestId
+      this._acceptCameraFrame(uid, header, payload)
+    }
   }
   activate (uid){
     let connection = this.connections[uid]
@@ -197,6 +707,31 @@ class Channel {
       return
 
     this.dirty = true
+    let result = this.current.write(cmd)
+    if (result && typeof result.catch == 'function')
+      result.catch((error) => {
+        console.error(error)
+      })
+  }
+  livePush (cmd, targetDevice){
+    if (this.targetDevice == undefined){
+      bipes.page.notification.send(Msg["NotConnectedWarning"])
+      return
+    }
+
+    if (targetDevice != undefined && this.targetDevice != targetDevice)
+      this.activate(targetDevice)
+
+    if (this.current == undefined || this.targetDevice != targetDevice)
+      return
+
+    if (typeof this.current.writeRaw == 'function') {
+      this.current.writeRaw(cmd).catch((error) => {
+        console.error(error)
+      })
+      return
+    }
+
     this.current.write(cmd)
   }
   switch (channel){
@@ -231,6 +766,8 @@ class Channel {
       callbacks: [],
       lock: false,
       dirty: false,
+      imageFeed: new ChannelImageFeed(this, uid),
+      imageState: this._createImageParserState(),
       ping: {
         timer: undefined,
         on: false
@@ -426,8 +963,13 @@ class Channel {
     }
   }
   inString (chunk, uid){
-    if (uid != undefined && uid != this.targetDevice)
+    let sourceUid = uid != undefined ? uid : this.targetDevice
+    this.notifyTextListeners(chunk, sourceUid)
+
+    if (uid != undefined && uid != this.targetDevice) {
+      this.pipe.dashboard_write(chunk)
       return
+    }
 
     //data comes in chunks, keep last 4 chars to check MicroPython REPL string
     this.output += chunk
@@ -453,6 +995,8 @@ class Channel {
 function _WebSerial (parent){
   this.name = 'WebSerial'
   this.port
+  this.reader
+  this.writeQueue = Promise.resolve()
   this.config = {
     packetSize:0
   }
@@ -479,21 +1023,8 @@ function _WebSerial (parent){
     navigator.serial.requestPort().then((port) => {
       this.port = port
       this.port.open({baudRate: [baudrate] }).then(() => {
-        const transport = this
-        const appendStream = new WritableStream({
-          write(chunk) {
-            if (typeof chunk == 'string') {
-              window.bipes.channel.inString(chunk, transport.uid)
-            }
-          },
-          abort(e){
-            window.bipes.channel._disconnected(transport.uid)
-          }
-        })
-        this.port.readable
-        .pipeThrough(new TextDecoderStream())
-        .pipeTo(appendStream)
         this.parent._connected('webserial', callback, this)
+        this.readLoop()
         return true
 
       }).catch((e) => {
@@ -511,12 +1042,49 @@ function _WebSerial (parent){
       return false
     })
   }
+  this.readLoop = async () => {
+    if (!this.port || !this.port.readable)
+      return
+
+    this.reader = this.port.readable.getReader()
+
+    try {
+      while (true) {
+        let result = await this.reader.read()
+        if (result.done)
+          break
+
+        if (result.value && result.value.length > 0)
+          window.bipes.channel.handleIncomingBytes(result.value, this.uid)
+      }
+    } catch (e) {
+      if (!/The device has been lost/i.test(e && e.message ? e.message : ''))
+        console.error(e)
+    } finally {
+      try {
+        this.reader.releaseLock()
+      } catch (error) {}
+      this.reader = undefined
+
+      if (this.uid != undefined && window.bipes.channel.hasConnection(this.uid))
+        window.bipes.channel._disconnected(this.uid)
+    }
+  }
   /**
    * Disconnect device connected with webserial protocol.
    * @param {boolean} force - Try to disconnect at all cost and if fails, pretend
    *                          it worked (useful on unload when everything is cleared anyway)
    */
   this.disconnect = (force) => {
+    if (this.reader) {
+      try {
+        this.reader.cancel()
+      } catch (error) {}
+    }
+
+    if (!this.port || !this.port.writable)
+      return true
+
     const writer = this.port.writable.getWriter()
     writer.close().then(() => {
       this.port.close().then(() => {
@@ -532,6 +1100,26 @@ function _WebSerial (parent){
         return true
     })
     return true
+  }
+  this.enqueueWrite = (callback) => {
+    this.writeQueue = this.writeQueue
+      .catch(() => {})
+      .then(callback)
+    return this.writeQueue
+  }
+  this.writeRaw = async (data) => {
+    if (!this.port || !this.port.writable)
+      throw new Error('Serial device is not writable.')
+
+    let payload = data instanceof Uint8Array ? data : this.encoder.encode(String(data))
+    return this.enqueueWrite(async () => {
+      const writer = this.port.writable.getWriter()
+      try {
+        await writer.write(payload)
+      } finally {
+        writer.releaseLock()
+      }
+    })
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)
@@ -559,37 +1147,42 @@ function _WebSerial (parent){
     if (data.constructor.name != 'Array')
       data = [data]
 
-    let dataArrayBuffer = undefined
+    return this.enqueueWrite(async () => {
+      let dataArrayBuffer = undefined
 
-    for (const [index, pack] of data.entries()){
-      switch (pack.constructor.name) {
-        case 'Uint8Array':
-          dataArrayBuffer = pack
-        break;
-        case 'String':
-        case 'Number':
-          dataArrayBuffer = this.encoder.encode(pack)
-        break;
-      }
-      const chunk = (arr, size) =>
-        Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
-          arr.slice(i * size, i * size + size)
-      )
-      let subBuffer = chunk(dataArrayBuffer, 1) // encapsulate every byte
-      if (this.port && this.port.writable && dataArrayBuffer != undefined) {
-        const writer = this.port.writable.getWriter()
-        for (const buffer of subBuffer){
-          // Execution is paused until writer wrote dataArrayBuffer
-          let response = await writer.write(buffer)
+      for (const [index, pack] of data.entries()){
+        switch (pack.constructor.name) {
+          case 'Uint8Array':
+            dataArrayBuffer = pack
+          break;
+          case 'String':
+          case 'Number':
+            dataArrayBuffer = this.encoder.encode(pack)
+          break;
         }
-        writer.releaseLock()
+        const chunk = (arr, size) =>
+          Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+            arr.slice(i * size, i * size + size)
+        )
+        let subBuffer = chunk(dataArrayBuffer, 1) // encapsulate every byte
+        if (this.port && this.port.writable && dataArrayBuffer != undefined) {
+          const writer = this.port.writable.getWriter()
+          try {
+            for (const buffer of subBuffer){
+              // Execution is paused until writer wrote dataArrayBuffer
+              await writer.write(buffer)
+            }
+          } finally {
+            writer.releaseLock()
+          }
+        }
+        this.parent.pipe.prompt_setLoading(index, data.length - 1)
       }
-      this.parent.pipe.prompt_setLoading(index, data.length - 1)
-    }
-    // If no callback expected, release lock
-    if (this.parent.callbacks.length == 0)
-      this.parent.lock = false
-    this.parent.pipe.prompt_endLoading()
+      // If no callback expected, release lock
+      if (this.parent.callbacks.length == 0)
+        this.parent.lock = false
+      this.parent.pipe.prompt_endLoading()
+    })
   }
 }
 
@@ -639,6 +1232,15 @@ function _WebSocket (parent){
   this.disconnect = (force) => {
     this.ws.close()
     return true
+  }
+  this.writeRaw = async (data) => {
+    if (!this.ws)
+      throw new Error('WebSocket device is not writable.')
+
+    if (data instanceof Uint8Array)
+      this.ws.send(data)
+    else
+      this.ws.send(String(data))
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)
@@ -805,6 +1407,13 @@ function _WebBluetooth (parent){
     this.txCharacteristic = undefined;
     this.rxCharacteristic = undefined;
     return true
+  }
+  this.writeRaw = async (data) => {
+    if (!this.rxCharacteristic)
+      throw new Error('Bluetooth device is not writable.')
+
+    let value = data instanceof Uint8Array ? data : this.encoder.encode(String(data))
+    await this.rxCharacteristic.writeValue(value)
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)

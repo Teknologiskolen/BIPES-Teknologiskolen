@@ -1,9 +1,9 @@
 nav #ml::before {
-  background-position: left calc(-1.5rem*43) top;
+  background-position: left calc(-1.5rem*53) top;
 }
 
 nav #ml.on::before {
-  background-position: left calc(-1.5rem*43) bottom;
+  background-position: left calc(-1.5rem*53) bottom;
 }
 
 section#ml {
@@ -30,17 +30,38 @@ body.dark section#ml {
 section#ml > .container.ml-container {
   max-width: none;
   padding: 0 0 1.5rem 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 section#ml .ml-shell {
-  padding: 0 1rem 1.5rem 1rem;
+  padding: 0 0 1.5rem 0;
   color: var(--ml-ink);
   position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  container-type: inline-size;
+  container-name: ml-page;
 }
 
 section#ml h2 {
   margin: 0;
   padding: 0 0 0.45rem 0;
+}
+
+section#ml button,
+section#ml select,
+section#ml input,
+section#ml p,
+section#ml span,
+section#ml strong,
+section#ml em,
+section#ml h3,
+section#ml h4 {
+  min-width: 0;
+  max-width: 100%;
 }
 
 section#ml .ml-intro {
@@ -52,41 +73,41 @@ section#ml .ml-intro {
 }
 
 section#ml .ml-header {
+  width: 100%;
+  height: 2.5rem;
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0;
   align-items: center;
   margin-bottom: 1rem;
   min-height: 2.5rem;
+  overflow-x: auto;
+  box-shadow: 0 0 .25em rgba(0,0,0,.25);
+  position: relative;
+  z-index: 4;
 }
 
 section#ml .ml-tabs {
   display: flex;
-  gap: 0.25rem;
-  overflow-x: auto;
-  flex: 1 1 auto;
-  padding-left: 0.25rem;
+  gap: 0;
+  flex: 0 1 auto;
+  padding-left: .5rem;
 }
 
-section#ml .ml-header-actions {
-  display: flex;
-  gap: 0.35rem;
-  flex: none;
-}
-
-section#ml .ml-tabs::-webkit-scrollbar {
+section#ml .ml-header::-webkit-scrollbar {
   height: 0.35rem;
 }
 
 section#ml .ml-tab {
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   background-color: rgba(84,190,255,0);
   transition: .125s ease background-color;
-  min-width: 7rem;
+  box-sizing: border-box;
+  min-width: 5rem;
   text-align: center;
   border-radius: 1rem;
-  margin: 0.25rem 0.125rem;
+  margin: 0.25rem .125rem;
   border: none;
   color: inherit;
 }
@@ -103,13 +124,12 @@ section#ml .ml-tab.on {
 section#ml .ml-tab h3 {
   white-space: nowrap;
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
 }
 
 section#ml .ml-header > #add {
+  flex: none;
   height: 2.125rem;
-  margin-top: 0.25rem;
+  margin: .25rem .125rem 0 .125rem;
 }
 
 section#ml .ml-header-actions > button:hover,
@@ -120,7 +140,7 @@ section#ml .ml-header-actions > button:focus {
 section#ml .ml-add-menu,
 section#ml .ml-tab-menu {
   position: absolute;
-  z-index: 6;
+  z-index: 8;
   display: none;
   min-width: 12rem;
   border-radius: 1rem;
@@ -146,8 +166,8 @@ section#ml .ml-tab-menu.on {
 }
 
 section#ml .ml-add-menu {
-  right: 1rem;
-  top: 7rem;
+  left: .5rem;
+  top: 2.75rem;
 }
 
 section#ml .ml-add-menu button,
@@ -176,9 +196,14 @@ section#ml .ml-control-row button,
 section#ml .ml-upload-row button {
   border: 1px solid transparent;
   border-radius: 0.8rem;
-  padding: 0.7rem 0.9rem;
+  padding: 0.58rem 0.7rem;
   cursor: pointer;
   font-weight: 600;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  line-height: 1.15;
 }
 
 section#ml .ml-model-tools .ghost,
@@ -239,13 +264,19 @@ section#ml .ml-chip strong {
 }
 
 section#ml .ml-grid {
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  gap: clamp(0.55rem, 1.4cqw, 1.25rem);
   align-items: flex-start;
   min-height: 0;
   justify-content: flex-start;
+  grid-template-columns:
+    minmax(14rem, 2.15fr)
+    minmax(8rem, 0.9fr)
+    minmax(9rem, 1.05fr);
+  width: 100%;
+  max-width: min(100%, 76rem);
   position: relative;
-  z-index: 1;
+  z-index: 2;
   opacity: 1;
   visibility: visible;
 }
@@ -253,11 +284,12 @@ section#ml .ml-grid {
 section#ml .ml-workspace {
   display: block;
   width: 100%;
-  max-width: min(56rem, calc(100vw - 22rem));
+  max-width: 100%;
   margin: 0;
+  min-width: 0;
   min-height: calc(100vh - 10rem);
   position: relative;
-  z-index: 1;
+  z-index: 2;
   opacity: 1;
   visibility: visible;
 }
@@ -266,10 +298,10 @@ section#ml .ml-panel {
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   opacity: 1;
   visibility: visible;
-  border-radius: 1.2rem;
+  border-radius: 1rem;
   border: 1px solid var(--ml-border);
   background:
     linear-gradient(180deg, var(--ml-panel), rgba(255,255,255,0.6)),
@@ -286,12 +318,16 @@ body.dark section#ml .ml-panel {
 }
 
 section#ml .ml-panel-head {
-  padding: 1.1rem 1.15rem 0.6rem 1.15rem;
+  padding: 0.85rem 0.85rem 0.55rem 0.85rem;
 }
 
 section#ml .ml-panel-head h3,
 section#ml .ml-subhead h4 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  line-height: 1.15;
 }
 
 section#ml .ml-panel-head p,
@@ -306,6 +342,8 @@ section#ml .ml-panel-head p,
 section#ml .ml-panel-note {
   margin: 0.35rem 0 0 0;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-classes-panel,
@@ -320,7 +358,8 @@ section#ml .ml-preview-panel {
 }
 
 section#ml .ml-classes-panel {
-  width: 26rem;
+  width: 100%;
+  max-width: 100%;
   border: none;
   background: transparent;
   box-shadow: none;
@@ -334,39 +373,95 @@ section#ml .ml-preview-panel {
 }
 
 section#ml .ml-train-panel {
-  width: 10.5rem;
+  width: 100%;
 }
 
 section#ml .ml-preview-panel {
-  width: 15rem;
+  width: 100%;
 }
 
 section#ml .ml-train-panel::before,
 section#ml .ml-preview-panel::before {
   content: '';
   position: absolute;
-  left: -2.35rem;
+  left: -1.05rem;
   top: 50%;
-  width: 2.35rem;
+  width: 1.05rem;
   border-top: 2px solid rgba(148, 163, 184, 0.45);
+  pointer-events: none;
 }
 
 section#ml .ml-model-config,
+section#ml .ml-source-device-card,
 section#ml .ml-selected-class,
 section#ml .ml-shelf-panel,
 section#ml .ml-stat-card {
-  margin: 0 1rem 1rem 1rem;
-  border-radius: 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  border-radius: 0.9rem;
   border: 1px solid var(--ml-border);
   background: rgba(255,255,255,0.56);
-  padding: 0.95rem 1rem;
+  padding: 0.75rem 0.8rem;
 }
 
 body.dark section#ml .ml-model-config,
+body.dark section#ml .ml-source-device-card,
 body.dark section#ml .ml-selected-class,
 body.dark section#ml .ml-shelf-panel,
 body.dark section#ml .ml-stat-card {
   background: rgba(15,23,42,0.66);
+}
+
+section#ml .ml-source-device-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: end;
+}
+
+section#ml .ml-source-device-card label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+section#ml .ml-source-device-card span {
+  color: var(--ml-muted);
+  font-size: 0.9rem;
+}
+
+section#ml .ml-source-device-card select {
+  min-width: 0;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ml-border);
+  padding: 0.62rem 0.75rem;
+  background: rgba(255,255,255,0.72);
+  color: inherit;
+}
+
+body.dark section#ml .ml-source-device-card select {
+  background: rgba(15,23,42,0.72);
+}
+
+section#ml .ml-source-device-card button {
+  border: 1px solid var(--ml-border);
+  border-radius: 0.8rem;
+  padding: 0.58rem 0.7rem;
+  background: rgba(255,255,255,0.72);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+body.dark section#ml .ml-source-device-card button {
+  background: rgba(15,23,42,0.72);
+}
+
+section#ml .ml-source-device-card button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 section#ml .ml-model-config {
@@ -440,13 +535,13 @@ body.dark section#ml .ml-kind-picker .ghost {
 section#ml .ml-class-list {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  padding: 0 1rem 1rem 1rem;
+  gap: 0.7rem;
+  padding: 0 0.75rem 0.75rem 0.75rem;
 }
 
 section#ml .ml-class-card {
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   padding: 0;
   background: rgba(255,255,255,0.62);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
@@ -464,7 +559,7 @@ section#ml .ml-class-head {
   gap: 0.75rem;
   align-items: start;
   justify-content: space-between;
-  padding: 0.95rem 1rem;
+  padding: 0.75rem 0.8rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
@@ -489,12 +584,14 @@ section#ml .ml-class-title {
   align-items: center;
   gap: 0.6rem;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 section#ml .ml-class-name {
   display: flex;
   align-items: center;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 section#ml .ml-class-name input {
@@ -502,7 +599,7 @@ section#ml .ml-class-name input {
   border: none;
   background: transparent;
   color: inherit;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   padding: 0;
   border-bottom: 1px dashed transparent;
@@ -528,12 +625,16 @@ section#ml .ml-class-dot {
 section#ml .ml-class-count {
   color: var(--ml-muted);
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-class-source-label {
   color: #2563eb;
   font-size: 0.95rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-class-tools {
@@ -563,8 +664,8 @@ section#ml .ml-class-stage-wrap {
 }
 
 section#ml .ml-class-stage {
-  min-height: 12rem;
-  border-radius: 0.95rem;
+  min-height: 8rem;
+  border-radius: 0.85rem;
   border: 1px dashed rgba(148,163,184,0.35);
   background:
     linear-gradient(135deg, rgba(249,115,22,0.08), transparent 40%),
@@ -585,7 +686,7 @@ section#ml .ml-class-stage.image img,
 section#ml .ml-class-stage .ml-video {
   width: 100%;
   height: 100%;
-  min-height: 12rem;
+  min-height: 8rem;
   object-fit: cover;
   display: block;
 }
@@ -617,16 +718,16 @@ section#ml .ml-class-media-row {
 
 section#ml .ml-class-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 11rem;
+  grid-template-columns: minmax(0, 1fr) minmax(4.5rem, 30%);
   align-items: stretch;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 section#ml .ml-class-input-pane {
-  padding: 0.9rem;
+  padding: 0.65rem;
   background: rgba(59, 130, 246, 0.08);
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
 }
 
 body.dark section#ml .ml-class-input-pane {
@@ -634,8 +735,8 @@ body.dark section#ml .ml-class-input-pane {
 }
 
 section#ml .ml-class-stage-placeholder-panel {
-  min-height: 12rem;
-  border-radius: 0.95rem;
+  min-height: 8rem;
+  border-radius: 0.85rem;
   border: 1px dashed rgba(148,163,184,0.35);
   display: grid;
   place-items: center;
@@ -645,29 +746,34 @@ section#ml .ml-class-stage-placeholder-panel {
 }
 
 section#ml .ml-class-samples-pane {
-  padding: 0.9rem;
+  padding: 0.65rem;
   border-left: 1px solid rgba(148, 163, 184, 0.18);
   display: grid;
   align-content: start;
-  gap: 0.8rem;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 section#ml .ml-class-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.45rem;
   align-items: center;
 }
 
 section#ml .ml-class-actions button {
   border: 1px solid transparent;
   border-radius: 0.8rem;
-  min-width: 5.2rem;
-  min-height: 3rem;
-  padding: 0.45rem 0.65rem;
+  min-width: 0;
+  min-height: 2.55rem;
+  padding: 0.42rem 0.55rem;
   cursor: pointer;
   font-weight: 600;
   font-size: 0.8rem;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-class-actions .ghost {
@@ -696,9 +802,9 @@ section#ml .ml-class-actions input[type="file"] {
 section#ml .ml-class-samples {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.35rem;
   overflow-y: auto;
-  max-height: 12rem;
+  max-height: 10rem;
   align-content: start;
 }
 
@@ -722,10 +828,10 @@ section#ml .ml-class-samples.empty {
 
 section#ml .ml-class-sample {
   position: relative;
-  min-height: 3.7rem;
-  min-width: 3.7rem;
-  flex: 0 0 3.7rem;
-  border-radius: 0.85rem;
+  min-height: 3rem;
+  min-width: 3rem;
+  flex: 0 0 3rem;
+  border-radius: 0.7rem;
   overflow: hidden;
   border: 1px solid var(--ml-border);
   background: rgba(255,255,255,0.52);
@@ -739,7 +845,7 @@ body.dark section#ml .ml-class-sample {
 section#ml .ml-class-sample.image img {
   width: 100%;
   height: 100%;
-  min-height: 3.7rem;
+  min-height: 3rem;
   object-fit: cover;
   display: block;
 }
@@ -796,9 +902,9 @@ section#ml .ml-stat-grid span {
 section#ml .ml-stage,
 section#ml .ml-audio-stage,
 section#ml .ml-test-preview {
-  margin: 0 1rem 1rem 1rem;
-  min-height: 18rem;
-  border-radius: 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  min-height: 10rem;
+  border-radius: 0.9rem;
   border: 1px dashed rgba(148,163,184,0.35);
   background:
     linear-gradient(135deg, rgba(249,115,22,0.08), transparent 40%),
@@ -833,12 +939,13 @@ section#ml .ml-test-empty {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  pointer-events: none;
 }
 
 section#ml .ml-empty-panel {
-  margin: 0 1rem 1rem 1rem;
-  min-height: 18rem;
-  border-radius: 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  min-height: 10rem;
+  border-radius: 0.9rem;
   border: 1px dashed rgba(148,163,184,0.35);
   display: grid;
   place-items: center;
@@ -862,13 +969,13 @@ section#ml .ml-empty-panel strong {
 }
 
 section#ml .ml-empty-panel.ml-empty-panel-compact {
-  min-height: 12rem;
+  min-height: 8rem;
 }
 
 section#ml .ml-add-class-card {
-  margin: 0 1rem 1rem 1rem;
-  min-height: 5rem;
-  border-radius: 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  min-height: 4rem;
+  border-radius: 0.9rem;
   border: 1.5px dashed rgba(148, 163, 184, 0.4);
   background: rgba(255,255,255,0.25);
   color: var(--ml-muted);
@@ -881,20 +988,25 @@ body.dark section#ml .ml-add-class-card {
 }
 
 section#ml .ml-compact-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 0.45rem;
+  padding-bottom: 0.65rem;
 }
 
 section#ml .ml-compact-head button {
   border: 1px solid var(--ml-border);
   border-radius: 0.75rem;
-  padding: 0.55rem 0.8rem;
+  padding: 0.48rem 0.65rem;
   background: rgba(255,255,255,0.72);
   color: inherit;
   cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  width: 100%;
 }
 
 body.dark section#ml .ml-compact-head button {
@@ -904,8 +1016,8 @@ body.dark section#ml .ml-compact-head button {
 section#ml .ml-train-card,
 section#ml .ml-preview-card,
 section#ml .ml-advanced {
-  margin: 0 1rem 1rem 1rem;
-  border-radius: 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  border-radius: 0.9rem;
   border: 1px solid var(--ml-border);
   background: rgba(255,255,255,0.56);
 }
@@ -922,15 +1034,17 @@ section#ml .ml-train-main {
   border: none;
   background: rgba(226, 232, 240, 0.85);
   color: var(--ml-muted);
-  padding: 0.95rem 1rem;
-  border-radius: 0.85rem;
+  padding: 0.8rem 0.7rem;
+  border-radius: 0.75rem;
   cursor: pointer;
   font-weight: 600;
-  margin: 0.75rem;
+  margin: 0.6rem;
   box-sizing: border-box;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-train-main:not(:disabled) {
@@ -941,8 +1055,10 @@ section#ml .ml-train-main:not(:disabled) {
 section#ml .ml-advanced summary {
   list-style: none;
   cursor: pointer;
-  padding: 0.95rem 1rem;
+  padding: 0.8rem 0.75rem;
   color: var(--ml-muted);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-advanced summary::-webkit-details-marker {
@@ -950,19 +1066,19 @@ section#ml .ml-advanced summary::-webkit-details-marker {
 }
 
 section#ml .ml-advanced-body {
-  padding: 0 1rem 1rem 1rem;
+  padding: 0 0.75rem 0.75rem 0.75rem;
 }
 
 section#ml .ml-mini-stats {
   display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 0.85rem;
+  gap: 0.45rem;
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 0.65rem;
 }
 
 section#ml .ml-mini-stats div {
-  border-radius: 0.8rem;
-  padding: 0.7rem 0.75rem;
+  border-radius: 0.7rem;
+  padding: 0.58rem 0.6rem;
   background: rgba(255,255,255,0.42);
   display: grid;
   gap: 0.15rem;
@@ -975,20 +1091,27 @@ body.dark section#ml .ml-mini-stats div {
 section#ml .ml-mini-stats span {
   color: var(--ml-muted);
   font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-preview-empty {
-  padding: 1rem;
+  padding: 0.75rem;
   color: var(--ml-muted);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-preview-input-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1rem 0 1rem;
+  gap: 0.45rem;
+  padding: 0.75rem 0.75rem 0 0.75rem;
   color: var(--ml-muted);
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-preview-input-row strong {
@@ -1031,9 +1154,9 @@ section#ml .ml-audio-bars span:nth-child(5) { height: 2.8rem; animation-delay: 0
 section#ml .ml-control-row,
 section#ml .ml-upload-row {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
-  margin: 0 1rem 1rem 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
   align-items: center;
 }
 
@@ -1102,13 +1225,13 @@ section#ml .ml-subhead {
 
 section#ml .ml-stat-grid {
   display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 section#ml .ml-stat-grid div {
-  border-radius: 0.85rem;
-  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  padding: 0.58rem 0.6rem;
   background: rgba(255,255,255,0.42);
   display: grid;
   gap: 0.2rem;
@@ -1121,12 +1244,14 @@ body.dark section#ml .ml-stat-grid div {
 section#ml .ml-setting {
   display: grid;
   gap: 0.35rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.7rem;
 }
 
 section#ml .ml-setting span {
   color: var(--ml-muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 section#ml .ml-setting input[type="range"] {
@@ -1134,12 +1259,12 @@ section#ml .ml-setting input[type="range"] {
 }
 
 section#ml .ml-test-preview {
-  min-height: 12rem;
+  min-height: 8rem;
   display: grid;
   place-items: center;
   align-content: start;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 section#ml .ml-test-preview.live {
@@ -1187,7 +1312,7 @@ section#ml .ml-preview-result {
   to { transform: scaleY(1.06); opacity: 1; }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 720px) {
   section#ml .ml-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1199,6 +1324,39 @@ section#ml .ml-preview-result {
     min-height: 0;
     margin-top: 0;
     width: auto;
+  }
+
+  section#ml .ml-workspace {
+    max-width: 100%;
+  }
+
+  section#ml .ml-train-panel::before,
+  section#ml .ml-preview-panel::before {
+    display: none;
+  }
+}
+
+@container ml-page (max-width: 34rem) {
+  section#ml .ml-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  section#ml .ml-classes-panel,
+  section#ml .ml-train-panel,
+  section#ml .ml-preview-panel {
+    min-height: 0;
+    margin-top: 0;
+    width: auto;
+  }
+
+  section#ml .ml-workspace {
+    max-width: 100%;
+  }
+
+  section#ml .ml-train-panel::before,
+  section#ml .ml-preview-panel::before {
+    display: none;
   }
 }
 
@@ -1214,6 +1372,10 @@ section#ml .ml-preview-result {
     align-items: stretch;
   }
 
+  section#ml .ml-header {
+    align-items: center;
+  }
+
   section#ml .ml-kind-picker > *,
   section#ml .ml-model-tools > *,
   section#ml .ml-control-row > *,
@@ -1224,6 +1386,14 @@ section#ml .ml-preview-result {
 
   section#ml .ml-class-actions {
     justify-content: flex-start;
+  }
+
+  section#ml .ml-source-device-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  section#ml .ml-source-device-card button {
+    width: 100%;
   }
 
   section#ml .ml-class-media-row {
@@ -1237,5 +1407,83 @@ section#ml .ml-preview-result {
   section#ml .ml-class-samples-pane {
     border-left: none;
     border-top: 1px solid rgba(148, 163, 184, 0.18);
+  }
+}
+
+@container ml-page (max-width: 34rem) {
+  section#ml .ml-summary-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  section#ml .ml-header,
+  section#ml .ml-control-row,
+  section#ml .ml-upload-row,
+  section#ml .ml-model-tools {
+    align-items: stretch;
+  }
+
+  section#ml .ml-header {
+    align-items: center;
+  }
+
+  section#ml .ml-kind-picker > *,
+  section#ml .ml-model-tools > *,
+  section#ml .ml-control-row > *,
+  section#ml .ml-upload-row > *,
+  section#ml .ml-class-actions > * {
+    flex: 1 1 100%;
+  }
+
+  section#ml .ml-class-actions {
+    justify-content: flex-start;
+  }
+
+  section#ml .ml-source-device-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  section#ml .ml-source-device-card button {
+    width: 100%;
+  }
+
+  section#ml .ml-class-media-row {
+    display: none;
+  }
+
+  section#ml .ml-class-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  section#ml .ml-class-samples-pane {
+    border-left: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+  }
+}
+
+@container ml-page (min-width: 64rem) {
+  section#ml .ml-source-device-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  section#ml .ml-source-device-card button {
+    width: auto;
+  }
+
+  section#ml .ml-class-actions {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  }
+
+  section#ml .ml-compact-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  section#ml .ml-compact-head button {
+    width: auto;
+  }
+
+  section#ml .ml-mini-stats,
+  section#ml .ml-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

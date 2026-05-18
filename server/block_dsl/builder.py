@@ -218,7 +218,7 @@ class BlockModelBuilder:
         if instance_mode == InstanceMode.SINGLETON:
             return InstanceReferenceSpec(
                 mode=MethodInstanceMode.FIXED_NAME,
-                fixed_instance_name=md.instance_name or "board",
+                fixed_instance_name=md.instance_name,
             )
 
         if md.method_instance_mode == MethodInstanceMode.KEY_INPUT:

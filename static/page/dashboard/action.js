@@ -2,6 +2,7 @@
 
 import {DOM} from '../../base/dom.js'
 import {channel} from '../../base/channel.js'
+import {dataflow} from '../../base/dataflow.js'
 import {
   Charts,
   Streams,
@@ -14,7 +15,7 @@ import {
   Drawings,
   MLClassifiers,
   VisionProcessors,
-  listSerialCameraDevices
+  listImageSourceDevices
 } from './plugins.js'
 import {ml} from '../ml/main.js'
 import {vision} from '../vision/main.js'
@@ -37,10 +38,17 @@ function isLiveSelectableDevice (value, kind = 'any') {
   if ((kind == 'any' || kind == 'device') && channel.hasConnection(value))
     return true
 
-  if (kind == 'any' || kind == 'camera')
-    return listSerialCameraDevices().some((device) => device && device.uid == value)
+  if (kind == 'any' || kind == 'image-source')
+    return listImageSourceDevices().some((device) => device && device.uid == value)
 
   return false
+}
+
+function formatDeviceOptionLabel (device, fallbackName = 'Device') {
+  let nodename = device && device.nodename ? device.nodename : dashboardActionMsg('DashboardActionConnectedDeviceLabel', fallbackName)
+  let version = device && device.version && device.version != '-' ? ` ${device.version}` : ''
+  let protocol = device && device.protocol ? device.protocol : 'device'
+  return `${nodename}${version} (${protocol})`
 }
 
 class Actions {
@@ -58,41 +66,80 @@ class Actions {
 	  let known = ['']
 	  let devices = window.bipes && bipes.page && bipes.page.device && bipes.page.device.devices ?
 	    bipes.page.device.devices : []
-	  let cameraDevices = listSerialCameraDevices()
+	  let imageSourceDevices = listImageSourceDevices()
 
-	  devices.forEach((device, index) => {
+	  devices.forEach((device) => {
 	    if (!channel.hasConnection(device.uid))
 	      return
-
-	    known.push(device.uid)
-	    options.push({
-	      value: device.uid,
-	      label: `${device.nodename || dashboardActionMsg('DashboardActionConnectedDeviceLabel', 'Device')} ${device.version || ''} (${device.protocol || 'device'} ${index + 1})`
-	    })
-	  })
-
-	  cameraDevices.forEach((device, index) => {
 	    if (known.includes(device.uid))
 	      return
 
 	    known.push(device.uid)
 	    options.push({
 	      value: device.uid,
-	      label: `${device.nodename || 'ESP32-CAM'} (${device.protocol || 'camera'} ${index + 1})`
+	      label: formatDeviceOptionLabel(device, 'Source device')
 	    })
 	  })
 
-	  Object.keys(channel.connections || {}).forEach((uid) => {
-	    if (known.includes(uid))
+	  imageSourceDevices.forEach((device) => {
+	    if (known.includes(device.uid))
 	      return
 
+	    known.push(device.uid)
 	    options.push({
-	      value: uid,
-	      label: dashboardActionMsg('DashboardActionConnectedDevice', 'Connected device {0}', options.length)
+	      value: device.uid,
+	      label: formatDeviceOptionLabel(device, 'Source device')
 	    })
 	  })
 
 	  return options
+	}
+	static dataFlowOptions (selected){
+	  let options = []
+
+	  dataflow.all()
+	    .forEach((flow) => {
+	      let description = dataflow.describe(flow)
+	      options.push({
+	        value:flow.id,
+	        label:`${flow.name || dashboardActionMsg('DataFlowUntitled', 'Untitled data flow')} (${description.obtain})`
+	      })
+	    })
+
+	  if (selected && !options.some((option) => option.value == selected)) {
+	    options.push({
+	      value:selected,
+	      label:dashboardActionMsg('DashboardActionSavedDataFlow', 'Saved data flow')
+	    })
+	  }
+
+	  return options
+	}
+	static outputDataFlowOptions (selected){
+	  let options = []
+
+	  dataflow.all()
+	    .filter((flow) => flow.input && flow.input.sourceType == 'bipes')
+	    .forEach((flow) => {
+	      let description = dataflow.describe(flow)
+	      options.push({
+	        value:flow.id,
+	        label:`${flow.name || dashboardActionMsg('DataFlowUntitled', 'Untitled data flow')} (${description.output})`
+	      })
+	    })
+
+	  if (selected && !options.some((option) => option.value == selected)) {
+	    options.push({
+	      value:selected,
+	      label:dashboardActionMsg('DashboardActionSavedDataFlow', 'Saved data flow')
+	    })
+	  }
+
+	  return options
+	}
+	static outputDataFlowId (){
+	  let flow = dataflow.all().find((item) => item.input && item.input.sourceType == 'bipes')
+	  return flow ? flow.id : dataflow.selectedId()
 	}
 
 	constructor (dom){
@@ -134,7 +181,7 @@ class Actions {
 	static _getType (plugin, key){
 	  let _dict = {
 	    'chart': {
-	      source: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      topic: 'input',
 	      chartType: 'dropdown',
@@ -149,8 +196,7 @@ class Actions {
 	      manifest: 'input'
 	    },
 	    'switch': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
@@ -158,8 +204,7 @@ class Actions {
 	      messageOff: 'input',
 	    },
 	    'threeStateSwitch': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
@@ -172,16 +217,14 @@ class Actions {
 	      defaultState: 'input',
 	    },
 	    'button': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
 	      message: 'input',
 	    },
 		  'range': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
@@ -190,7 +233,7 @@ class Actions {
 	      step: 'input'
 	    },
 	    'gauge': {
-	      source: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
@@ -198,8 +241,7 @@ class Actions {
 	      maxValue: 'input',
 	    },
 	    'coordinate': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      topic: 'input',
 	      size: 'dropdown',
@@ -210,8 +252,7 @@ class Actions {
 	      maxY: 'input',
 	    },
 	    'drawing': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      title: 'input',
 	      filename: 'input',
 	      topic: 'input',
@@ -225,31 +266,18 @@ class Actions {
 	      maxY: 'input',
 	    },
 	    'mlClassifier': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
 	      title: 'input',
 	      workspaceId: 'dropdown',
-	      source: 'dropdown',
-	      sourceDevice: 'dropdown',
-	      imageUrl: 'input',
-	      intervalMs: 'input',
-	      triggerMode: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      confidence: 'input',
 	      topic: 'input',
 	      messageTemplate: 'input',
 	      sendMode: 'dropdown'
 	    },
 	    'visionProcessor': {
-	      target: 'dropdown',
-	      targetDevice: 'dropdown',
 	      title: 'input',
 	      setupId: 'dropdown',
-	      executionMode: 'dropdown',
-	      source: 'dropdown',
-	      sourceDevice: 'dropdown',
-	      imageUrl: 'input',
-	      intervalMs: 'input',
-	      triggerMode: 'dropdown',
+	      dataFlowId: 'dropdown',
 	      autoStart: 'dropdown',
 	      debugView: 'dropdown',
 	      topic: 'input',
@@ -308,14 +336,14 @@ class Actions {
 	    bipes.page.device.devices : []
 	  let known = ['active', 'all']
 
-	  devices.forEach((device, index) => {
+	  devices.forEach((device) => {
 	    if (!channel.hasConnection(device.uid))
 	      return
 
 	    known.push(device.uid)
 	    options.push({
 	      value: device.uid,
-	      label: `${device.nodename || 'Device'} ${device.version || ''} (${device.protocol || 'device'} ${index + 1})`
+	      label: formatDeviceOptionLabel(device, 'Device')
 	    })
 	  })
 
@@ -363,11 +391,34 @@ class Actions {
 	  })
 
 	  data.setup = normalized
+	  Actions.applyDataFlowSetup(data)
 	  if (data.setup.hasOwnProperty('targetDevice') && !isLiveSelectableDevice(data.setup.targetDevice, 'device'))
 	    data.setup.targetDevice = defu.targetDevice || 'active'
 	  if (data.setup.hasOwnProperty('sourceDevice') && !isLiveSelectableDevice(data.setup.sourceDevice, 'any'))
 	    data.setup.sourceDevice = defu.sourceDevice || ''
 	  Actions.sanitizeGuestSetup(data)
+	}
+	static applyDataFlowSetup (data){
+	  if (!data || (data.type != 'mlClassifier' && data.type != 'visionProcessor'))
+	    return
+
+	  let flow = data.setup.dataFlowId ? dataflow.get(data.setup.dataFlowId) : null
+	  if (!flow || !flow.input || flow.input.sourceType == 'bipes')
+	    return
+
+	  if (flow.input.sourceType == 'webcam') {
+	    data.setup.source = 'Webcam'
+	  } else if (flow.input.sourceType == 'device') {
+	    if (flow.input.transport == 'websocket') {
+	      data.setup.source = 'Image URL'
+	      data.setup.imageUrl = flow.input.url || data.setup.imageUrl || ''
+	    } else {
+	      data.setup.source = 'Source device'
+	      data.setup.sourceDevice = flow.input.deviceUid || data.setup.sourceDevice || ''
+	    }
+	    data.setup.triggerMode = flow.input.mode == 'stream' ? 'interval' : 'newImage'
+	    data.setup.streamFps = flow.input.fps || data.setup.streamFps || 4
+	  }
 	}
 	static defaults (plugin){
 	  switch (plugin){
@@ -378,7 +429,8 @@ class Actions {
 	      }
 	      break
 	    case 'chart':
-        return {
+	      return {
+	        dataFlowId: dataflow.selectedId(),
           source: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
           title: '',
           topic:'data',
@@ -392,6 +444,7 @@ class Actions {
 	      break
 	    case 'switch':
 	      return {
+	        dataFlowId: Actions.outputDataFlowId(),
 	        target: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultClick', 'Click'),
@@ -403,6 +456,7 @@ class Actions {
 	      break
 	    case 'threeStateSwitch':
 	      return {
+	        dataFlowId: Actions.outputDataFlowId(),
 	        target: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultMode', 'Mode'),
@@ -419,6 +473,7 @@ class Actions {
 	      break
 	    case 'button':
 	      return {
+	        dataFlowId: Actions.outputDataFlowId(),
 	        target: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultPush', 'Push'),
@@ -429,6 +484,7 @@ class Actions {
 	      break
 	    case 'range':
 	      return {
+	        dataFlowId: Actions.outputDataFlowId(),
 	        target: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultRange', 'Range'),
@@ -441,6 +497,7 @@ class Actions {
 	      break
 	    case 'gauge':
 	      return {
+          dataFlowId: dataflow.selectedId(),
           source: Actions.isGuestMode() ? 'Console' : 'EasyMQTT',
 	        title: dashboardActionMsg('DashboardDefaultGauge', 'Gauge'),
 	        subtitle: dashboardActionMsg('DashboardDefaultUnit', 'Unit'),
@@ -451,6 +508,7 @@ class Actions {
 	      break
 	    case 'coordinate':
 	      return {
+          dataFlowId: Actions.outputDataFlowId(),
           target: 'Console',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultCoordinate', 'Coordinate'),
@@ -465,6 +523,7 @@ class Actions {
 	      break
 	    case 'drawing':
 	      return {
+          dataFlowId: Actions.outputDataFlowId(),
           target: 'Console',
 	        targetDevice: 'active',
 	        title: dashboardActionMsg('DashboardDefaultDrawing', 'Drawing'),
@@ -483,13 +542,14 @@ class Actions {
 	    case 'mlClassifier':
 	      return {
 	        target: 'Console',
-	        targetDevice: 'active',
 	        title: dashboardActionMsg('MLClassifierTitle', 'ML Classifier'),
 	        workspaceId: ml.selectedModelId || '',
+	        dataFlowId: dataflow.selectedId(),
 	        source: 'Webcam',
 	        sourceDevice: '',
 	        triggerMode: 'interval',
 	        intervalMs: 1000,
+	        streamFps: 4,
 	        imageUrl: '',
 	        confidence: 0.65,
 	        topic: 'ml',
@@ -500,15 +560,16 @@ class Actions {
 	    case 'visionProcessor':
 	      return {
 	        target: 'Console',
-	        targetDevice: 'active',
 	        title: dashboardActionMsg('VisionProcessorTitle', 'Vision Processor'),
 	        setupId: 'current',
-	        executionMode: 'Browser',
+	        dataFlowId: dataflow.selectedId(),
 	        source: 'Image URL',
 	        sourceDevice: '',
 	        triggerMode: 'newImage',
 	        intervalMs: 1000,
+	        streamFps: 4,
 	        imageUrl: '',
+	        inputSources: '{}',
 	        autoStart: 'true',
 	        debugView: 'true',
 	        topic: 'vision',
@@ -522,6 +583,7 @@ class Actions {
 	static dict (plugin, key){
 	  let _dict = {
 	    'chart': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.dataFlowOptions],
 	      topic: dashboardActionMsg('DashboardActionTopic', 'Topic'),
 	      chartType: [dashboardActionMsg('DashboardActionChartType', 'Chart type'), ['line','scatter','bar','pie','radar']],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -537,6 +599,7 @@ class Actions {
 	      manifest: dashboardActionMsg('DashboardActionManifestAddress', 'Manifest address')
 	    },
 	    'switch': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.dataTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -546,6 +609,7 @@ class Actions {
 	      messageOff: dashboardActionMsg('DashboardActionSwitchOffMessage', 'Switch off message')
 	    },
 	    'threeStateSwitch': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.dataTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -560,6 +624,7 @@ class Actions {
 	      defaultState: dashboardActionMsg('DashboardActionDefaultState', 'Default state (0, 1, or 2)')
 	    },
 	    'button': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.dataTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -568,6 +633,7 @@ class Actions {
 	      message: dashboardActionMsg('DashboardActionMessage', 'Message'),
 	    },
 	    'range': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.dataTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -578,6 +644,7 @@ class Actions {
 	      step: dashboardActionMsg('DashboardActionStep', 'Step')
 	    },
 	    'gauge': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.dataFlowOptions],
 	      source: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.dataSourceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
 	      subtitle: dashboardActionMsg('DashboardActionSubtitle', 'Subtitle'),
@@ -586,6 +653,7 @@ class Actions {
 	      maxValue: dashboardActionMsg('DashboardActionUpperBound', 'Upper bound')
 	    },
 	    'coordinate': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.consoleFirstTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -598,6 +666,7 @@ class Actions {
 	      maxY: 'Max Y'
 	    },
 	    'drawing': {
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.consoleFirstTargetOptions],
 	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
@@ -615,17 +684,19 @@ class Actions {
 	    'mlClassifier': {
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
 	      workspaceId: [dashboardActionMsg('DashboardActionMLModel', 'ML model'), Actions.mlWorkspaceOptions],
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.dataFlowOptions],
 	      source: [dashboardActionMsg('DashboardActionImageSource', 'Image source'), Actions.imageSourceOptions],
 	      sourceDevice: [dashboardActionMsg('DashboardActionSourceDevice', 'Source device'), Actions.sourceDeviceOptions],
 	      imageUrl: 'Image URL',
+	      inputSources: dashboardActionMsg('DashboardActionVisionInputSources', 'Input source routing JSON'),
 	      intervalMs: dashboardActionMsg('DashboardActionPredictionInterval', 'Prediction interval (ms)'),
+	      streamFps: dashboardActionMsg('DashboardActionStreamFps', 'Streaming FPS'),
 	      triggerMode: [dashboardActionMsg('DashboardActionInputTrigger', 'Input trigger'), [
-	        {value:'interval', label:dashboardActionMsg('DashboardActionInterval', 'Interval')},
-	        {value:'newImage', label:dashboardActionMsg('DashboardActionNewImagePosted', 'New image posted')}
+	        {value:'interval', label:dashboardActionMsg('DashboardActionStreaming', 'Streaming')},
+	        {value:'newImage', label:dashboardActionMsg('DashboardActionRequest', 'Request')}
 	      ]],
 	      confidence: dashboardActionMsg('DashboardActionConfidenceThreshold', 'Confidence threshold (0-1)'),
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.consoleFirstTargetOptions],
-	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      topic: dashboardActionMsg('DashboardActionCommandTopic', 'Command/topic'),
 	      messageTemplate: dashboardActionMsg('DashboardActionMessageTemplate', 'Message template'),
 	      sendMode: [dashboardActionMsg('DashboardActionSendMode', 'Send mode'), [
@@ -637,14 +708,15 @@ class Actions {
 	    'visionProcessor': {
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
 	      setupId: ["Vision setup", Actions.visionSetupOptions],
-	      executionMode: [dashboardActionMsg('DashboardActionExecutionMode', 'Execution mode'), ['Browser', 'Device']],
+	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.dataFlowOptions],
 	      source: [dashboardActionMsg('DashboardActionImageSource', 'Image source'), Actions.imageSourceOptions],
 	      sourceDevice: [dashboardActionMsg('DashboardActionSourceDevice', 'Source device'), Actions.sourceDeviceOptions],
 	      imageUrl: 'Image URL',
 	      intervalMs: dashboardActionMsg('DashboardActionPredictionInterval', 'Prediction interval (ms)'),
+	      streamFps: dashboardActionMsg('DashboardActionStreamFps', 'Streaming FPS'),
 	      triggerMode: [dashboardActionMsg('DashboardActionInputTrigger', 'Input trigger'), [
-	        {value:'interval', label:dashboardActionMsg('DashboardActionInterval', 'Interval')},
-	        {value:'newImage', label:dashboardActionMsg('DashboardActionNewImagePosted', 'New image posted')}
+	        {value:'interval', label:dashboardActionMsg('DashboardActionStreaming', 'Streaming')},
+	        {value:'newImage', label:dashboardActionMsg('DashboardActionRequest', 'Request')}
 	      ]],
 	      autoStart: [dashboardActionMsg('DashboardActionAutoStart', 'Auto start'), [
 	        {value:'true', label:dashboardActionMsg('DashboardActionOn', 'On')},
@@ -655,7 +727,6 @@ class Actions {
 	        {value:'false', label:dashboardActionMsg('DashboardActionHide', 'Hide')}
 	      ]],
 	      target: [dashboardActionMsg('DashboardActionCommunicationMethod', 'Communication method'), Actions.consoleFirstTargetOptions],
-	      targetDevice: [dashboardActionMsg('DashboardActionTargetDevice', 'Target device'), Actions.deviceOptions],
 	      topic: dashboardActionMsg('DashboardActionCommandTopic', 'Command/topic'),
 	      messageTemplate: dashboardActionMsg('DashboardActionMessageTemplate', 'Message template'),
 	      sendMode: [dashboardActionMsg('DashboardActionSendMode', 'Send mode'), [
@@ -677,10 +748,35 @@ class Action {
 	  this.hidden = false
 
 		let $ = this.$ = {}
+		let dataFlowOwnedKeys = {
+		  chart:['source'],
+		  switch:['target', 'targetDevice'],
+		  threeStateSwitch:['target', 'targetDevice'],
+		  button:['target', 'targetDevice'],
+		  range:['target', 'targetDevice'],
+		  gauge:['source'],
+		  coordinate:['target', 'targetDevice'],
+		  drawing:['target', 'targetDevice'],
+		  mlClassifier:['target', 'targetDevice', 'source', 'sourceDevice', 'imageUrl', 'inputSources', 'intervalMs', 'streamFps', 'triggerMode'],
+		  visionProcessor:['target', 'targetDevice', 'source', 'sourceDevice', 'imageUrl', 'inputSources', 'intervalMs', 'streamFps', 'triggerMode', 'executionMode']
+		}
+		if ((dataFlowOwnedKeys[data.type] || []).includes(key)) {
+		  this.hidden = true
+		  return
+		}
 		if (key.endsWith('DeviceRef')) {
 		  this.hidden = true
 		  return
 		}
+		if (
+		  data.setup.dataFlowId &&
+		  (data.type == 'mlClassifier' || data.type == 'visionProcessor') &&
+		  ['source', 'sourceDevice', 'imageUrl', 'inputSources', 'triggerMode', 'intervalMs', 'streamFps'].includes(key)
+		) {
+		  this.hidden = true
+		  return
+		}
+
 		if (
 		  key == 'imageUrl' &&
 		  (
@@ -696,8 +792,7 @@ class Action {
 		  key == 'sourceDevice' &&
 		  (
 		    (data.type == 'mlClassifier' || data.type == 'visionProcessor') &&
-		    data.setup.source != 'Source device' &&
-		    data.setup.source != 'ESP32-CAM serial camera'
+		    data.setup.source != 'Source device'
 		  )
 		) {
 		  this.hidden = true
@@ -708,7 +803,24 @@ class Action {
 		  key == 'intervalMs' &&
 		  (
 		    (data.type == 'mlClassifier' || data.type == 'visionProcessor') &&
-		    data.setup.triggerMode != 'interval'
+		    (
+		      data.setup.triggerMode != 'interval' ||
+		      data.setup.source == 'Source device'
+		    )
+		  )
+		) {
+		  this.hidden = true
+		  return
+		}
+
+		if (
+		  key == 'streamFps' &&
+		  (
+		    (data.type == 'mlClassifier' || data.type == 'visionProcessor') &&
+		    (
+		      data.setup.triggerMode != 'interval' ||
+		      data.setup.source != 'Source device'
+		    )
 		  )
 		) {
 		  this.hidden = true
@@ -915,6 +1027,7 @@ class Action {
 			      case 'sourceDevice':
 			      case 'imageUrl':
 			      case 'intervalMs':
+			      case 'streamFps':
 			      case 'confidence':
 			      case 'topic':
 			      case 'messageTemplate':
@@ -929,7 +1042,9 @@ class Action {
 			      case 'title':
 			      case 'sourceDevice':
 			      case 'imageUrl':
+			      case 'inputSources':
 			      case 'intervalMs':
+			      case 'streamFps':
 			      case 'topic':
 			      case 'messageTemplate':
               data.setup[this.key] = str
@@ -945,6 +1060,11 @@ class Action {
 		switch(this.plugin){
 		  case 'chart':
 		    switch (this.key){
+		      case 'dataFlowId':
+            data.setup.dataFlowId = str
+            Charts.regen(obj.charts, data)
+            bipes.page.dashboard.commit()
+            break
 		      case 'source':
             data.setup.source = str,
         		Charts.regen(obj.charts, data)
@@ -958,6 +1078,7 @@ class Action {
    		}
 		  case 'switch':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str,
@@ -967,6 +1088,7 @@ class Action {
    		}
 		  case 'threeStateSwitch':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str
@@ -976,6 +1098,7 @@ class Action {
         }
 		  case 'button':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str,
@@ -993,6 +1116,7 @@ class Action {
    		}
 		  case 'range':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str,
@@ -1002,6 +1126,11 @@ class Action {
    		}
 		  case 'gauge':
 		    switch (this.key){
+		      case 'dataFlowId':
+            data.setup.dataFlowId = str
+            Gauges.regen(obj, data)
+            bipes.page.dashboard.commit()
+            break
 		      case 'source':
             data.setup.source = str,
         		Gauges.regen(obj, data),
@@ -1010,6 +1139,7 @@ class Action {
    		}
 		  case 'coordinate':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str
@@ -1024,6 +1154,7 @@ class Action {
    		}
 		  case 'drawing':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'target':
 		      case 'targetDevice':
             data.setup[this.key] = str
@@ -1038,15 +1169,13 @@ class Action {
    		}
 		  case 'mlClassifier':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'workspaceId':
 		      case 'source':
 		      case 'sourceDevice':
 		      case 'triggerMode':
 		      case 'target':
-		      case 'targetDevice':
 		      case 'sendMode':
-	            if (this.key == 'source' && (str == 'ESP32-CAM serial camera' || str == 'Source device'))
-	              data.setup.triggerMode = 'newImage'
 	            data.setup[this.key] = str
 	            MLClassifiers.regen(obj, data)
 	            bipes.page.dashboard.commit()
@@ -1056,18 +1185,15 @@ class Action {
 	        }
 		  case 'visionProcessor':
 		    switch (this.key){
+		      case 'dataFlowId':
 		      case 'setupId':
-		      case 'executionMode':
 		      case 'source':
 		      case 'sourceDevice':
 		      case 'triggerMode':
 		      case 'autoStart':
 		      case 'debugView':
 		      case 'target':
-		      case 'targetDevice':
 		      case 'sendMode':
-	            if (this.key == 'source' && (str == 'ESP32-CAM serial camera' || str == 'Source device'))
-	              data.setup.triggerMode = 'newImage'
 	            data.setup[this.key] = str
 	            VisionProcessors.regen(obj, data)
 	            bipes.page.dashboard.commit()

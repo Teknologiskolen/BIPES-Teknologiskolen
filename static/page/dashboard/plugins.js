@@ -4,6 +4,7 @@ import {DOM} from '../../base/dom.js'
 import {Tool} from '../../base/tool.js'
 import {channel} from '../../base/channel.js'
 import {command} from '../../base/command.js'
+import {dataflow} from '../../base/dataflow.js'
 
 import {dataStorage} from './datastorage.js'
 import {databaseMQTT} from './easymqtt.js'
@@ -21,12 +22,122 @@ function dashboardMsg(key, fallback, ...args) {
   return text
 }
 
-const SERIAL_CAMERA_SOURCE = 'ESP32-CAM serial camera'
+const IMAGE_SOURCE_DEVICE_KIND = 'image-source'
+const SERIAL_CAMERA_SOURCE = 'Source device'
 const SERIAL_CAMERA_BAUD_RATE = 115200
 const SERIAL_CAMERA_MIN_CAPTURE_INTERVAL_MS = 3000
 
 function isSerialCameraSource(source) {
-  return source == SERIAL_CAMERA_SOURCE || source == 'Serial Camera' || source == 'Source device'
+  return source == 'Serial Camera' || source == 'Source device'
+}
+
+function normalizeImageTriggerLine (line) {
+  if (!line)
+    return ''
+
+  let normalized = line.trim()
+  if (normalized.startsWith('>>> '))
+    normalized = normalized.substr(4).trim()
+  return normalized
+}
+
+function isImageTriggerLine (line, notifyMessage = '') {
+  let normalized = normalizeImageTriggerLine(line)
+  if (notifyMessage && normalized.includes(notifyMessage))
+    return true
+
+  return normalized == 'CAPTURE' ||
+    normalized.includes('BIPES_CAMERA_TRIGGER') ||
+    normalized.includes('BIPES_CAMERA_CAPTURE') ||
+    normalized.includes('$BIPES-CAMERA:') ||
+    normalized.includes('$BIPES_CAMERA:')
+}
+
+function sourceStreamCommandFromLine (line) {
+  let normalized = normalizeImageTriggerLine(line)
+  if (!normalized)
+    return ''
+
+  let match = normalized.match(/^STREAM\s+(\d+(?:\.\d+)?)$/i)
+  if (!match)
+    return ''
+
+  return `STREAM ${match[1]}`
+}
+
+function streamFpsValue (value) {
+  let fps = Number(value)
+  if (!Number.isFinite(fps) || fps <= 0)
+    return 4
+  return Math.min(60, fps)
+}
+
+function isSourceStreamingMode (source, triggerMode) {
+  return isSerialCameraSource(source) && triggerMode == 'interval'
+}
+
+function sourceFeedSubscriptionMode (source, triggerMode) {
+  return isSourceStreamingMode(source, triggerMode) ? 'streaming' : triggerMode
+}
+
+function serialSourceWaitingStatus (feed, triggerMode) {
+  if (feed && feed.awaitingFrame)
+    return dashboardMsg('WidgetWaitingSourceImage', 'Waiting for an image from the source device...')
+
+  if (triggerMode == 'interval')
+    return dashboardMsg('WidgetWaitingSourceStream', 'Waiting for streamed images from the source device...')
+
+  if (triggerMode == 'newImage')
+    return dashboardMsg('WidgetWaitingImageRequest', 'Waiting for an image request from the target device...')
+
+  return dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...')
+}
+
+function parseFrameHeaderMetadata (text) {
+  let metadata = {}
+  if (!text)
+    return metadata
+
+  text.trim().split(/\s+/).forEach((part) => {
+    let index = part.indexOf('=')
+    if (index <= 0)
+      return
+    let key = part.slice(0, index).trim()
+    let value = part.slice(index + 1).trim()
+    if (!key)
+      return
+    metadata[key] = decodeURIComponent(value)
+  })
+
+  return metadata
+}
+
+function frameVisionInput (frame) {
+  if (!frame)
+    return ''
+  if (frame.visionInput)
+    return frame.visionInput
+  let metadata = frame.metadata || {}
+  return metadata.vision || metadata.visionInput || metadata.input || ''
+}
+
+function frameHeaderSummary (frame) {
+  if (!frame)
+    return ''
+
+  let parts = []
+  if (frame.dataType)
+    parts.push(`data=${frame.dataType}`)
+  if (frame.contentType)
+    parts.push(`content=${frame.contentType}`)
+  if (frame.width && frame.height)
+    parts.push(`${frame.width}x${frame.height}`)
+  if (frameVisionInput(frame))
+    parts.push(`vision=${frameVisionInput(frame)}`)
+  if (frame.label)
+    parts.push(`label=${frame.label}`)
+
+  return parts.join(' · ')
 }
 
 class DashboardSerialCamera {
@@ -75,9 +186,9 @@ class DashboardSerialCamera {
   }
 
   isFrameHeaderLine (line) {
-    return /^GRAY8\s+\S+\s+\d+\s+\d+\s+\d+$/.test(line) ||
-      /^RAW565\s+\S+\s+\d+\s+\d+\s+\d+$/.test(line) ||
-      /^JPEG\s+\S+\s+\d+\s+\d+\s+\d+$/.test(line) ||
+    return /^GRAY8\s+\S+\s+\d+\s+\d+\s+\d+(?:\s+.*)?$/.test(line) ||
+      /^RAW565\s+\S+\s+\d+\s+\d+\s+\d+(?:\s+.*)?$/.test(line) ||
+      /^JPEG\s+\S+\s+\d+\s+\d+\s+\d+(?:\s+.*)?$/.test(line) ||
       line.startsWith('BIPES_CAMERA_FRAME')
   }
 
@@ -173,7 +284,7 @@ class DashboardSerialCamera {
         this.reader.read(),
         new Promise((resolve, reject) => {
           timeout = setTimeout(() => {
-            reject(new Error(dashboardMsg('WidgetSerialCameraTimeout', 'Timed out waiting for ESP32-CAM image data.')))
+            reject(new Error(dashboardMsg('WidgetSerialCameraTimeout', 'Timed out waiting for image data.')))
           }, timeoutMs)
         })
       ])
@@ -267,7 +378,7 @@ class DashboardSerialCamera {
         console.info('Serial camera wait line:', line)
 
       if (onProgress && searchedLines % 10 === 0)
-        onProgress(dashboardMsg('WidgetSerialCameraSearching', 'Searching ESP32-CAM stream...'))
+          onProgress(dashboardMsg('WidgetSerialCameraSearching', 'Searching camera source stream...'))
 
       if (this.isProbablyBinaryLine(line))
         continue
@@ -287,41 +398,59 @@ class DashboardSerialCamera {
       if (line.startsWith('BIPES_CAMERA_FRAME'))
         continue
 
-      let grayMatch = line.match(/^GRAY8\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)$/)
+      let grayMatch = line.match(/^GRAY8\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(.*))?$/)
       if (grayMatch) {
+        let metadata = parseFrameHeaderMetadata(grayMatch[5] || '')
         return {
           type: 'gray8',
           requestId: grayMatch[1],
           width: Number(grayMatch[2]),
           height: Number(grayMatch[3]),
-          length: Number(grayMatch[4])
+          length: Number(grayMatch[4]),
+          metadata: metadata,
+          dataType: metadata.data || metadata.kind || 'image',
+          contentType: metadata.contentType || metadata.mime || '',
+          visionInput: metadata.vision || metadata.visionInput || metadata.input || '',
+          label: metadata.label || metadata.name || ''
         }
       }
 
-      let rawMatch = line.match(/^RAW565\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)$/)
+      let rawMatch = line.match(/^RAW565\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(.*))?$/)
       if (rawMatch) {
+        let metadata = parseFrameHeaderMetadata(rawMatch[5] || '')
         return {
           type: 'raw565',
           requestId: rawMatch[1],
           width: Number(rawMatch[2]),
           height: Number(rawMatch[3]),
-          length: Number(rawMatch[4])
+          length: Number(rawMatch[4]),
+          metadata: metadata,
+          dataType: metadata.data || metadata.kind || 'image',
+          contentType: metadata.contentType || metadata.mime || '',
+          visionInput: metadata.vision || metadata.visionInput || metadata.input || '',
+          label: metadata.label || metadata.name || ''
         }
       }
 
-      let jpegMatch = line.match(/^JPEG\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)$/)
+      let jpegMatch = line.match(/^JPEG\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(.*))?$/)
       if (jpegMatch) {
+        let metadata = parseFrameHeaderMetadata(jpegMatch[5] || '')
         return {
           type: 'jpeg',
           requestId: jpegMatch[1],
           width: Number(jpegMatch[2]),
           height: Number(jpegMatch[3]),
-          length: Number(jpegMatch[4])
+          length: Number(jpegMatch[4]),
+          metadata: metadata,
+          dataType: metadata.data || metadata.kind || 'image',
+          contentType: metadata.contentType || metadata.mime || '',
+          visionInput: metadata.vision || metadata.visionInput || metadata.input || '',
+          label: metadata.label || metadata.name || ''
         }
       }
     }
 
-    throw new Error(dashboardMsg('WidgetSerialCameraTimeout', 'Timed out waiting for ESP32-CAM image data.'))
+    throw new Error(dashboardMsg('WidgetSerialCameraTimeout', 'Timed out waiting for image data.'))
   }
 
   async readBytes (length, timeoutMs = 15000) {
@@ -341,7 +470,7 @@ class DashboardSerialCamera {
       if (remainingMs <= 0) {
         throw new Error(dashboardMsg(
           'WidgetSerialCameraByteTimeout',
-          'Timed out reading ESP32-CAM image bytes ({0}/{1}).',
+          'Timed out reading camera source image bytes ({0}/{1}).',
           String(offset),
           String(length)
         ))
@@ -523,21 +652,21 @@ class DashboardSerialCamera {
 
       if (waitMs > 0) {
         if (onProgress)
-          onProgress(dashboardMsg('WidgetSerialCameraWaitingInterval', 'Waiting for next ESP32-CAM capture...'))
+          onProgress(dashboardMsg('WidgetSerialCameraWaitingInterval', 'Waiting for next camera source capture...'))
         await this.sleep(waitMs)
       }
 
       await this.drainInput(180, 2500)
 
       if (onProgress)
-        onProgress(dashboardMsg('WidgetSerialCameraRequesting', 'Requesting image from ESP32-CAM...'))
+        onProgress(dashboardMsg('WidgetSerialCameraRequesting', 'Requesting image from camera source...'))
 
       console.info('Serial camera capture request: BIPES_CAPTURE')
       this.lastCaptureStartedAt = Date.now()
       await this.writeLine('BIPES_CAPTURE')
 
       if (onProgress)
-        onProgress(dashboardMsg('WidgetSerialCameraWaitingHeader', 'Waiting for ESP32-CAM frame header...'))
+        onProgress(dashboardMsg('WidgetSerialCameraWaitingHeader', 'Waiting for camera source frame header...'))
 
       let header = await this.readCaptureHeader(requestId, 15000, onProgress)
 
@@ -556,13 +685,13 @@ class DashboardSerialCamera {
         throw new Error(dashboardMsg('WidgetSerialCameraBadFrame', 'Serial camera sent an invalid image frame.'))
 
       if (onProgress)
-        onProgress(dashboardMsg('WidgetSerialCameraReadingBytes', 'Reading ESP32-CAM image... ({0} bytes)', length))
+        onProgress(dashboardMsg('WidgetSerialCameraReadingBytes', 'Reading camera source image... ({0} bytes)', length))
 
       let bytes = await this.readBytes(length, 15000)
       console.info('Serial camera image bytes read:', bytes.length, 'expected:', length)
 
       if (onProgress)
-        onProgress(dashboardMsg('WidgetSerialCameraWaitingEnd', 'Finishing ESP32-CAM image transfer...'))
+        onProgress(dashboardMsg('WidgetSerialCameraWaitingEnd', 'Finishing camera source image transfer...'))
 
       let ended = await this.consumeEndMarker(responseRequestId, 2500)
       if (!ended)
@@ -590,7 +719,13 @@ class DashboardSerialCamera {
         changed: true,
         byteLength: length,
         width,
-        height
+        height,
+        header,
+        metadata: header.metadata || {},
+        dataType: header.dataType,
+        contentType: header.contentType,
+        visionInput: header.visionInput,
+        label: header.label
       }
     } catch (error) {
       if (this.isDeviceLostError(error))
@@ -599,9 +734,10 @@ class DashboardSerialCamera {
     }
   }
 }
-class SharedSerialCameraFeed {
-  constructor (camera) {
+class SharedImageSourceFeed {
+  constructor (camera, onFrame = undefined) {
     this.camera = camera
+    this.onFrame = onFrame
     this.latestFrame = null
     this.capturePromise = null
     this.timer = null
@@ -762,6 +898,8 @@ class SharedSerialCameraFeed {
       try {
         let frame = await this.camera.capture(onProgress)
         this.latestFrame = frame
+        if (typeof this.onFrame == 'function')
+          this.onFrame(frame)
 
         for (let [callback] of this.listeners) {
           try {
@@ -798,20 +936,34 @@ class SharedSerialCameraFeed {
   }
 }
 
-class DashboardSerialCameraRegistry {
+class DashboardImageSourceRegistry {
   constructor () {
     this.devices = new Map()
     this.listeners = new Set()
   }
 
   snapshot (device) {
+    let latestFrame = device.feed && typeof device.feed.getLatestFrame == 'function'
+      ? device.feed.getLatestFrame()
+      : null
     return {
       uid: device.uid,
       nodename: device.nodename,
       version: device.version,
       protocol: device.protocol,
       kind: device.kind,
-      source: device.source
+      source: device.source,
+      latestFrame: latestFrame ? {
+        width: latestFrame.width,
+        height: latestFrame.height,
+        byteLength: latestFrame.byteLength,
+        dataType: latestFrame.dataType,
+        contentType: latestFrame.contentType,
+        visionInput: frameVisionInput(latestFrame),
+        label: latestFrame.label,
+        metadata: latestFrame.metadata || {},
+        summary: frameHeaderSummary(latestFrame)
+      } : null
     }
   }
 
@@ -865,13 +1017,13 @@ class DashboardSerialCameraRegistry {
     let uid = Tool.UID()
     let device = {
       uid,
-      nodename: 'ESP32-CAM',
+      nodename: 'Camera source',
       version: '-',
-      protocol: 'WebSerial Camera',
-      kind: 'camera',
+      protocol: 'WebSerial camera source',
+      kind: IMAGE_SOURCE_DEVICE_KIND,
       source: SERIAL_CAMERA_SOURCE,
       camera,
-      feed: new SharedSerialCameraFeed(camera)
+      feed: new SharedImageSourceFeed(camera, () => this.notify())
     }
 
     this.devices.set(uid, device)
@@ -898,26 +1050,42 @@ class DashboardSerialCameraRegistry {
   }
 }
 
-const serialCameraRegistry = new DashboardSerialCameraRegistry()
+const imageSourceRegistry = new DashboardImageSourceRegistry()
+
+export function listImageSourceDevices () {
+  return imageSourceRegistry.list()
+}
+
+export function subscribeImageSourceDevices (callback) {
+  return imageSourceRegistry.subscribe(callback)
+}
+
+export async function connectImageSourceDevice () {
+  return imageSourceRegistry.connectSerialCamera()
+}
+
+export async function disconnectImageSourceDevice (uid) {
+  return imageSourceRegistry.disconnect(uid)
+}
 
 export function listSerialCameraDevices () {
-  return serialCameraRegistry.list()
+  return listImageSourceDevices()
 }
 
 export function subscribeSerialCameraDevices (callback) {
-  return serialCameraRegistry.subscribe(callback)
+  return subscribeImageSourceDevices(callback)
 }
 
 export async function connectSerialCameraDevice () {
-  return serialCameraRegistry.connectSerialCamera()
+  return connectImageSourceDevice()
 }
 
 export async function disconnectSerialCameraDevice (uid) {
-  return serialCameraRegistry.disconnect(uid)
+  return disconnectImageSourceDevice(uid)
 }
 
-function resolveSerialCameraDevice (uid) {
-  return serialCameraRegistry.resolve(uid)
+function resolveImageSourceDevice (uid) {
+  return imageSourceRegistry.resolve(uid)
 }
 
 function normalizeStoredDeviceRef (ref) {
@@ -940,7 +1108,7 @@ function liveConnectedDevices (kind = 'any') {
   let pageDevices = window.bipes && bipes.page && bipes.page.device && Array.isArray(bipes.page.device.devices) ?
     bipes.page.device.devices : []
 
-  if (kind == 'any' || kind == 'device') {
+  if (kind == 'any' || kind == 'device' || kind == IMAGE_SOURCE_DEVICE_KIND) {
     pageDevices.forEach((device) => {
       if (!device || !device.uid || !channel.hasConnection(device.uid))
         return
@@ -948,7 +1116,7 @@ function liveConnectedDevices (kind = 'any') {
       known.add(device.uid)
       devices.push({
         uid: device.uid,
-        kind: 'device',
+        kind: kind == IMAGE_SOURCE_DEVICE_KIND ? IMAGE_SOURCE_DEVICE_KIND : 'device',
         protocol: device.protocol || '',
         nodename: device.nodename || '',
         version: device.version || ''
@@ -961,7 +1129,7 @@ function liveConnectedDevices (kind = 'any') {
 
       devices.push({
         uid,
-        kind: 'device',
+        kind: kind == IMAGE_SOURCE_DEVICE_KIND ? IMAGE_SOURCE_DEVICE_KIND : 'device',
         protocol: '',
         nodename: '',
         version: ''
@@ -969,14 +1137,14 @@ function liveConnectedDevices (kind = 'any') {
     })
   }
 
-  if (kind == 'any' || kind == 'camera') {
-    listSerialCameraDevices().forEach((device) => {
+  if (kind == 'any' || kind == IMAGE_SOURCE_DEVICE_KIND) {
+    listImageSourceDevices().forEach((device) => {
       if (!device || !device.uid)
         return
 
       devices.push({
         uid: device.uid,
-        kind: device.kind || 'camera',
+        kind: device.kind || IMAGE_SOURCE_DEVICE_KIND,
         protocol: device.protocol || '',
         nodename: device.nodename || '',
         version: device.version || '',
@@ -1087,16 +1255,57 @@ export function resolveStoredConnectedDeviceUid (value, ref, options = {}) {
   return fallback
 }
 
-function resolveSerialCameraSelection (uid, ref) {
+function resolveImageSourceSelection (uid, ref) {
   let resolvedUid = resolveStoredConnectedDeviceUid(uid, ref, {
-    kind:'camera',
+    kind: IMAGE_SOURCE_DEVICE_KIND,
     fallback:uid
   })
-  return resolveSerialCameraDevice(resolvedUid)
+
+  if (resolvedUid && channel.hasConnection(resolvedUid)) {
+    return {
+      uid: resolvedUid,
+      feed: channel.getImageFeed(resolvedUid),
+      protocol: channel.connections[resolvedUid] && channel.connections[resolvedUid].currentProtocol ? channel.connections[resolvedUid].currentProtocol : '',
+      nodename: '',
+      version: ''
+    }
+  }
+
+  return resolveImageSourceDevice(resolvedUid)
+}
+
+async function sendImageSourceCommand (cameraDevice, commandLine) {
+  if (!cameraDevice)
+    throw new Error(sourceDeviceSelectionError(''))
+
+  if (cameraDevice.uid && channel.hasConnection(cameraDevice.uid)) {
+    let connection = channel.connections[cameraDevice.uid]
+    if (!connection || !connection.current || typeof connection.current.writeRaw != 'function')
+      throw new Error(dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+
+    await connection.current.writeRaw(`${commandLine}\n`)
+    return
+  }
+
+  if (cameraDevice.camera && typeof cameraDevice.camera.writeLine == 'function') {
+    await cameraDevice.camera.writeLine(commandLine)
+    return
+  }
+
+  if (cameraDevice.feed && cameraDevice.feed.camera && typeof cameraDevice.feed.camera.writeLine == 'function') {
+    await cameraDevice.feed.camera.writeLine(commandLine)
+    return
+  }
+
+  throw new Error(dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+}
+
+export function triggerImageSourceFeedsFromChunk (chunk) {
+  imageSourceRegistry.triggerFromChunk(chunk)
 }
 
 export function triggerSharedSerialCameraFeedFromChunk (chunk) {
-  serialCameraRegistry.triggerFromChunk(chunk)
+  triggerImageSourceFeedsFromChunk(chunk)
 }
 
 function sendEasyMQTT(topic, message) {
@@ -1126,25 +1335,42 @@ function sendEasyMQTT(topic, message) {
   return true
 }
 
-function consoleTargetDevices(targetDevice, targetDeviceRef = null) {
+function sourceDeviceSelectionError (selectedUid) {
+  if (selectedUid && channel.hasConnection(selectedUid))
+    return dashboardMsg('WidgetSourceDeviceNoImagesYet', 'The selected source device is connected, but it is not sending images yet.')
+
+  return dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect a compatible camera source device on the Device page and select it in the widget settings.')
+}
+
+function connectionMatchesDataFlowTransport (uid, transport = 'auto') {
+  if (!transport || transport == 'auto')
+    return true
+
+  let connection = channel.connections && channel.connections[uid] ? channel.connections[uid] : null
+  let protocol = connection && connection.currentProtocol ? String(connection.currentProtocol).toLowerCase() : ''
+  return protocol == transport
+}
+
+function consoleTargetDevices(targetDevice, targetDeviceRef = null, transport = 'auto') {
   targetDevice = targetDevice || 'active'
 
   if (targetDevice == 'all')
     return Object.keys(channel.connections || {})
+      .filter((uid) => connectionMatchesDataFlowTransport(uid, transport))
 
   if (targetDevice == 'active')
-    return channel.targetDevice == undefined ? [] : [channel.targetDevice]
+    return channel.targetDevice == undefined || !connectionMatchesDataFlowTransport(channel.targetDevice, transport) ? [] : [channel.targetDevice]
 
   let resolvedTarget = resolveStoredConnectedDeviceUid(targetDevice, targetDeviceRef, {
     kind:'device',
     fallback:targetDevice
   })
 
-  return channel.hasConnection(resolvedTarget) ? [resolvedTarget] : []
+  return channel.hasConnection(resolvedTarget) && connectionMatchesDataFlowTransport(resolvedTarget, transport) ? [resolvedTarget] : []
 }
 
 function sendConsoleCommand(targetDevice, code, options = {}) {
-  let targets = consoleTargetDevices(targetDevice, options.deviceRef || null)
+  let targets = consoleTargetDevices(targetDevice, options.deviceRef || null, options.transport || 'auto')
 
   if (targets.length === 0) {
     if (!options.quiet)
@@ -1153,13 +1379,249 @@ function sendConsoleCommand(targetDevice, code, options = {}) {
   }
 
   targets.forEach((deviceUID) => {
-    command.dispatch(channel, 'push', [
-      code,
-      deviceUID, [], command.tabUID
-    ])
+    if (options.nonInterrupting) {
+      command.dispatch(channel, 'livePush', [
+        code,
+        deviceUID
+      ])
+    } else {
+      command.dispatch(channel, 'push', [
+        code,
+        deviceUID, [], command.tabUID
+      ])
+    }
   })
 
   return true
+}
+
+function dataFlowFormattedOutput (setup, topic, value, fields = {}) {
+  let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+  let output = flow && flow.output ? flow.output : {}
+  let format = output.format || 'raw-binary'
+  let transport = dataFlowEffectiveTransport(output, setup || {})
+  let textValue = String(value)
+  let payload
+
+  if (format == 'json') {
+    payload = JSON.stringify({
+      topic,
+      value,
+      ...fields
+    })
+    return {
+      mqttTopic:topic,
+      mqttMessage:dataFlowWrapPayload(payload, output),
+      ...dataFlowDeviceMessage(topic, payload, output, transport, format)
+    }
+  }
+
+  if (format == 'csv') {
+    payload = [topic, value, ...Object.values(fields)].map(dataFlowCsvValue).join(',')
+    return {
+      mqttTopic:topic,
+      mqttMessage:dataFlowWrapPayload(payload, output),
+      ...dataFlowDeviceMessage(topic, payload, output, transport, format)
+    }
+  }
+
+  if (format == 'avro' || format == 'parquet') {
+    payload = JSON.stringify({
+      format,
+      topic,
+      value,
+      ...fields
+    })
+    return {
+      mqttTopic:topic,
+      mqttMessage:dataFlowWrapPayload(payload, output),
+      ...dataFlowDeviceMessage(topic, payload, output, transport, format)
+    }
+  }
+
+  if (format == 'command') {
+    let template = output.commandTemplate || `${topic}({value})`
+    let commandText = String(template)
+      .replace(/\{topic\}/g, topic)
+      .replace(/\{message\}/g, textValue)
+      .replace(/\{value\}/g, textValue)
+    return {
+      mqttTopic:topic,
+      mqttMessage:commandText,
+      ...dataFlowDeviceMessage(topic, commandText, output, transport, format)
+    }
+  }
+
+  payload = textValue
+  return {
+    mqttTopic:topic,
+    mqttMessage:dataFlowWrapPayload(payload, output),
+    ...dataFlowDeviceMessage(topic, payload, output, transport, format)
+  }
+}
+
+function dataFlowWrapPayload (payload, output = {}) {
+  return `${output.header || ''}${payload}${output.footer || ''}`
+}
+
+function dataFlowEffectiveTransport (output = {}, setup = {}) {
+  let transport = output.transport || 'auto'
+  if (transport != 'auto')
+    return transport
+
+  let targetDevice = output.targetDevice || setup.targetDevice || 'active'
+  let resolvedTarget = ''
+
+  if (targetDevice == 'all')
+    return 'auto'
+  if (targetDevice == 'active')
+    resolvedTarget = channel.targetDevice
+  else
+    resolvedTarget = resolveStoredConnectedDeviceUid(targetDevice, setup.targetDeviceRef || null, {
+      kind:'device',
+      fallback:targetDevice
+    })
+
+  let connection = resolvedTarget && channel.connections ? channel.connections[resolvedTarget] : null
+  return connection && connection.currentProtocol ? String(connection.currentProtocol).toLowerCase() : 'auto'
+}
+
+function dataFlowResolvedEnvelope (output = {}, transport = 'auto') {
+  let envelope = output.envelope || 'auto'
+  if (envelope != 'auto')
+    return envelope
+
+  if (transport == 'webbluetooth')
+    return 'topic-message-packet'
+
+  return 'function-call'
+}
+
+function dataFlowDeviceMessage (topic, payload, output = {}, transport = 'auto', format = 'raw-binary') {
+  if (format == 'command') {
+    let code = dataFlowWrapPayload(payload, output)
+    code = /[\r\n]$/.test(code) ? code : `${code}\r`
+    return {
+      consoleCode:code,
+      deviceCode:code,
+      deviceRaw:false
+    }
+  }
+
+  let envelope = dataFlowResolvedEnvelope(output, transport)
+  let code
+  let raw = false
+
+  if (envelope == 'raw') {
+    code = dataFlowWrapPayload(payload, output)
+    raw = true
+  } else if (envelope == 'topic-message-packet') {
+    code = dataFlowWrapPayload(JSON.stringify({
+      topic,
+      message:payload
+    }), output)
+    raw = true
+  } else {
+    code = dataFlowFunctionCall(topic, payload, output)
+  }
+
+  return {
+    consoleCode:code,
+    deviceCode:code,
+    deviceRaw:raw
+  }
+}
+
+function dataFlowFunctionCall (topic, payload, output = {}) {
+  let code = dataFlowWrapPayload(`${topic}(${dataFlowPythonString(payload)})`, output)
+  return /[\r\n]$/.test(code) ? code : `${code}\r`
+}
+
+function dataFlowPythonString (value) {
+  return JSON.stringify(String(value == null ? '' : value))
+}
+
+function dataFlowCsvValue (value) {
+  let text = String(value == null ? '' : value)
+  if (/[",\n\r]/.test(text))
+    return `"${text.replace(/"/g, '""')}"`
+  return text
+}
+
+function dataFlowProcessedOutput (setup) {
+  let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+  if (!flow || !flow.process || !flow.output || flow.process.type == 'raw')
+    return null
+  return flow.output
+}
+
+function dataFlowInputNotifyMessage (setup) {
+  let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+  if (!flow || !flow.input || flow.input.sourceType != 'device' || flow.input.mode != 'notify')
+    return ''
+  return flow.input.notifyMessage || ''
+}
+
+function dataFlowRulePass (output = {}, fields = {}) {
+  let metric = output.ruleMetric || 'confidence'
+  let operator = output.ruleOperator || '>='
+  let expectedText = String(output.ruleValue == null ? '' : output.ruleValue)
+  let actual = fields[metric]
+
+  let actualNumber = Number(actual)
+  let expectedNumber = Number(expectedText)
+  if (Number.isFinite(actualNumber) && Number.isFinite(expectedNumber)) {
+    if (operator == '>')
+      return actualNumber > expectedNumber
+    if (operator == '<=')
+      return actualNumber <= expectedNumber
+    if (operator == '<')
+      return actualNumber < expectedNumber
+    if (operator == '==')
+      return actualNumber == expectedNumber
+    if (operator == '!=')
+      return actualNumber != expectedNumber
+    return actualNumber >= expectedNumber
+  }
+
+  let actualText = String(actual == null ? '' : actual)
+  if (operator == '!=')
+    return actualText != expectedText
+  if (operator == '==')
+    return actualText == expectedText
+  return false
+}
+
+function dataFlowTarget (setup, fallbackTarget) {
+  let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+  if (flow && flow.output) {
+    if (flow.output.destination == 'device')
+      return 'Console'
+    if (flow.output.destination == 'mqtt')
+      return 'EasyMQTT'
+    if (flow.output.destination == 'none')
+      return 'none'
+  }
+  return fallbackTarget || 'Console'
+}
+
+function sendWidgetOutput (setup, topic, value, options = {}) {
+  let output = dataFlowFormattedOutput(setup, topic, value, options.fields || {})
+  let target = dataFlowTarget(setup, setup.target)
+  let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+
+  if (target == 'none')
+    return false
+
+  if (target == 'EasyMQTT')
+    return sendEasyMQTT(output.mqttTopic, output.mqttMessage)
+
+  return sendConsoleCommand((flow && flow.output && flow.output.targetDevice) || setup.targetDevice || 'active', output.deviceCode || output.consoleCode, {
+    deviceRef:setup.targetDeviceRef || null,
+    transport:(flow && flow.output && flow.output.transport) || 'auto',
+    quiet:options.quiet,
+    nonInterrupting:output.deviceRaw || options.nonInterrupting
+  })
 }
 
 function isCameraPermissionError(error) {
@@ -1506,6 +1968,7 @@ class Switches {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -1528,22 +1991,22 @@ class Switches {
   command () {
     if (this.target == 'EasyMQTT'){
       if (!this.state) {
-        if (!sendEasyMQTT(this.topic, this.messageOn))
+        if (!sendWidgetOutput(this.setup, this.topic, this.messageOn))
           return
         this.dom.$.classList.add('on')
       } else {
-        if (!sendEasyMQTT(this.topic, this.messageOff))
+        if (!sendWidgetOutput(this.setup, this.topic, this.messageOff))
           return
         this.dom.$.classList.remove('on')
       }
       this.state = !this.state
     } else if  (this.target == 'Console'){
       if (!this.state) {
-        if (!sendConsoleCommand(this.targetDevice, `${this.topic}(${this.messageOn})\r`, {deviceRef:this.targetDeviceRef}))
+        if (!sendWidgetOutput(this.setup, this.topic, this.messageOn))
           return
         this.dom.$.classList.add('on')
       } else {
-        if (!sendConsoleCommand(this.targetDevice, `${this.topic}(${this.messageOff})\r`, {deviceRef:this.targetDeviceRef}))
+        if (!sendWidgetOutput(this.setup, this.topic, this.messageOff))
           return
         this.dom.$.classList.remove('on')
       }
@@ -1603,6 +2066,7 @@ class ThreeStateSwitches {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -1645,14 +2109,7 @@ class ThreeStateSwitches {
     })
   }
   _send (message) {
-    if (this.target == 'EasyMQTT')
-      return sendEasyMQTT(this.topic, message)
-
-    if (this.target == 'Console') {
-      return sendConsoleCommand(this.targetDevice, `${this.topic}(${message})\r`, {deviceRef:this.targetDeviceRef})
-    }
-
-    return false
+    return sendWidgetOutput(this.setup, this.topic, message)
   }
   command (state) {
     state = this._clampState(state)
@@ -1720,6 +2177,7 @@ export class Buttons {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -1736,13 +2194,8 @@ export class Buttons {
     delete this
   }
   command () {
-    if (this.target == 'EasyMQTT'){
-      if (!sendEasyMQTT(this.topic, this.message))
-        return
-    } else if (this.target == 'Console'){
-      if (!sendConsoleCommand(this.targetDevice, `${this.topic}(${this.message})\r`, {deviceRef:this.targetDeviceRef}))
-        return
-    }
+    if (!sendWidgetOutput(this.setup, this.topic, this.message))
+      return
     this.dom.$.classList.add('on')
     setTimeout(() => this.dom.$.classList.remove('on'), 200)
   }
@@ -1792,6 +2245,7 @@ class Ranges {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -1840,11 +2294,7 @@ class Ranges {
 
     this.input.value = value
 
-    if (this.target == 'EasyMQTT'){
-      sendEasyMQTT(this.topic, value)
-    } else if (this.target == 'Console'){
-      sendConsoleCommand(this.targetDevice, `${this.topic}(${value})\r`, {deviceRef:this.targetDeviceRef})
-    }
+    sendWidgetOutput(this.setup, this.topic, value)
   }
   static range (data, dom) {
     let _Ranges = new Ranges (data, dom)
@@ -1998,6 +2448,7 @@ class Coordinates {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -2022,11 +2473,7 @@ class Coordinates {
    * Send coordinate command
    */
   sendCommand (x, y) {
-    if (this.target == 'EasyMQTT'){
-      sendEasyMQTT(this.topic, `${x},${y}`)
-    } else if (this.target == 'Console'){
-      sendConsoleCommand(this.targetDevice, `${this.topic}(${x}, ${y})\r`, {deviceRef:this.targetDeviceRef})
-    }
+    sendWidgetOutput(this.setup, this.topic, `${x},${y}`, {fields:{x, y}})
   }
   /**
    * Convert canvas coordinates to grid coordinates
@@ -2348,6 +2795,7 @@ class Drawings {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.target = data.setup.target
     this.targetDevice = data.setup.targetDevice || 'active'
     this.targetDeviceRef = data.setup.targetDeviceRef || null
@@ -2804,21 +3252,13 @@ class Drawings {
    * Send start command to Pico
    */
   start () {
-    if (this.target === 'EasyMQTT') {
-      sendEasyMQTT(this.topic, this.startMessage)
-    } else if (this.target === 'Console') {
-      sendConsoleCommand(this.targetDevice, `${this.topic}(${this.startMessage})\r`, {deviceRef:this.targetDeviceRef})
-    }
+    sendWidgetOutput(this.setup, this.topic, this.startMessage)
   }
   /**
    * Send homing command to Pico
    */
   home () {
-    if (this.target === 'EasyMQTT') {
-      sendEasyMQTT(this.topic, this.homeMessage)
-    } else if (this.target === 'Console') {
-      sendConsoleCommand(this.targetDevice, `${this.topic}(${this.homeMessage})\r`, {deviceRef:this.targetDeviceRef})
-    }
+    sendWidgetOutput(this.setup, this.topic, this.homeMessage)
   }
   static drawing (data, dom) {
     let _Drawings = new Drawings(data, dom)
@@ -2959,12 +3399,15 @@ class MLClassifiers {
   constructor (data, dom){
     this.sid = data.sid
     this.dom = dom
+    this.setup = data.setup
     this.workspaceId = data.setup.workspaceId || ''
     this.source = data.setup.source || 'Webcam'
     this.sourceDevice = data.setup.sourceDevice || ''
     this.sourceDeviceRef = data.setup.sourceDeviceRef || null
     this.imageUrl = data.setup.imageUrl || ''
+    this.inputSources = data.setup.inputSources || '{}'
     this.intervalMs = Math.max(200, Number(data.setup.intervalMs) || 1000)
+    this.streamFps = streamFpsValue(data.setup.streamFps)
     this.triggerMode = data.setup.triggerMode || 'interval'
     this.confidence = Math.max(0, Math.min(1, Number(data.setup.confidence) || 0.65))
     this.target = data.setup.target || 'Console'
@@ -2980,9 +3423,12 @@ class MLClassifiers {
     this.lastPrediction = null
     this.lastSentLabel = undefined
     this.lastImageSignature = undefined
+    this.inputImageSignatures = {}
     this.objectUrl = undefined
     this.serialFeedUnsubscribe = undefined
     this.serialCameraDevice = undefined
+    this.targetTriggerUnsubscribe = undefined
+    this.targetTriggerBuffer = ''
   }
   destroy () {
     this.stop()
@@ -3090,34 +3536,38 @@ class MLClassifiers {
 	      }
     } else if (isSerialCameraSource(this.source)) {
       try {
-        this.serialCameraDevice = resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
+        this.serialCameraDevice = resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
         if (!this.serialCameraDevice)
-          throw new Error(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
-        console.info('ML serial camera feed mode:', this.triggerMode, 'interval:', this.intervalMs)
+      throw new Error(sourceDeviceSelectionError(this.sourceDevice))
+        console.info('ML serial camera feed mode:', this.triggerMode, 'interval:', this.intervalMs, 'fps:', this.streamFps)
         this.serialFeedUnsubscribe = this.serialCameraDevice.feed.subscribe(() => this.tick(), {
-          mode:this.triggerMode,
+          mode:sourceFeedSubscriptionMode(this.source, this.triggerMode),
           intervalMs:this.intervalMs
         })
-        if (this.triggerMode == 'interval')
-          this.serialCameraDevice.feed.start()
+        if (this.triggerMode == 'newImage')
+          this.targetTriggerUnsubscribe = channel.subscribeText((chunk, uid) => this.handleTargetTriggerChunk(chunk, uid))
+        if (isSourceStreamingMode(this.source, this.triggerMode))
+          this.startSourceStream()
       } catch (error) {
         console.error(error)
         this.stop()
-        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the ESP32-CAM serial camera.'))
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
         return
       }
     }
 
     this.setStatus(dashboardMsg('WidgetRunning', 'Running'))
     if (isSerialCameraSource(this.source)) {
-      if (this.triggerMode == 'newImage')
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+      this.setStatus(serialSourceWaitingStatus(this.serialCameraDevice ? this.serialCameraDevice.feed : undefined, this.triggerMode))
     } else {
       this.tick()
       this.timer = setInterval(() => this.tick(), this.intervalMs)
     }
   }
   stop () {
+    if (isSourceStreamingMode(this.source, this.triggerMode))
+      this.stopSourceStream()
+
     this.running = false
     this.busy = false
     if (this.timer)
@@ -3127,7 +3577,12 @@ class MLClassifiers {
       this.serialFeedUnsubscribe()
       this.serialFeedUnsubscribe = undefined
     }
+    if (this.targetTriggerUnsubscribe) {
+      this.targetTriggerUnsubscribe()
+      this.targetTriggerUnsubscribe = undefined
+    }
     this.serialCameraDevice = undefined
+    this.targetTriggerBuffer = ''
 
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop())
@@ -3145,6 +3600,71 @@ class MLClassifiers {
       this.stop()
     else
       this.start()
+  }
+  targetTriggerDeviceIds () {
+    return new Set(consoleTargetDevices(this.targetDevice, this.targetDeviceRef))
+  }
+  handleTargetTriggerChunk (chunk, uid) {
+    if (!this.running || !isSerialCameraSource(this.source) || this.triggerMode != 'newImage')
+      return
+
+    let targets = this.targetTriggerDeviceIds()
+    if (!uid || !targets.has(uid))
+      return
+
+    this.targetTriggerBuffer = `${this.targetTriggerBuffer}${chunk}`.slice(-4096)
+    let lines = this.targetTriggerBuffer.split(/\r?\n/)
+    this.targetTriggerBuffer = lines.pop() || ''
+
+    for (let line of lines) {
+      let sourceCommand = sourceStreamCommandFromLine(line)
+      if (sourceCommand) {
+        this.sendSourceCommand(sourceCommand)
+        return
+      }
+
+      if (!isImageTriggerLine(line, dataFlowInputNotifyMessage(this.setup)))
+        continue
+
+      this.requestImageFromSource()
+      return
+    }
+  }
+  sendSourceCommand (sourceCommand) {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice)
+      return
+
+    this.setStatus(dashboardMsg('WidgetForwardingSourceCommand', 'Forwarding source command: {0}', sourceCommand))
+    sendImageSourceCommand(cameraDevice, sourceCommand).catch((error) => {
+      console.error(error)
+      if (this.running)
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+    })
+  }
+  startSourceStream () {
+    this.sendSourceCommand(`STREAM ${this.streamFps}`)
+  }
+  stopSourceStream () {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice)
+      return
+
+    sendImageSourceCommand(cameraDevice, 'STOP_STREAM').catch((error) => {
+      console.error(error)
+    })
+  }
+  requestImageFromSource () {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice || !cameraDevice.feed)
+      return
+
+    this.setStatus(dashboardMsg('WidgetRequestingSourceImage', 'Requesting an image from the source device...'))
+    cameraDevice.feed.requestFrame().catch((error) => {
+      console.error(error)
+      if (this.running)
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+    })
   }
   async tick () {
     if (!this.running || this.busy)
@@ -3181,19 +3701,19 @@ class MLClassifiers {
 
     let imageEvent
     if (isSerialCameraSource(this.source)) {
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from ESP32-CAM...'))
-      let cameraDevice = this.serialCameraDevice || resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from camera source...'))
+      let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
       if (!cameraDevice) {
-        this.setStatus(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
+        this.setStatus(sourceDeviceSelectionError(this.sourceDevice))
         return undefined
       }
       imageEvent = cameraDevice.feed.getLatestFrame()
       if (!imageEvent) {
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+        this.setStatus(serialSourceWaitingStatus(cameraDevice.feed, this.triggerMode))
         return undefined
       }
       if (imageEvent.signature == this.lastImageSignature) {
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+        this.setStatus(serialSourceWaitingStatus(cameraDevice.feed, this.triggerMode))
         return undefined
       }
     } else {
@@ -3201,7 +3721,7 @@ class MLClassifiers {
     }
 
     if (this.triggerMode == 'newImage' && !imageEvent.changed) {
-      this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+      this.setStatus(serialSourceWaitingStatus(this.serialCameraDevice ? this.serialCameraDevice.feed : undefined, this.triggerMode))
       return undefined
     }
     this.lastImageSignature = imageEvent.signature
@@ -3233,6 +3753,23 @@ class MLClassifiers {
     return this.send(this.lastPrediction)
   }
   maybeSend (prediction) {
+    let dataFlowOutput = dataFlowProcessedOutput(this.setup)
+    if (dataFlowOutput) {
+      if (!prediction || dataFlowOutput.sendPolicy == 'manual')
+        return
+      if (dataFlowOutput.sendPolicy == 'onChange' && prediction.label == this.lastSentLabel)
+        return
+      if (dataFlowOutput.sendPolicy == 'onRule' && !dataFlowRulePass(dataFlowOutput, {
+        label:prediction.label,
+        confidence:prediction.confidence,
+        confidenceRaw:prediction.confidence,
+        confidencePercent:Math.round(prediction.confidence * 100)
+      }))
+        return
+      this.send(prediction)
+      return
+    }
+
     if (!prediction || prediction.confidence < this.confidence || this.sendMode == 'manual')
       return
 
@@ -3243,15 +3780,15 @@ class MLClassifiers {
   }
   send (prediction) {
     let message = this.formatMessage(prediction)
-    let sent = false
-
-    if (this.target == 'EasyMQTT')
-      sent = sendEasyMQTT(this.topic, message)
-    else if (this.target == 'Console')
-      sent = sendConsoleCommand(this.targetDevice, `${this.topic}(${message})\r`, {
-        quiet:true,
-        deviceRef:this.targetDeviceRef
-      })
+    let sent = sendWidgetOutput(this.setup, this.topic, message, {
+      quiet:true,
+      nonInterrupting:true,
+      fields:{
+        label:prediction.label,
+        confidence:Math.round(prediction.confidence * 100),
+        confidenceRaw:prediction.confidence
+      }
+    })
 
     if (sent) {
       this.lastSentLabel = prediction.label
@@ -3262,17 +3799,17 @@ class MLClassifiers {
   }
   async captureSerialPreview () {
     if (!isSerialCameraSource(this.source)) {
-      this.setStatus(dashboardMsg('WidgetChooseSerialCameraSource', 'Choose ESP32-CAM serial camera as the image source first.'))
+      this.setStatus(dashboardMsg('WidgetChooseSerialCameraSource', 'Choose Source device as the image source first.'))
       return false
     }
 
     try {
-      let cameraDevice = resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
+      let cameraDevice = resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
       if (!cameraDevice) {
-        this.setStatus(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
+        this.setStatus(sourceDeviceSelectionError(this.sourceDevice))
         return false
       }
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from ESP32-CAM...'))
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from camera source...'))
       let imageEvent = await cameraDevice.feed.getFrame((message) => this.setStatus(message))
       this.lastImageSignature = imageEvent.signature
       this.revokeObjectUrl()
@@ -3280,11 +3817,11 @@ class MLClassifiers {
       this.preview.$.src = this.objectUrl
       this.video.$.style.display = 'none'
       this.preview.$.style.display = ''
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturedBytes', 'Captured image from ESP32-CAM ({0} bytes).', imageEvent.byteLength || imageEvent.blob.size))
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturedBytes', 'Captured image from camera source ({0} bytes).', imageEvent.byteLength || imageEvent.blob.size))
       return true
     } catch (error) {
       console.error(error)
-      this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the ESP32-CAM serial camera.'))
+      this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
       return false
     }
   }
@@ -3406,13 +3943,14 @@ class VisionProcessors {
     this.sid = data.sid
     this.dom = dom
     this.data = data
+    this.setup = data.setup
     this.setupId = data.setup.setupId || 'current'
-    this.executionMode = data.setup.executionMode || 'Browser'
     this.source = data.setup.source || 'Image URL'
     this.sourceDevice = data.setup.sourceDevice || ''
     this.sourceDeviceRef = data.setup.sourceDeviceRef || null
     this.imageUrl = data.setup.imageUrl || ''
     this.intervalMs = Math.max(200, Number(data.setup.intervalMs) || 1000)
+    this.streamFps = streamFpsValue(data.setup.streamFps)
     this.triggerMode = data.setup.triggerMode || 'newImage'
     this.metric = data.setup.metric || 'whitePercent'
     this.threshold = Number(data.setup.threshold)
@@ -3435,6 +3973,8 @@ class VisionProcessors {
     this.lastImageSignature = undefined
     this.serialFeedUnsubscribe = undefined
     this.serialCameraDevice = undefined
+    this.targetTriggerUnsubscribe = undefined
+    this.targetTriggerBuffer = ''
   }
   destroy () {
     this.stop()
@@ -3507,10 +4047,19 @@ class VisionProcessors {
     return this.metricValue(metrics) >= this.threshold
   }
   validate () {
-    if (this.executionMode == 'Device')
-      return dashboardMsg('VisionDeviceExecutionBrowserOnly', 'Device execution is for generated device code. Use Browser here to run the widget.')
     if (this.source == 'Image URL' && !this.imageUrl)
       return dashboardMsg('WidgetAddImageURL', 'Add an image URL in the widget settings.')
+    let routes = this.inputSourceRoutes()
+    if (routes.error)
+      return routes.error
+    for (let inputId of Object.keys(routes.map)) {
+      let route = routes.map[inputId]
+      let routeSource = route.source || this.source
+      if (routeSource == 'Image URL' && !(route.imageUrl || this.imageUrl))
+        return dashboardMsg('WidgetAddImageURL', 'Add an image URL in the widget settings.')
+      if (isSerialCameraSource(routeSource) && !('serial' in navigator))
+        return dashboardMsg('WidgetSerialCameraUnsupported', 'Web Serial is not supported in this browser. Use Chrome or Edge over HTTPS.')
+    }
     if (isSerialCameraSource(this.source) && !('serial' in navigator))
       return dashboardMsg('WidgetSerialCameraUnsupported', 'Web Serial is not supported in this browser. Use Chrome or Edge over HTTPS.')
     if (!vision.getSetup(this.setupId))
@@ -3523,6 +4072,7 @@ class VisionProcessors {
     this.lastResult = null
     this.lastDetected = undefined
     this.lastImageSignature = undefined
+    this.inputImageSignatures = {}
     this.setResult(null)
     this.stop()
     let error = this.validate()
@@ -3550,7 +4100,7 @@ class VisionProcessors {
     this.startButton.innerText = dashboardMsg('WidgetStop', 'Stop')
     this.setStatus(dashboardMsg('WidgetStarting', 'Starting...'))
 
-    if (this.source == 'Webcam') {
+    if (this.usesWebcamSource()) {
       try {
         this.stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false})
         this.video.$.srcObject = this.stream
@@ -3565,34 +4115,38 @@ class VisionProcessors {
       }
     } else if (isSerialCameraSource(this.source)) {
       try {
-        this.serialCameraDevice = resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
+        this.serialCameraDevice = resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
         if (!this.serialCameraDevice)
-          throw new Error(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
-        console.info('Vision serial camera feed mode:', this.triggerMode, 'interval:', this.intervalMs)
+          throw new Error(sourceDeviceSelectionError(this.sourceDevice))
+        console.info('Vision serial camera feed mode:', this.triggerMode, 'interval:', this.intervalMs, 'fps:', this.streamFps)
         this.serialFeedUnsubscribe = this.serialCameraDevice.feed.subscribe(() => this.tick(), {
-          mode:this.triggerMode,
+          mode:sourceFeedSubscriptionMode(this.source, this.triggerMode),
           intervalMs:this.intervalMs
         })
-        if (this.triggerMode == 'interval')
-          this.serialCameraDevice.feed.start()
+        if (this.triggerMode == 'newImage')
+          this.targetTriggerUnsubscribe = channel.subscribeText((chunk, uid) => this.handleTargetTriggerChunk(chunk, uid))
+        if (isSourceStreamingMode(this.source, this.triggerMode))
+          this.startSourceStream()
       } catch (error) {
         console.error(error)
         this.stop()
-        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the ESP32-CAM serial camera.'))
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
         return
       }
     }
 
     this.setStatus(dashboardMsg('WidgetRunning', 'Running'))
     if (isSerialCameraSource(this.source)) {
-      if (this.triggerMode == 'newImage')
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+      this.setStatus(serialSourceWaitingStatus(this.serialCameraDevice ? this.serialCameraDevice.feed : undefined, this.triggerMode))
     } else {
       this.tick()
       this.timer = setInterval(() => this.tick(), this.intervalMs)
     }
   }
   stop () {
+    if (isSourceStreamingMode(this.source, this.triggerMode))
+      this.stopSourceStream()
+
     this.running = false
     this.busy = false
     if (this.timer)
@@ -3602,7 +4156,12 @@ class VisionProcessors {
       this.serialFeedUnsubscribe()
       this.serialFeedUnsubscribe = undefined
     }
+    if (this.targetTriggerUnsubscribe) {
+      this.targetTriggerUnsubscribe()
+      this.targetTriggerUnsubscribe = undefined
+    }
     this.serialCameraDevice = undefined
+    this.targetTriggerBuffer = ''
 
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop())
@@ -3620,6 +4179,71 @@ class VisionProcessors {
       this.stop()
     else
       this.start()
+  }
+  targetTriggerDeviceIds () {
+    return new Set(consoleTargetDevices(this.targetDevice, this.targetDeviceRef))
+  }
+  handleTargetTriggerChunk (chunk, uid) {
+    if (!this.running || !isSerialCameraSource(this.source) || this.triggerMode != 'newImage')
+      return
+
+    let targets = this.targetTriggerDeviceIds()
+    if (!uid || !targets.has(uid))
+      return
+
+    this.targetTriggerBuffer = `${this.targetTriggerBuffer}${chunk}`.slice(-4096)
+    let lines = this.targetTriggerBuffer.split(/\r?\n/)
+    this.targetTriggerBuffer = lines.pop() || ''
+
+    for (let line of lines) {
+      let sourceCommand = sourceStreamCommandFromLine(line)
+      if (sourceCommand) {
+        this.sendSourceCommand(sourceCommand)
+        return
+      }
+
+      if (!isImageTriggerLine(line, dataFlowInputNotifyMessage(this.setup)))
+        continue
+
+      this.requestImageFromSource()
+      return
+    }
+  }
+  sendSourceCommand (sourceCommand) {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice)
+      return
+
+    this.setStatus(dashboardMsg('WidgetForwardingSourceCommand', 'Forwarding source command: {0}', sourceCommand))
+    sendImageSourceCommand(cameraDevice, sourceCommand).catch((error) => {
+      console.error(error)
+      if (this.running)
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+    })
+  }
+  startSourceStream () {
+    this.sendSourceCommand(`STREAM ${this.streamFps}`)
+  }
+  stopSourceStream () {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice)
+      return
+
+    sendImageSourceCommand(cameraDevice, 'STOP_STREAM').catch((error) => {
+      console.error(error)
+    })
+  }
+  requestImageFromSource () {
+    let cameraDevice = this.serialCameraDevice || resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
+    if (!cameraDevice || !cameraDevice.feed)
+      return
+
+    this.setStatus(dashboardMsg('WidgetRequestingSourceImage', 'Requesting an image from the source device...'))
+    cameraDevice.feed.requestFrame().catch((error) => {
+      console.error(error)
+      if (this.running)
+        this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
+    })
   }
   async tick () {
     if (!this.running || this.busy)
@@ -3642,40 +4266,44 @@ class VisionProcessors {
     }
   }
   async process () {
-    let imageData
-    if (this.source == 'Webcam') {
-      if (!this.video.$.videoWidth || this.video.$.readyState < 2)
-        return null
-      imageData = await vision.videoElementToImageData(this.video.$)
-    } else if (isSerialCameraSource(this.source)) {
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from ESP32-CAM...'))
-      let cameraDevice = this.serialCameraDevice || resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
-      if (!cameraDevice) {
-        this.setStatus(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
-        return undefined
-      }
-      let imageEvent = cameraDevice.feed.getLatestFrame()
-      if (!imageEvent) {
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
-        return undefined
-      }
-      if (imageEvent.signature == this.lastImageSignature) {
-        this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
-        return undefined
-      }
-      this.lastImageSignature = imageEvent.signature
-      imageData = await vision.imageBlobToImageData(imageEvent.blob)
-    } else {
-    let imageEvent = await fetchImageEvent(this.imageUrl, this.lastImageSignature)
-    if (this.triggerMode == 'newImage' && !imageEvent.changed) {
-      this.setStatus(dashboardMsg('WidgetWaitingNewImage', 'Waiting for a new image...'))
+    let frame = await this.captureSourceFrame({
+      source:this.source,
+      sourceDevice:this.sourceDevice,
+      sourceDeviceRef:this.sourceDeviceRef,
+      imageUrl:this.imageUrl
+    }, 'default')
+    if (typeof frame == 'undefined')
       return undefined
-    }
-      this.lastImageSignature = imageEvent.signature
-      imageData = await vision.imageBlobToImageData(imageEvent.blob)
+    if (!frame || !frame.imageData)
+      return null
+
+    let inputImages = {default:frame.imageData}
+    if (frameVisionInput(frame.frame))
+      inputImages[frameVisionInput(frame.frame)] = frame.imageData
+
+    let routes = this.inputSourceRoutes().map
+    let inputNodes = vision.getSetupInputNodes(this.setupId)
+    let routedInputCount = Object.keys(routes).length + (frameVisionInput(frame.frame) ? 1 : 0)
+    for (let inputNode of inputNodes) {
+      let route = routes[inputNode.id]
+      if (!route)
+        continue
+      let routedFrame = await this.captureSourceFrame(route, inputNode.id)
+      if (typeof routedFrame == 'undefined')
+        return undefined
+      if (routedFrame && routedFrame.imageData)
+        inputImages[inputNode.id] = routedFrame.imageData
+      if (routedFrame && routedFrame.imageData && frameVisionInput(routedFrame.frame))
+        inputImages[frameVisionInput(routedFrame.frame)] = routedFrame.imageData
     }
 
-    let result = vision.runSetupOnImageData(this.setupId, imageData)
+    if (inputNodes.length > 1 && routedInputCount === 0 && isSerialCameraSource(this.source))
+      this.setStatus(dashboardMsg(
+        'VisionInputHeaderRoutingHint',
+        'Multiple Vision inputs detected. Add vision=<input node id> to source frame headers, or configure input source routing JSON.'
+      ))
+
+    let result = vision.runSetupOnImageData(this.setupId, inputImages)
     if (result && result.imageData && this.canvas) {
       this.setPreviewRatio(result.imageData.width, result.imageData.height)
       this.canvas.$.width = result.imageData.width
@@ -3683,6 +4311,93 @@ class VisionProcessors {
       vision.drawImageDataToCanvas(result.imageData, this.canvas.$)
     }
     return result
+  }
+  inputSourceRoutes () {
+    let text = String(this.inputSources || '').trim()
+    if (!text || text == '{}')
+      return {map:{}}
+
+    try {
+      let parsed = JSON.parse(text)
+      if (!parsed || typeof parsed != 'object' || Array.isArray(parsed))
+        throw new Error('Input source routing must be a JSON object.')
+      return {map:parsed}
+    } catch (error) {
+      return {
+        map:{},
+        error:error.message || dashboardMsg('VisionInputSourceRoutingInvalid', 'Input source routing JSON is invalid.')
+      }
+    }
+  }
+  usesWebcamSource () {
+    if (this.source == 'Webcam')
+      return true
+
+    let routes = this.inputSourceRoutes().map
+    return Object.keys(routes).some((inputId) => routes[inputId] && routes[inputId].source == 'Webcam')
+  }
+  async captureSourceFrame (route, signatureKey) {
+    let source = route && route.source ? route.source : this.source
+    if (source == 'Webcam') {
+      if (!this.video.$.videoWidth || this.video.$.readyState < 2)
+        return null
+      return {
+        imageData:await vision.videoElementToImageData(this.video.$),
+        frame:{
+          dataType:'image',
+          contentType:'video/webcam',
+          label:'Webcam'
+        }
+      }
+    } else if (isSerialCameraSource(source)) {
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from camera source...'))
+      let cameraDevice = signatureKey === 'default' && this.serialCameraDevice
+        ? this.serialCameraDevice
+        : resolveImageSourceSelection(route.sourceDevice || this.sourceDevice, route.sourceDeviceRef || this.sourceDeviceRef)
+      if (!cameraDevice) {
+        this.setStatus(sourceDeviceSelectionError(route.sourceDevice || this.sourceDevice))
+        return undefined
+      }
+      let imageEvent = cameraDevice.feed.getLatestFrame()
+      if (!imageEvent) {
+        this.setStatus(serialSourceWaitingStatus(cameraDevice.feed, this.triggerMode))
+        return undefined
+      }
+      let previousSignature = signatureKey === 'default' ? this.lastImageSignature : this.inputImageSignatures[signatureKey]
+      if (imageEvent.signature == previousSignature) {
+        this.setStatus(serialSourceWaitingStatus(cameraDevice.feed, this.triggerMode))
+        return undefined
+      }
+      if (signatureKey === 'default')
+        this.lastImageSignature = imageEvent.signature
+      else
+        this.inputImageSignatures[signatureKey] = imageEvent.signature
+      return {
+        imageData:await vision.imageBlobToImageData(imageEvent.blob),
+        frame:imageEvent
+      }
+    } else {
+      let imageUrl = route && route.imageUrl ? route.imageUrl : this.imageUrl
+      let previousSignature = signatureKey === 'default' ? this.lastImageSignature : this.inputImageSignatures[signatureKey]
+      let imageEvent = await fetchImageEvent(imageUrl, previousSignature)
+      if (this.triggerMode == 'newImage' && signatureKey === 'default' && !imageEvent.changed) {
+        this.setStatus(serialSourceWaitingStatus(this.serialCameraDevice ? this.serialCameraDevice.feed : undefined, this.triggerMode))
+        return undefined
+      }
+      if (signatureKey === 'default')
+        this.lastImageSignature = imageEvent.signature
+      else
+        this.inputImageSignatures[signatureKey] = imageEvent.signature
+      return {
+        imageData:await vision.imageBlobToImageData(imageEvent.blob),
+        frame:{
+          ...imageEvent,
+          dataType:'image',
+          contentType:imageEvent.blob ? imageEvent.blob.type : '',
+          label:imageUrl
+        }
+      }
+    }
   }
   formatNumber (value) {
     if (!Number.isFinite(value))
@@ -3711,8 +4426,7 @@ class VisionProcessors {
       let numeric = Number(fields[name])
       return Number.isFinite(numeric) ? String(Math.round(numeric)) : String(fallback)
     }
-
-    return String(this.messageTemplate)
+    let message = String(this.messageTemplate)
       .replace(/\{state\}/g, state)
       .replace(/\{detected\}/g, detected ? 'true' : 'false')
       .replace(/\{metric\}/g, this.metric)
@@ -3740,6 +4454,16 @@ class VisionProcessors {
       .replace(/\{centerY\}/g, typeof fields.centerY != 'undefined' ? fieldNumber('centerY', metrics.centerY) : this.formatNumber(metrics.centerY))
       .replace(/\{width\}/g, String(metrics.width))
       .replace(/\{height\}/g, String(metrics.height))
+
+    return message.replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => {
+      if (!Object.prototype.hasOwnProperty.call(fields, key))
+        return match
+
+      let fieldValue = fields[key]
+      if (typeof fieldValue == 'object')
+        return JSON.stringify(fieldValue)
+      return String(fieldValue)
+    })
   }
   sendResult () {
     if (!this.lastResult || (!this.lastResult.metrics && !this.lastResult.output)) {
@@ -3749,6 +4473,25 @@ class VisionProcessors {
     return this.send(this.lastResult)
   }
   maybeSend (result) {
+    let dataFlowOutput = dataFlowProcessedOutput(this.setup)
+    if (dataFlowOutput) {
+      if (!result || (!result.metrics && !result.output) || dataFlowOutput.sendPolicy == 'manual')
+        return
+      let detected = this.resultDetected(result)
+      if (dataFlowOutput.sendPolicy == 'onChange' && detected == this.lastDetected)
+        return
+      if (dataFlowOutput.sendPolicy == 'onRule' && !dataFlowRulePass(dataFlowOutput, {
+        detected,
+        value:this.resultValue(result),
+        ...(result.metrics || {}),
+        ...((result.output && result.output.fields) || {}),
+        confidence:result.output && Number.isFinite(result.output.confidence) ? result.output.confidence : undefined
+      }))
+        return
+      this.send(result)
+      return
+    }
+
     if (!result || (!result.metrics && !result.output) || this.sendMode == 'manual')
       return
 
@@ -3761,15 +4504,15 @@ class VisionProcessors {
   send (result) {
     let detected = this.resultDetected(result)
     let message = this.formatMessage(result)
-    let sent = false
-
-    if (this.target == 'EasyMQTT')
-      sent = sendEasyMQTT(this.topic, message)
-    else if (this.target == 'Console')
-      sent = sendConsoleCommand(this.targetDevice, `${this.topic}(${message})\r`, {
-        quiet:true,
-        deviceRef:this.targetDeviceRef
-      })
+    let sent = sendWidgetOutput(this.setup, this.topic, message, {
+      quiet:true,
+      nonInterrupting:true,
+      fields:{
+        detected,
+        ...(result.metrics || {}),
+        output:result.output || null
+      }
+    })
 
     if (sent) {
       this.lastDetected = detected
@@ -3780,17 +4523,17 @@ class VisionProcessors {
   }
   async captureSerialPreview () {
     if (!isSerialCameraSource(this.source)) {
-      this.setStatus(dashboardMsg('WidgetChooseSerialCameraSource', 'Choose ESP32-CAM serial camera as the image source first.'))
+      this.setStatus(dashboardMsg('WidgetChooseSerialCameraSource', 'Choose Source device as the image source first.'))
       return false
     }
 
     try {
-      let cameraDevice = resolveSerialCameraSelection(this.sourceDevice, this.sourceDeviceRef)
+      let cameraDevice = resolveImageSourceSelection(this.sourceDevice, this.sourceDeviceRef)
       if (!cameraDevice) {
-        this.setStatus(dashboardMsg('WidgetSerialCameraSelectConnectedDevice', 'Connect an ESP32-CAM on the Device page and select it in the widget settings.'))
+        this.setStatus(sourceDeviceSelectionError(this.sourceDevice))
         return false
       }
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from ESP32-CAM...'))
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturing', 'Capturing from camera source...'))
       let imageEvent = await cameraDevice.feed.getFrame((message) => this.setStatus(message))
       this.lastImageSignature = imageEvent.signature
       let imageData = await vision.imageBlobToImageData(imageEvent.blob)
@@ -3802,11 +4545,11 @@ class VisionProcessors {
       this.canvas.$.style.display = ''
       if (this.dom)
         this.dom.$.classList.remove('debug-off')
-      this.setStatus(dashboardMsg('WidgetSerialCameraCapturedBytes', 'Captured image from ESP32-CAM ({0} bytes).', imageEvent.byteLength || imageEvent.blob.size))
+      this.setStatus(dashboardMsg('WidgetSerialCameraCapturedBytes', 'Captured image from camera source ({0} bytes).', imageEvent.byteLength || imageEvent.blob.size))
       return true
     } catch (error) {
       console.error(error)
-      this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the ESP32-CAM serial camera.'))
+      this.setStatus(error.message || dashboardMsg('WidgetSerialCameraConnectionFailed', 'Could not connect to the selected camera source device.'))
       return false
     }
   }
@@ -3877,7 +4620,7 @@ class VisionProcessors {
     else if (_VisionProcessors.autoStart && _VisionProcessors.source == 'Webcam')
       _VisionProcessors.setStatus(dashboardMsg('VisionPressStartWebcam', 'Press Start to allow webcam access.'))
     else if (_VisionProcessors.autoStart && isSerialCameraSource(_VisionProcessors.source))
-      _VisionProcessors.setStatus(dashboardMsg('WidgetPressStartSerialCamera', 'Press Start to choose the ESP32-CAM serial camera.'))
+      _VisionProcessors.setStatus(dashboardMsg('WidgetPressStartSerialCamera', 'Press Start to begin reading from the selected camera source device.'))
 
     return _VisionProcessors
   }

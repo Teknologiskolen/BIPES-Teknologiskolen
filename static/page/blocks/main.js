@@ -87,7 +87,11 @@ class Blocks {
     this.workspace.setVisible(true)
     this.code.init()
     this.inited = true
+    if (typeof project.ensureCurrent == 'function')
+      project.ensureCurrent()
     let obj = project.projects[project.currentUID]
+    if (!obj)
+      return
     if (obj.hasOwnProperty('blocks'))
       this.load(obj.blocks)
     if (obj.hasOwnProperty('device'))

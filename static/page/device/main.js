@@ -11,6 +11,11 @@ import {Pipes} from '../../base/navigation.js'
 import {notification} from '../notification/main.js'
 import {project} from '../project/main.js'
 import {prompt} from '../prompt/main.js'
+import {
+  listImageSourceDevices,
+  subscribeImageSourceDevices,
+  disconnectImageSourceDevice
+} from '../dashboard/plugins.js'
 
 import {deviceSpecifications} from './devices.js'
 
@@ -24,6 +29,8 @@ class Device {
 
     this.devices = this._liveDevices(this.devices)
     storage.set('device', JSON.stringify(this.devices))
+    this.imageSourceDevices = listImageSourceDevices()
+    this.imageSourceUnsubscribe = undefined
 
     if (this.devices.length === 0)
       storage.set('device')
@@ -376,6 +383,14 @@ class Device {
     if (this.inited)
       return
 
+    if (!this.imageSourceUnsubscribe) {
+      this.imageSourceUnsubscribe = subscribeImageSourceDevices((devices) => {
+        this.imageSourceDevices = devices
+        if (this.inited)
+          this.renderConnectedDevices()
+      })
+    }
+
     this._persistLiveDevices()
     this.nav.classList.remove('new')
     this.renderConnectedDevices()
@@ -388,7 +403,11 @@ class Device {
     }
 
     this.inited = true
+    if (typeof project.ensureCurrent == 'function')
+      project.ensureCurrent()
     let obj = project.projects[project.currentUID]
+    if (!obj)
+      return
     if (obj.hasOwnProperty('device'))
       this.load(obj.device)
   }
@@ -399,7 +418,7 @@ class Device {
     let target = this.$.targetDropdown.$.value
     let firmware = this.$.targetFirmwareDropdown.$.value
 
-    if (target != project.current.device.target)
+    if (target != project.current.device.target && typeof this.pipe.blocks_deviceTarget == 'function')
       this.pipe.blocks_deviceTarget(target)
 
     this.persistProjectDeviceState({
@@ -434,6 +453,9 @@ class Device {
     let cards = []
     this.devices.forEach((item) => {
       cards.unshift(this.$Card(item))
+    })
+    this.imageSourceDevices.forEach((item) => {
+      cards.unshift(this.$ImageSourceCard(item))
     })
 
     if (cards.length > 0)
@@ -472,6 +494,31 @@ class Device {
           }).onclick(this, ()=>{
             this.userDisconnectInput = true
             channel.disconnect(false, item.uid)
+          }, [])
+        ])
+      ])
+  }
+  $ImageSourceCard (item){
+    let latestFrame = item.latestFrame || null
+    let headerSummary = latestFrame && latestFrame.summary ? latestFrame.summary : ''
+    let headerHelp = 'Header: JPEG requestId width height bytes data=image vision=<input-id> label=<name>'
+    return new DOM('button', {uid: item.uid, className:'image-source'})
+      .append([
+        new DOM('div').append([
+          new DOM('h4', {id:'nodename', innerText: item.nodename || Msg['SourceDevice'] || 'Source device'}),
+          new DOM('div', {id:'version', innerText: `${item.version || '-'}`}),
+          new DOM('div', {innerText: item.protocol || 'Image source'}),
+          new DOM('div', {
+            className:'image-source-header',
+            innerText: headerSummary || headerHelp
+          }),
+          new DOM('div', {innerText: Msg['OnThisTab']}),
+          new DOM('button', {
+            id:'disconnect',
+            className:'icon text',
+            innerText:Msg['Disconnect']
+          }).onclick(this, async () => {
+            await disconnectImageSourceDevice(item.uid)
           }, [])
         ])
       ])

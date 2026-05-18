@@ -269,7 +269,7 @@ class Navigation {
       let _url = new URL(location.href)
       let lang = this.$.languageDropdown.value
       let base = _url.pathname.match('^(.*)/ide')[1]
-      _url.pathname = lang === 'en' ? `${base}/ide` : `${base}/ide-${lang}`
+      _url.pathname = `${base}/ide`
       _url.searchParams.set('lang', lang)
       location.href = `${_url}`
     })

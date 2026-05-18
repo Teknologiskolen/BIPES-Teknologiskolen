@@ -93,33 +93,67 @@ section#dashboard #grid #edit:before {
   margin: 0;
 }
 
-section#dashboard #addMenu > div {
+section#dashboard #addMenu > div.dashboard-add-card {
   position: absolute;
   left: 50%;
   top: 50%;
   width: min(32rem, calc(100vw - 2rem));
   max-height: min(32rem, calc(100vh - 5rem));
   padding: 1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  gap: .75rem;
   overflow-y: auto;
   margin: 0;
+  border-radius: 1.25rem;
   transform: translate(-50%, calc(-50% + 2rem)) scale(.96);
   transition: transform ease .25s, opacity ease .25s;
 }
-section#dashboard #addMenu.on > div {
-  margin-top: 0;
+body.dark section#dashboard #addMenu > div.dashboard-add-card {
+  background: #2a2a2a;
+}
+body.light section#dashboard #addMenu > div.dashboard-add-card {
+  background: #f0f0f0;
+}
+section#dashboard #addMenu.on > div.dashboard-add-card {
   transform: translate(-50%, -50%) scale(1);
 }
-section#dashboard #addMenu button {
-  padding: .85em .65em;
-  border-radius: 0.75em;
-  display: block;
+section#dashboard .dashboard-add-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+}
+section#dashboard .dashboard-add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.75rem;
+}
+section#dashboard .dashboard-add-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.85rem 0.65rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  background: rgba(84,190,255,0.08);
+  color: inherit;
+  font-size: 0.8rem;
+  min-height: 4.5rem;
   width: 100%;
   max-width: none;
-  min-height: 3.25rem;
-  text-align: center;
+  transition: background-color ease .125s;
+}
+section#dashboard .dashboard-add-btn:hover,
+section#dashboard .dashboard-add-btn:focus {
+  background: rgba(84,190,255,0.18);
+}
+section#dashboard .dashboard-add-btn svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex-shrink: 0;
+}
+section#dashboard .dashboard-add-btn span {
+  line-height: 1.2;
 }
 
 /* Grid */

@@ -439,6 +439,12 @@ button#coordinate:before {
 button#drawing:before {
   background-position: left calc(-1.5rem*51) top;
 }
+button#threeStateSwitch:before {
+  background-position: left calc(-1.5rem*55) top;
+}
+button#button:before {
+  background-position: left calc(-1.5rem*56) top;
+}
 nav #user-info {
   text-align: center;
   font-weight: normal;
@@ -598,6 +604,7 @@ section {
 	display: none;
 	left: -1em;
 	opacity: 0;
+  pointer-events: none;
 }
 @media only screen and (min-width: 40em) {
   section{
@@ -619,6 +626,7 @@ section.ani {
 section.ani.on {
   left: 0;
   opacity: 1;
+  pointer-events: auto;
 }
 @media screen and (orientation:landscape){
   section {

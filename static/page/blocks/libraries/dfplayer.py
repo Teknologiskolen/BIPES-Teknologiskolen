@@ -12,7 +12,8 @@ from time import sleep_ms
 #   "category": "DFPlayer DSL",
 #   "color": 300,
 #   "url": "https://github.com/mannbro/PicoDFPlayer",
-#   "instanceMode": "multiple",
+#   "instanceMode": "singleton",
+#   "instanceName": "dfplayer",
 #   "methodInstanceMode": "key_input"
 # }
 # DFPlayer Mini blocks generated from the Python library.
@@ -25,14 +26,13 @@ class DFPlayer:
 
     # @block {
     #   "params": {
-    #     "id": {"checkType": "Number", "defaultValue": 1},
     #     "uart_id": {"checkType": "Number", "defaultValue": 1},
     #     "tx_pin": {"checkType": "Number", "defaultValue": 4},
     #     "rx_pin": {"checkType": "Number", "defaultValue": 5}
     #   }
     # }
     # Create a DFPlayer instance.
-    def __init__(self, uart_id=1, tx_pin=4, rx_pin=5, id=1):
+    def __init__(self, uart_id=1, tx_pin=4, rx_pin=5):
         """Initialiser DFPlayer.
 
         Args:
@@ -40,7 +40,6 @@ class DFPlayer:
             tx_pin: GPIO pin til TX (sender til DFPlayer RX)
             rx_pin: GPIO pin til RX (modtager fra DFPlayer TX)
         """
-        self.id = id
         self.uart = UART(uart_id, baudrate=9600,
                          tx=Pin(tx_pin), rx=Pin(rx_pin))
         sleep_ms(200)  # Vent paa DFPlayer boot
