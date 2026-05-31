@@ -298,7 +298,12 @@ class Device {
     }
     this.userDisconnectInput = false
   }
-   use (){
+  _updateConnectedClass (){
+    let hasConnections = Object.keys(channel.connections || {}).length > 0
+    this.$.nav.$.classList.toggle('device-connected', hasConnections)
+  }
+
+  use (){
     let timestamp = +new Date()
 
     if (channel.targetDevice == undefined){
@@ -316,6 +321,7 @@ class Device {
     // Only on a master tab
     this.$.nav.$.classList.add('using')
     this.$.wrapper.$.classList.add('master')
+    this._updateConnectedClass()
     let child = DOM.get(`[data-uid=${channel.targetDevice}]`, this.$.devices.$)
     // User exited tab before resolving function
     if (child !== null){
@@ -634,6 +640,7 @@ class Device {
         this.devices.splice(index,1)
       }
     })
+    this._updateConnectedClass()
 
     if (!this.inited)
       return

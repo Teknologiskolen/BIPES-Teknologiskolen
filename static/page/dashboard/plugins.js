@@ -2064,24 +2064,31 @@ class Switches {
 
 class ThreeStateSwitches {
   constructor (data, dom){
+    // Migrate old labelOne/Two/Three format to label1/2/3
+    let s = data.setup
+    if (s.labelOne !== undefined) {
+      s.label1 = s.labelOne;   s.message1 = s.messageOne
+      s.label2 = s.labelTwo;   s.message2 = s.messageTwo
+      s.label3 = s.labelThree; s.message3 = s.messageThree
+      delete s.labelOne; delete s.labelTwo; delete s.labelThree
+      delete s.messageOne; delete s.messageTwo; delete s.messageThree
+    }
+
     this.sid = data.sid
     this.dom = dom
-    this.setup = data.setup
-    this.target = data.setup.target
-    this.targetDevice = data.setup.targetDevice || 'active'
-    this.targetDeviceRef = data.setup.targetDeviceRef || null
-    this.topic = data.setup.topic
-    this.labels = [
-      data.setup.labelOne,
-      data.setup.labelTwo,
-      data.setup.labelThree
-    ]
-    this.messages = [
-      data.setup.messageOne,
-      data.setup.messageTwo,
-      data.setup.messageThree
-    ]
-    this.state = this._clampState(data.setup.defaultState)
+    this.setup = s
+    this.target = s.target
+    this.targetDevice = s.targetDevice || 'active'
+    this.targetDeviceRef = s.targetDeviceRef || null
+    this.topic = s.topic
+    this.numStates = 3
+    this.labels = []
+    this.messages = []
+    for (let i = 1; i <= this.numStates; i++) {
+      this.labels.push(String(s[`label${i}`] || `State ${i}`))
+      this.messages.push(String(s[`message${i}`] || String(i - 1)))
+    }
+    this.state = this._clampState(s.defaultState)
     this.buttons = []
   }
   destroy () {
@@ -2100,7 +2107,7 @@ class ThreeStateSwitches {
     state = Number(state)
     if (!Number.isInteger(state))
       return 0
-    return Math.min(2, Math.max(0, state))
+    return Math.min(this.numStates - 1, Math.max(0, state))
   }
   _setState (state) {
     this.state = this._clampState(state)
@@ -2115,7 +2122,6 @@ class ThreeStateSwitches {
     state = this._clampState(state)
     if (!this._send(this.messages[state]))
       return
-
     this._setState(state)
   }
   static threeStateSwitch (data, dom) {

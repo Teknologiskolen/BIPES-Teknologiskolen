@@ -1,21 +1,21 @@
 Blockly.Python["kitronik_pico_robotics__create"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var I2CAddress = Blockly.Python.valueToCode(block, "I2CAddress", Blockly.Python.ORDER_ATOMIC);
   var sda = Blockly.Python.valueToCode(block, "sda", Blockly.Python.ORDER_ATOMIC);
   var scl = Blockly.Python.valueToCode(block, "scl", Blockly.Python.ORDER_ATOMIC);
-  var code = "board = PicoRobotics.KitronikPicoRobotics(" + I2CAddress + ", " + sda + ", " + scl + ")" + "\n";
+  var code = "board = KitronikPicoRobotics(" + I2CAddress + ", " + sda + ", " + scl + ")" + "\n";
   return code;
 };
 
 Blockly.Python["kitronik_pico_robotics__adjust_servos"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var change = Blockly.Python.valueToCode(block, "change", Blockly.Python.ORDER_ATOMIC);
   var code = "board.adjustServos(" + change + ")" + "\n";
   return code;
 };
 
 Blockly.Python["kitronik_pico_robotics__servo_write"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var servo = Blockly.Python.valueToCode(block, "servo", Blockly.Python.ORDER_ATOMIC);
   var degrees = Blockly.Python.valueToCode(block, "degrees", Blockly.Python.ORDER_ATOMIC);
   var code = "board.servoWrite(" + servo + ", " + degrees + ")" + "\n";
@@ -23,7 +23,7 @@ Blockly.Python["kitronik_pico_robotics__servo_write"] = function(block) {
 };
 
 Blockly.Python["kitronik_pico_robotics__servo_write_radians"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var servo = Blockly.Python.valueToCode(block, "servo", Blockly.Python.ORDER_ATOMIC);
   var radians = Blockly.Python.valueToCode(block, "radians", Blockly.Python.ORDER_ATOMIC);
   var code = "board.servoWriteRadians(" + servo + ", " + radians + ")" + "\n";
@@ -31,7 +31,7 @@ Blockly.Python["kitronik_pico_robotics__servo_write_radians"] = function(block) 
 };
 
 Blockly.Python["kitronik_pico_robotics__motor_on"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var motor = Blockly.Python.valueToCode(block, "motor", Blockly.Python.ORDER_ATOMIC);
   var direction = JSON.stringify(block.getFieldValue("direction"));
   var speed = Blockly.Python.valueToCode(block, "speed", Blockly.Python.ORDER_ATOMIC);
@@ -40,14 +40,14 @@ Blockly.Python["kitronik_pico_robotics__motor_on"] = function(block) {
 };
 
 Blockly.Python["kitronik_pico_robotics__motor_off"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var motor = Blockly.Python.valueToCode(block, "motor", Blockly.Python.ORDER_ATOMIC);
   var code = "board.motorOff(" + motor + ")" + "\n";
   return code;
 };
 
 Blockly.Python["kitronik_pico_robotics__step"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var motor = Blockly.Python.valueToCode(block, "motor", Blockly.Python.ORDER_ATOMIC);
   var direction = JSON.stringify(block.getFieldValue("direction"));
   var steps = Blockly.Python.valueToCode(block, "steps", Blockly.Python.ORDER_ATOMIC);
@@ -58,7 +58,7 @@ Blockly.Python["kitronik_pico_robotics__step"] = function(block) {
 };
 
 Blockly.Python["kitronik_pico_robotics__step_angle"] = function(block) {
-  Blockly.Python.definitions_["import_PicoRobotics"] = "import PicoRobotics";
+  Blockly.Python.definitions_["from_PicoRobotics_KitronikPicoRobotics"] = "from PicoRobotics import KitronikPicoRobotics";
   var motor = Blockly.Python.valueToCode(block, "motor", Blockly.Python.ORDER_ATOMIC);
   var direction = JSON.stringify(block.getFieldValue("direction"));
   var angle = Blockly.Python.valueToCode(block, "angle", Blockly.Python.ORDER_ATOMIC);

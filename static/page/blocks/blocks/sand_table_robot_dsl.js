@@ -1,10 +1,9 @@
 Blockly.Blocks["sand_table_robot__create"] = {
   init: function() {
-    this.appendDummyInput().appendField("Create Sand Table Robot");
-    this.appendValueInput("motor1_pins").appendField("Motor 1 Pins");
-    this.appendValueInput("motor2_pins").appendField("Motor 2 Pins");
-    this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField("Sensor Shoulder Pin");
-    this.appendValueInput("sensor_elbow_pin").setCheck("Number").appendField("Sensor Elbow Pin");
+    this.appendValueInput("motor1_pins").appendField("create sand robot shoulder motor pins");
+    this.appendValueInput("motor2_pins").appendField("elbow motor pins");
+    this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField("shoulder sensor");
+    this.appendValueInput("sensor_elbow_pin").setCheck("Number").appendField("elbow sensor");
     this.appendValueInput("L1").setCheck("Number").appendField("L1");
     this.appendValueInput("L2").setCheck("Number").appendField("L2");
     this.appendValueInput("steps_per_rev").setCheck("Number").appendField("Steps Per Rev");
@@ -29,8 +28,8 @@ Blockly.Blocks["sand_table_robot__off"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
-    this.setTooltip("Turn off both motors");
+    this.setInputsInline(true);
+    this.setTooltip("Turn off both stepper motors.");
     this.setHelpUrl("");
   }
 };
@@ -41,23 +40,22 @@ Blockly.Blocks["sand_table_robot__home"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
-    this.setTooltip("Move the robot to its home position.");
+    this.setInputsInline(true);
+    this.setTooltip("Move the robot to its home position using limit sensors.");
     this.setHelpUrl("");
   }
 };
 
 Blockly.Blocks["sand_table_robot__move_line"] = {
   init: function() {
-    this.appendDummyInput().appendField("Move Line");
-    this.appendValueInput("target_x").setCheck("Number").appendField("Target X");
-    this.appendValueInput("target_y").setCheck("Number").appendField("Target Y");
-    this.appendValueInput("segments").setCheck("Number").appendField("Segments");
-    this.appendValueInput("speed").setCheck("Number").appendField("Speed");
+    this.appendValueInput("target_x").setCheck("Number").appendField("move line to x");
+    this.appendValueInput("target_y").setCheck("Number").appendField("y");
+    this.appendValueInput("segments").setCheck("Number").appendField("segments");
+    this.appendValueInput("speed").setCheck("Number").appendField("speed");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Move the robot in a straight line to the target point.");
     this.setHelpUrl("");
   }
@@ -65,14 +63,13 @@ Blockly.Blocks["sand_table_robot__move_line"] = {
 
 Blockly.Blocks["sand_table_robot__move_arc"] = {
   init: function() {
-    this.appendDummyInput().appendField("Move Arc");
-    this.appendValueInput("center_x").setCheck("Number").appendField("Center X");
-    this.appendValueInput("center_y").setCheck("Number").appendField("Center Y");
-    this.appendValueInput("radius").setCheck("Number").appendField("Radius");
-    this.appendValueInput("start_angle").setCheck("Number").appendField("Start Angle");
-    this.appendValueInput("end_angle").setCheck("Number").appendField("End Angle");
-    this.appendValueInput("segments").setCheck("Number").appendField("Segments");
-    this.appendValueInput("speed").setCheck("Number").appendField("Speed");
+    this.appendValueInput("center_x").setCheck("Number").appendField("move arc center x");
+    this.appendValueInput("center_y").setCheck("Number").appendField("center y");
+    this.appendValueInput("radius").setCheck("Number").appendField("radius");
+    this.appendValueInput("start_angle").setCheck("Number").appendField("start angle");
+    this.appendValueInput("end_angle").setCheck("Number").appendField("end angle");
+    this.appendValueInput("segments").setCheck("Number").appendField("segments");
+    this.appendValueInput("speed").setCheck("Number").appendField("speed");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
@@ -84,15 +81,14 @@ Blockly.Blocks["sand_table_robot__move_arc"] = {
 
 Blockly.Blocks["sand_table_robot__draw_spiral"] = {
   init: function() {
-    this.appendDummyInput().appendField("Draw Spiral");
-    this.appendValueInput("max_radius").setCheck("Number").appendField("Max Radius");
-    this.appendValueInput("vindinger").setCheck("Number").appendField("Vindinger");
-    this.appendValueInput("segments_pr_omgang").setCheck("Number").appendField("Segments Pr Omgang");
-    this.appendValueInput("speed").setCheck("Number").appendField("Speed");
+    this.appendValueInput("max_radius").setCheck("Number").appendField("draw spiral max radius");
+    this.appendValueInput("vindinger").setCheck("Number").appendField("turns");
+    this.appendValueInput("segments_pr_omgang").setCheck("Number").appendField("segments per turn");
+    this.appendValueInput("speed").setCheck("Number").appendField("speed");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Draw a spiral pattern.");
     this.setHelpUrl("");
   }
@@ -100,14 +96,13 @@ Blockly.Blocks["sand_table_robot__draw_spiral"] = {
 
 Blockly.Blocks["sand_table_robot__draw_flower"] = {
   init: function() {
-    this.appendDummyInput().appendField("Draw Flower");
-    this.appendValueInput("max_radius").setCheck("Number").appendField("Max Radius");
-    this.appendValueInput("petals").setCheck("Number").appendField("Petals");
-    this.appendValueInput("speed").setCheck("Number").appendField("Speed");
+    this.appendValueInput("max_radius").setCheck("Number").appendField("draw flower radius");
+    this.appendValueInput("petals").setCheck("Number").appendField("petals");
+    this.appendValueInput("speed").setCheck("Number").appendField("speed");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Draw a flower pattern.");
     this.setHelpUrl("");
   }
@@ -115,16 +110,15 @@ Blockly.Blocks["sand_table_robot__draw_flower"] = {
 
 Blockly.Blocks["sand_table_robot__run_gcode_text"] = {
   init: function() {
-    this.appendDummyInput().appendField("Run Gcode Text");
-    this.appendValueInput("gcode_text").appendField("Gcode Text");
-    this.appendValueInput("segments").setCheck("Number").appendField("Segments");
-    this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("Draw Speed Ms");
-    this.appendValueInput("travel_speed_ms").setCheck("Number").appendField("Travel Speed Ms");
-    this.appendValueInput("reset_modal").setCheck("Boolean").appendField("Reset Modal");
+    this.appendValueInput("gcode_text").setCheck("String").appendField("run gcode text");
+    this.appendValueInput("segments").setCheck("Number").appendField("segments");
+    this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("draw speed");
+    this.appendValueInput("travel_speed_ms").setCheck("Number").appendField("travel speed");
+    this.appendValueInput("reset_modal").setCheck("Boolean").appendField("reset modal");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Run G-code from a text string.");
     this.setHelpUrl("");
   }
@@ -132,17 +126,16 @@ Blockly.Blocks["sand_table_robot__run_gcode_text"] = {
 
 Blockly.Blocks["sand_table_robot__run_gcode_file"] = {
   init: function() {
-    this.appendDummyInput().appendField("Run Gcode File");
-    this.appendValueInput("path").appendField("Path");
-    this.appendValueInput("segments").setCheck("Number").appendField("Segments");
-    this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("Draw Speed Ms");
-    this.appendValueInput("travel_speed_ms").setCheck("Number").appendField("Travel Speed Ms");
-    this.appendValueInput("reset_modal").setCheck("Boolean").appendField("Reset Modal");
+    this.appendValueInput("path").setCheck("String").appendField("run gcode file");
+    this.appendValueInput("segments").setCheck("Number").appendField("segments");
+    this.appendValueInput("draw_speed_ms").setCheck("Number").appendField("draw speed");
+    this.appendValueInput("travel_speed_ms").setCheck("Number").appendField("travel speed");
+    this.appendValueInput("reset_modal").setCheck("Boolean").appendField("reset modal");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(20);
-    this.setInputsInline(false);
-    this.setTooltip("Run G-code from a file path.");
+    this.setInputsInline(true);
+    this.setTooltip("Run G-code from a file path on the device.");
     this.setHelpUrl("");
   }
 };

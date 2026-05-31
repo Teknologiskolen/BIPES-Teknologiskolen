@@ -3,6 +3,7 @@ Blockly.Blocks['text_to_str'] = {
   init: function() {
     this.appendValueInput("var")
         .appendField(new Blockly.FieldLabelSerializable("to str"), "VAR")
+    this.setInputsInline(true)
     this.setColour(160)
     this.setOutput(true, null)
     this.setTooltip("Convert anything to String.")

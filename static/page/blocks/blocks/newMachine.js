@@ -49,6 +49,7 @@ Blockly.Blocks["machine.freq_set"] = {
       .appendField("Set CPU Frequency");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Set the CPU frequency in hertz.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -59,6 +60,7 @@ Blockly.Blocks["machine.freq_get"] = {
   init: function() {
     this.appendDummyInput().appendField("Get CPU Frequency");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read the current CPU frequency in hertz.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -69,6 +71,7 @@ Blockly.Blocks["machine.unique_id"] = {
   init: function() {
     this.appendDummyInput().appendField("Unique ID");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Return the board's unique identifier as bytes.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -79,6 +82,7 @@ Blockly.Blocks["machine.reset_cause"] = {
   init: function() {
     this.appendDummyInput().appendField("Reset Cause");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read the cause of the last reset.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -89,6 +93,7 @@ Blockly.Blocks["machine.wake_reason"] = {
   init: function() {
     this.appendDummyInput().appendField("Wake Reason");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read the cause that woke the device from sleep.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -99,6 +104,7 @@ Blockly.Blocks["machine.disable_irq"] = {
   init: function() {
     this.appendDummyInput().appendField("Disable IRQ");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Disable interrupts and return the previous IRQ state.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -112,6 +118,7 @@ Blockly.Blocks["machine.enable_irq"] = {
       .appendField("Enable IRQ With State");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Restore interrupts using a saved IRQ state.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -123,6 +130,7 @@ Blockly.Blocks["machine.idle"] = {
     this.appendDummyInput().appendField("Idle CPU");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Idle the CPU until an interrupt occurs.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -136,6 +144,7 @@ Blockly.Blocks["machine.lightsleep"] = {
       .appendField("Light Sleep For ms");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Enter light sleep for the requested duration in milliseconds.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -149,6 +158,7 @@ Blockly.Blocks["machine.deepsleep"] = {
       .appendField("Deep Sleep For ms");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Enter deep sleep for the requested duration in milliseconds.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -160,6 +170,7 @@ Blockly.Blocks["machine.soft_reset"] = {
     this.appendDummyInput().appendField("Soft Reset");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Perform a soft reset without a full power-on reset.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -171,6 +182,7 @@ Blockly.Blocks["machine.reset"] = {
     this.appendDummyInput().appendField("Reset Device");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Perform a hard reset of the device.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -182,6 +194,7 @@ Blockly.Blocks["machine.bootloader"] = {
     this.appendDummyInput().appendField("Enter Bootloader");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Reboot into the board bootloader if supported.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -200,6 +213,7 @@ Blockly.Blocks["machine.time_pulse_us"] = {
       .setCheck("Number")
       .appendField("Timeout us");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Measure a pulse width on a pin in microseconds.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -233,6 +247,7 @@ Blockly.Blocks["machine.Pin.init"] = {
       );
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Create or reconfigure a machine.Pin object.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -256,6 +271,7 @@ Blockly.Blocks["machine.Pin.irq"] = {
         .appendField(Msg["do"]);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Configure a GPIO pin");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -276,6 +292,7 @@ Blockly.Blocks["machine.Pin.getValue"] = {
           ["PULL DOWN", "Pin.PULL_DOWN"]
         ]), "PULL");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip(" ");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -294,6 +311,7 @@ Blockly.Blocks["machine.Pin.setValue"] = {
         .appendField(Msg["to"]);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip(".. method:: Pin.on() Set pin to 1 output level. ");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -306,6 +324,7 @@ Blockly.Blocks["machine.Pin.toggle"] = {
         .appendField(`Toggle Output ${Msg["ond"]}`);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip(".. method:: Pin.off() Set pin to 0 output level. ");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -327,6 +346,7 @@ Blockly.Blocks["machine.Signal.getValue"] = {
         "INVERT"
       );
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read a machine.Signal value, optionally inverted.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Signal.html");
@@ -352,6 +372,7 @@ Blockly.Blocks["machine.Signal.setValue"] = {
       .appendField("Value");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Write a machine.Signal value, optionally inverted.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Signal.html");
@@ -374,6 +395,7 @@ Blockly.Blocks["machine.Signal.on"] = {
       );
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Set a machine.Signal high.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Signal.html");
@@ -396,6 +418,7 @@ Blockly.Blocks["machine.Signal.off"] = {
       );
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Set a machine.Signal low.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Signal.html");
@@ -412,6 +435,7 @@ Blockly.Blocks["machine.ADC.init"] = {
           ["34 / GPIO 28 / ADC 2", "28"]
         ]), "PIN");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Create an ADC input using a pin number");
     this.setHelpUrl("");
@@ -425,6 +449,7 @@ Blockly.Blocks["machine.ADC.read_u16"] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(Msg["read_analog_pin"]);
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read a 16-bit filtered value from an ADC pin");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.ADC.html");
@@ -444,6 +469,7 @@ Blockly.Blocks["machine.PWM.init"] = {
         .appendField("Duty Cycle");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Init and set PWM with frequency (1Hz to 40MHz) and duty (0-1023)");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
@@ -460,6 +486,7 @@ Blockly.Blocks["machine.PWM.freq"] = {
         .appendField("Frequency");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Set PWM frequency from 1Hz to 40MHz");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
@@ -476,6 +503,7 @@ Blockly.Blocks["machine.PWM.duty"] = {
         .appendField("Duty Cycle");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Set PWM duty range of 0-1023");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
@@ -489,6 +517,7 @@ Blockly.Blocks["machine.PWM.deinit"] = {
       .appendField("Stop PWM On Pin");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Deinitialize the PWM output on a pin.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.PWM.html");
@@ -499,6 +528,7 @@ Blockly.Blocks["machine.RTC.datetime"] = {
   init: function() {
     this.appendDummyInput().appendField("RTC Datetime");
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Read the RTC datetime tuple.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.RTC.html");
@@ -517,6 +547,7 @@ Blockly.Blocks["machine.RTC.set_datetime"] = {
     this.appendValueInput("subseconds").setCheck("Number").appendField("Subseconds");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(false);
     this.setColour(190);
     this.setTooltip("Set the RTC datetime tuple.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.RTC.html");
@@ -528,6 +559,7 @@ Blockly.Blocks["machine.RTC.deinit"] = {
     this.appendDummyInput().appendField("RTC Deinit");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Deinitialize the RTC if supported.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.RTC.html");
@@ -552,6 +584,7 @@ Blockly.Blocks["machine.Timer.init"] = {
       this.setColour(190);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
  this.setTooltip(" ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Timer.html");
   },
@@ -563,6 +596,7 @@ Blockly.Blocks["machine.Timer.deinit"] = {
         .appendField("Stop Timer");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip(".. method:: Timer.deinit() Deinitialises the timer. Stops the timer, and disables the timer peripheral. ");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Timer.html");
@@ -576,6 +610,7 @@ Blockly.Blocks["machine.WDT.init"] = {
       .appendField("Start Watchdog timeout ms");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Create a watchdog timer with a timeout in milliseconds.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.WDT.html");
@@ -587,6 +622,7 @@ Blockly.Blocks["machine.WDT.feed"] = {
     this.appendDummyInput().appendField("Feed Watchdog");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setColour(190);
     this.setTooltip("Feed the watchdog to prevent a reset.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.WDT.html");

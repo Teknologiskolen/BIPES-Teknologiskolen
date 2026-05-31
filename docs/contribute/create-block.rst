@@ -1,7 +1,19 @@
-Create new blocks
-=================================
+.. _create-block:
 
-To create new blocks for BIPES, it is necessary to modify a few files in the source
+Create new blocks (manual method)
+===================================
+
+.. tip::
+
+   For hardware-driver blocks backed by a MicroPython class or module, use the
+   **Block Generator DSL** instead. One ``.blockdef.yaml`` file replaces the
+   four manual edits described here. See :ref:`dsl-block-generator`.
+
+   This page documents the manual method, which is still needed for blocks with
+   complex custom JavaScript logic (animations, custom fields, interactive
+   widgets) that the DSL does not cover.
+
+To create new blocks for BIPES manually, it is necessary to modify a few files in the source
 code organized by category (displays, sensor, timings, etc), which defines:
 
 * *static/page/blocks/blocks/\*.js* - the inputs, outputs, and appearance of each block (eg. *network.js*).

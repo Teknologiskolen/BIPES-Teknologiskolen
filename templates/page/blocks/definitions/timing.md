@@ -30,7 +30,38 @@
 <block type="utime.ticks_diff"></block>
 
 # set_rtc_esp32
-<block type="set_rtc_esp32"></block>
+<block type="set_rtc_esp32">
+  <value name="year">
+    <shadow type="math_number">
+      <field name="NUM">2024</field>
+    </shadow>
+  </value>
+  <value name="month">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+  <value name="day">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+  <value name="hour">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="minute">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="second">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 '%(Timing)'
 # get_rtc_esp32
 <block type="get_rtc_esp32"></block>
@@ -75,7 +106,18 @@
 <block type="ticks_ms"></block>
 
 # ticks_diff
-<block type="ticks_diff"></block>
+<block type="ticks_diff">
+  <value name="end">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="start">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # stop_timer
 <block type="stop_timer">

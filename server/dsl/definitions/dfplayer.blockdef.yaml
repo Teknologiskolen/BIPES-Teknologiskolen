@@ -1,0 +1,113 @@
+# yaml-language-server: $schema=./blockdef_schema.json
+
+module: dfplayer
+imports:
+  - from: dfplayer
+    names: [DFPlayer]
+url: "https://github.com/mannbro/PicoDFPlayer"
+
+categories:
+  - name: DFPlayer
+    color: 300
+    classes:
+      - name: DFPlayer
+        instance_mode: singleton
+        instance_name: dfplayer
+        blocks:
+          - fn: __init__
+            tooltip: Create a DFPlayer Mini instance.
+            params:
+              - name: uart_id
+                type: Number
+                default: 1
+              - name: tx_pin
+                type: Number
+                default: 4
+              - name: rx_pin
+                type: Number
+                default: 5
+
+          - fn: play
+            tooltip: Play a track by number (1–3000).
+            params:
+              - name: track
+                type: Number
+                default: 1
+
+          - fn: play_folder
+            tooltip: Play a track from a numbered folder (folder 1–99, track 1–255).
+            params:
+              - name: folder
+                type: Number
+              - name: track
+                type: Number
+
+          - fn: play_mp3
+            tooltip: Play a track from the /mp3 folder (track 1–9999).
+            params:
+              - name: track
+                type: Number
+              - name: loop
+                type: Boolean
+                default: false
+
+          - fn: pause
+            tooltip: Pause playback.
+
+          - fn: resume
+            tooltip: Resume playback.
+
+          - fn: stop
+            tooltip: Stop playback.
+
+          - fn: loop_current
+            tooltip: Enable or disable looping of the current track.
+            params:
+              - name: enable
+                type: Boolean
+                default: true
+
+          - fn: next
+            tooltip: Skip to the next track.
+
+          - fn: prev
+            tooltip: Go back to the previous track.
+
+          - fn: volume
+            tooltip: Set the volume level (0–30).
+            params:
+              - name: level
+                type: Number
+
+          - fn: volume_up
+            tooltip: Increase the volume by one step.
+
+          - fn: volume_down
+            tooltip: Decrease the volume by one step.
+
+          - fn: eq
+            tooltip: Set the equalizer preset.
+            params:
+              - name: mode
+                options:
+                  - label: Normal
+                    value: "0"
+                  - label: Pop
+                    value: "1"
+                  - label: Rock
+                    value: "2"
+                  - label: Jazz
+                    value: "3"
+                  - label: Classic
+                    value: "4"
+                  - label: Bass
+                    value: "5"
+
+          - fn: reset
+            tooltip: Reset the DFPlayer module.
+
+          - fn: sleep
+            tooltip: Put the DFPlayer into standby mode.
+
+          - fn: wake
+            tooltip: Wake the DFPlayer from standby mode.

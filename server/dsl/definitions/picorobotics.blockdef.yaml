@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=./blockdef_schema.json
+
+module: picorobotics
+imports:
+  - from: PicoRobotics
+    names: [KitronikPicoRobotics]
+url: "https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython"
+
+categories:
+  - name: Robotics Board
+    color: 45
+    classes:
+      - name: KitronikPicoRobotics
+        instance_mode: singleton
+        instance_name: board
+        blocks:
+          - fn: __init__
+            label: "create robotics board address {I2CAddress} sda {sda} scl {scl}"
+            tooltip: Create and initialize the Kitronik Pico Robotics board.
+            params:
+              - name: I2CAddress
+                type: Number
+              - name: sda
+                type: Number
+              - name: scl
+                type: Number
+
+          - fn: adjustServos
+            tooltip: Adjust the global servo calibration by a small amount.
+            params:
+              - name: change
+                type: Number
+
+          - fn: servoWrite
+            label: "turn servo {servo} to {degrees} degrees"
+            tooltip: Turn a servo motor to the requested angle in degrees.
+            params:
+              - name: servo
+                type: Number
+              - name: degrees
+                type: Number
+
+          - fn: servoWriteRadians
+            tooltip: Turn a servo motor to the requested angle in radians.
+            params:
+              - name: servo
+                type: Number
+              - name: radians
+                type: Number
+
+          - fn: motorOn
+            label: "start dc motor {motor} direction {direction} speed {speed}"
+            tooltip: Start a DC motor with direction and speed control.
+            params:
+              - name: motor
+                type: Number
+              - name: direction
+                options:
+                  - label: Forward
+                    value: "f"
+                  - label: Reverse
+                    value: "r"
+              - name: speed
+                type: Number
+
+          - fn: motorOff
+            label: "stop dc motor {motor}"
+            tooltip: Stop a DC motor.
+            params:
+              - name: motor
+                type: Number
+
+          - fn: step
+            tooltip: Step a motor a fixed number of full steps.
+            params:
+              - name: motor
+                type: Number
+              - name: direction
+                options:
+                  - label: Forward
+                    value: "f"
+                  - label: Reverse
+                    value: "r"
+              - name: steps
+                type: Number
+              - name: speed
+                type: Number
+                default: 20
+              - name: holdPosition
+                type: Boolean
+                default: false
+
+          - fn: stepAngle
+            tooltip: Step a motor by a requested angle.
+            params:
+              - name: motor
+                type: Number
+              - name: direction
+                options:
+                  - label: Forward
+                    value: "f"
+                  - label: Reverse
+                    value: "r"
+              - name: angle
+                type: Number
+              - name: speed
+                type: Number
+                default: 20
+              - name: holdPosition
+                type: Boolean
+                default: false
+              - name: stepsPerRev
+                type: Number
+                default: 200

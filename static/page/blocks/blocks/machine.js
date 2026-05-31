@@ -14,7 +14,8 @@ Blockly.Blocks['set_freq'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
 
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Set ESP8266 CPU Clock Frequency");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -26,7 +27,8 @@ Blockly.Blocks['get_freq'] = {
         .appendField("Get CPU Clock Frequency");
 
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Get current CPU Clock Frequency");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -36,7 +38,8 @@ Blockly.Blocks["machine_unique_id"] = {
   init: function() {
     this.appendDummyInput()
         .appendField(" unique_id");
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(190);
 
     this.setOutput(true, null);
 
@@ -50,7 +53,8 @@ Blockly.Blocks["machine_reset_cause"] = {
   init: function() {
     this.appendDummyInput()
         .appendField(" reset_cause");
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setOutput(true, null);
  this.setTooltip(".. function:: reset_cause() Get the reset cause. See :ref:`constants <machine_constants>` for the possibl e return values. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.html");
@@ -63,7 +67,8 @@ Blockly.Blocks['reset'] = {
         .appendField("reset");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Reset Device");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -74,7 +79,8 @@ Blockly.Blocks['reset_cause_soft'] = {
     this.appendDummyInput()
         .appendField("Cause: soft reset");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -84,7 +90,8 @@ Blockly.Blocks['reset_cause_hard'] = {
     this.appendDummyInput()
         .appendField("Cause: hard reset");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -94,7 +101,8 @@ Blockly.Blocks['reset_cause_wdt'] = {
     this.appendDummyInput()
         .appendField("Cause: reset by watchdog timer");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -104,7 +112,8 @@ Blockly.Blocks['reset_cause_deep'] = {
     this.appendDummyInput()
         .appendField("Cause: woke up from deepsleep");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -122,10 +131,10 @@ Blockly.Blocks['pinout'] = {
     if (device_ !== device_init_)
       this.setColour(1);
     else if (device_ === device_init_)
-      this.setColour(230);
+      this.setColour(190);
     if (this.first_load < 1 && load_) {
       device_ = device_init_;
-      this.setColour(230);
+      this.setColour(190);
       this.getField('DEVICE').doValueUpdate_(device_);
     } else {
       this.first_load = this.first_load - 1; // function is triggered twice on load due to setting values
@@ -159,7 +168,7 @@ Blockly.Blocks['pinout'] = {
         .appendField(new Blockly.FieldDropdown(() => { return this.update_list(true);}), 'PIN');
     this.getField('DEVICE').setVisible(false);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(190);
     this.setHelpUrl("http://www.bipes.net.br");
   },
 }
@@ -179,7 +188,8 @@ Blockly.Blocks['gpio_set'] = {
         .appendField(Msg["to"]); //i18n
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Write to GPIO digital pin");
  this.setHelpUrl("bipes.net.br");
   }
@@ -198,7 +208,8 @@ Blockly.Blocks['gpio_get'] = {
         .appendField("Pull-up");
 
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Read digital pin");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -212,7 +223,8 @@ Blockly.Blocks['adc'] = {
         //.appendField("Read ADC Input");
         .appendField(Msg["read_analog_pin"]);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Read ADC input of specified pin");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -245,11 +257,11 @@ Blockly.Blocks['adc_esp32'] = {
 		.setAlign(Blockly.ALIGN_RIGHT)
 		.appendField("pin");
 		this.setOutput(true, null);
-		this.setColour(230);
+		this.setColour(190);
 		this.setTooltip("Read ESP32 Analog Input");
 	}
 
-	this.setColour(230);
+	this.setColour(190);
   }
 };
 
@@ -262,7 +274,8 @@ Blockly.Blocks['adc_pico'] = {
         .setCheck("Number")
         .appendField("Read RPI Pico ADC Input");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Read ADC input of specified pin from Raspberry Pi Pico");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -285,7 +298,8 @@ Blockly.Blocks['pwm'] = {
 	      .appendField("Duty");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setTooltip("Init and set PWM with frequency (1Hz to 40MHz) and duty (0-1023)");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
  },
@@ -311,7 +325,8 @@ Blockly.Blocks['pwm.freq'] = {
         .appendField("frequency");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setTooltip("Set PWM frequency from 1Hz to 40MHz");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
   },
@@ -333,7 +348,8 @@ Blockly.Blocks['pwm.duty'] = {
         .appendField("duty");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setTooltip("Set PWM duty range of 0-1023");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
   },
@@ -354,7 +370,8 @@ Blockly.Blocks['pwm.init'] = {
         .appendField("init");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setTooltip("Init PWM");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
   },
@@ -371,7 +388,8 @@ Blockly.Blocks['pwm.deinit'] = {
         .appendField(new Blockly.FieldNumber(0, 0, 50, 1), "ID");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setTooltip("Deinit PWM");
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#pwm-pulse-width-modulation");
   }
@@ -392,7 +410,8 @@ Blockly.Blocks['gpio_interrupt'] = {
     this.appendStatementInput("code")
         .setCheck(null)
         .appendField("do");
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip("Trigger interrupt when pin state changes");
@@ -411,7 +430,8 @@ Blockly.Blocks['gpio_interrupt_off'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Disable interrupt on a given pin");
  this.setHelpUrl("bipes.net.br");
   }
@@ -443,7 +463,8 @@ Blockly.Blocks['snek_gpio_set'] = {
         .appendField(Msg["to"]); //i18n
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Write to GPIO digital pin");
  this.setHelpUrl("bipes.net.br");
   }
@@ -455,7 +476,8 @@ Blockly.Blocks['snek_gpio_get'] = {
         .setCheck("Number")
         .appendField("Snek: Read digital pin");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Read digital pin");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -469,7 +491,8 @@ Blockly.Blocks['snek_adc'] = {
         .setCheck("Number")
         .appendField("Snek: Read analog Input");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Read ADC input of specified pin");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -487,7 +510,8 @@ Blockly.Blocks['snek_setpower'] = {
 	  .appendField("Power (0-1)");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Snek Set Power");
  this.setHelpUrl("http://www.bipes.net.br");
  }

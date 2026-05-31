@@ -1,6 +1,6 @@
-# DS1302 DSL
-<category name="DS1302 DSL">
-<label text="DS1302 DSL"></label>
+# DS1302
+<category name="DS1302">
+<label text="DS1302"></label>
 <button text="%{INSTALL_LIBRARY}: ds1302" callbackKey="installPyLib"></button>
 
 # ds1302__create

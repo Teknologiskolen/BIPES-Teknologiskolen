@@ -322,6 +322,26 @@ nav #menu::before {
 nav #settings::before {
 	background-position: left calc(-1.5rem*3) top;
 }
+nav #blocks::before {
+	background-position: left calc(-1.5rem*2) top;
+}
+nav #blocks.on::before {
+	background-position: left calc(-1.5rem*2) bottom;
+}
+/* Device page: disconnected states */
+nav #device::before {
+	background-position: left calc(-1.5rem*3) top;
+}
+nav #device.on::before {
+	background-position: left calc(-1.5rem*3) bottom;
+}
+/* Device page: connected states (two-icon variant via JS class) */
+nav #device.device-connected::before {
+	background-position: left calc(-1.5rem*12) top;
+}
+nav #device.device-connected.on::before {
+	background-position: left calc(-1.5rem*12) bottom;
+}
 nav #dashboard::before {
 	background-position: left calc(-1.5rem*1) top;
 }
@@ -330,6 +350,42 @@ nav #dashboard.on::before {
 }
 nav #dashboard_edit::before {
 	background-position: left calc(-1.5rem*2) top;
+}
+nav #ml::before {
+	background-position: left calc(-1.5rem*53) top;
+}
+nav #ml.on::before {
+	background-position: left calc(-1.5rem*53) bottom;
+}
+nav #vision::before {
+	background-position: left calc(-1.5rem*57) top;
+}
+nav #vision.on::before {
+	background-position: left calc(-1.5rem*57) bottom;
+}
+nav #classes::before {
+	background-position: left calc(-1.5rem*58) top;
+}
+nav #classes.on::before {
+	background-position: left calc(-1.5rem*58) bottom;
+}
+nav #project::before {
+	background-position: left calc(-1.5rem*28) top;
+}
+nav #project.on::before {
+	background-position: left calc(-1.5rem*28) bottom;
+}
+nav #prompt::before {
+	background-position: left calc(-1.5rem*30) top;
+}
+nav #prompt.on::before {
+	background-position: left calc(-1.5rem*30) top;
+}
+nav #architecture::before {
+	background-position: left calc(-1.5rem*54) top;
+}
+nav #architecture.on::before {
+	background-position: left calc(-1.5rem*54) bottom;
 }
 nav #notification::before {
 	background-position: left calc(-1.5rem*4) top;

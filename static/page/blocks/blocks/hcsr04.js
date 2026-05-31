@@ -23,7 +23,8 @@ Blockly.Blocks['uss_init'] = {
         .setAlign(Blockly.ALIGN_LEFT)
         .appendField("Trigger Pin:");
     this.setOutput(true, null);
-    this.setColour(70);
+    this.setInputsInline(true);
+    this.setColour(330);
     this.setTooltip("Configure a GPIO pin");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
   }
@@ -34,7 +35,8 @@ Blockly.Blocks["uss_distance_mm"] = {
     this.appendDummyInput()
       .appendField("Read Distance (mm) from")
       .appendField(new Blockly.FieldVariable("Variable"), "var")
-    this.setColour(70);
+    this.setInputsInline(true);
+    this.setColour(330);
     this.setOutput(true, null);
  this.setTooltip(" ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");
@@ -46,7 +48,8 @@ Blockly.Blocks["uss_distance_cm"] = {
     this.appendDummyInput()
       .appendField("Read Distance (cm) from")
       .appendField(new Blockly.FieldVariable("Variable"), "var")
-    this.setColour(70);
+    this.setInputsInline(true);
+    this.setColour(330);
     this.setOutput(true, null);
  this.setTooltip(" ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html");

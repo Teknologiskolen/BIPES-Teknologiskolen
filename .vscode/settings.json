@@ -1,0 +1,5 @@
+{
+  "yaml.schemas": {
+    "./server/dsl/definitions/blockdef_schema.json": "**/*.blockdef.yaml"
+  }
+}

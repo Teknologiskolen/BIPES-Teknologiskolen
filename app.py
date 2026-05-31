@@ -9,7 +9,7 @@ import re
 from urllib.parse import urlencode
 from configparser import ConfigParser
 from werkzeug.middleware.proxy_fix import ProxyFix
-from server.block_dsl import generate_default_artifacts
+from server.dsl import generate_default_artifacts
 from server.common import auth as auth_module
 
 app_name = 'BIPES'

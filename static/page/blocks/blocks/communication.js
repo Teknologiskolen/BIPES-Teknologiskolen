@@ -58,6 +58,7 @@ Blockly.Blocks['uart_init'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
 
+    this.setInputsInline(false);
     this.setTooltip('Initialize a UART object using the MicroPython machine.UART API.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -70,6 +71,7 @@ Blockly.Blocks['uart_deinit'] = {
         .appendField("Deinitialize UART");
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('Turn off the UART bus.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -81,6 +83,7 @@ Blockly.Blocks['uart_any'] = {
     this.appendDummyInput()
         .appendField("UART Available Bytes");
     this.setOutput(true, "Number");
+    this.setInputsInline(true);
     this.setTooltip('Return the number of bytes that can be read without blocking.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -99,6 +102,7 @@ Blockly.Blocks['uart_write'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
 
+    this.setInputsInline(true);
     this.setTooltip('Write bytes or text to UART.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -116,6 +120,7 @@ Blockly.Blocks['uart_read'] = {
         .appendField("Bytes");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('Read up to the requested number of bytes from UART.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -128,6 +133,7 @@ Blockly.Blocks['uart_read_all'] = {
         .appendField("UART Read All");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('Read all available UART bytes.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -140,6 +146,7 @@ Blockly.Blocks['uart_readline'] = {
         .appendField("UART Read Line");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('Read a line from UART.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -156,6 +163,7 @@ Blockly.Blocks['uart_read_into'] = {
         .appendField("Buffer");
 
     this.setOutput(true, "Number");
+    this.setInputsInline(true);
     this.setTooltip('Read bytes into the provided buffer and return the count read.');
     this.setHelpUrl('https://docs.micropython.org/en/latest/library/machine.UART.html');
   }
@@ -221,9 +229,10 @@ Blockly.Blocks['SPI.init'] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("MISO Pin");
 
-    this.setColour(0);
+    this.setColour(15);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(false);
     this.setTooltip("Initialize a hardware SPI or SoftSPI bus.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -235,9 +244,10 @@ Blockly.Blocks["SPI.deinit"] = {
   init: function() {
     this.appendDummyInput()
         .appendField("Deinitialize SPI");
-    this.setColour(0);
+    this.setColour(15);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Turn off the SPI bus.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -255,8 +265,9 @@ Blockly.Blocks["SPI.read"] = {
     this.appendValueInput("write_byte")
         .setCheck("Number")
         .appendField("Write Byte");
-    this.setColour(0);
+    this.setColour(15);
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read bytes while continuously writing a filler byte.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -273,9 +284,10 @@ Blockly.Blocks["SPI.readinto"] = {
     this.appendValueInput("write_byte")
         .setCheck("Number")
         .appendField("Write Byte");
-    this.setColour(0);
+    this.setColour(15);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read into a buffer while continuously writing a filler byte.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -289,9 +301,10 @@ Blockly.Blocks["SPI.write"] = {
         .appendField("SPI Write");
     this.appendValueInput("message")
         .appendField("Buffer");
-    this.setColour(0);
+    this.setColour(15);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Write bytes to the SPI bus.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -307,9 +320,10 @@ Blockly.Blocks["SPI.write_readinto"] = {
         .appendField("Write Buffer");
     this.appendValueInput("buffer")
         .appendField("Read Buffer");
-    this.setColour(0);
+    this.setColour(15);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Write bytes from one buffer while reading into another buffer.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
   }
@@ -318,7 +332,7 @@ Blockly.Blocks["SPI.write_readinto"] = {
 // GSM Modem -------------------------------------------------------------------
 Blockly.Blocks['gsm_modem_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(55);
     this.appendDummyInput()
         .appendField("Init SIM800/900 GSM MODEM");
 
@@ -339,13 +353,14 @@ Blockly.Blocks['gsm_modem_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['gsm_modem_send_sms'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(55);
     this.appendDummyInput()
         .appendField("Send SMS Message");
 
@@ -361,6 +376,7 @@ Blockly.Blocks['gsm_modem_send_sms'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -368,7 +384,7 @@ Blockly.Blocks['gsm_modem_send_sms'] = {
 
 Blockly.Blocks['gsm_modem_send_at'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(55);
     this.appendDummyInput()
         .appendField("Send AT Command");
 
@@ -379,13 +395,14 @@ Blockly.Blocks['gsm_modem_send_at'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['gsm_modem_http_get'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(55);
     this.appendDummyInput()
         .appendField("GSM: Send HTTP GET Request");
 
@@ -396,13 +413,14 @@ Blockly.Blocks['gsm_modem_http_get'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['gsm_modem_response'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(55);
     this.appendDummyInput()
         .appendField("Get GSM Modem Response");
 
@@ -412,6 +430,7 @@ Blockly.Blocks['gsm_modem_response'] = {
         .appendField("Timeout:");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -443,9 +462,10 @@ Blockly.Blocks["machine.I2C_I2C.init"] = {
     this.appendValueInput("timeout")
         .setCheck("Number")
         .appendField("Timeout (us)");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Initialize a hardware I2C or SoftI2C bus.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -457,9 +477,10 @@ Blockly.Blocks["machine.I2C_I2C.deinit"] = {
   init: function() {
     this.appendDummyInput()
         .appendField("I2C Deinitialize");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Turn off the I2C bus.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -471,8 +492,9 @@ Blockly.Blocks["machine.I2C_I2C.scan"] = {
   init: function() {
     this.appendDummyInput()
         .appendField("I2C Scan");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip("Scan the bus and return a list of responding addresses.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -484,9 +506,10 @@ Blockly.Blocks["machine.I2C_I2C.start"] = {
   init: function() {
     this.appendDummyInput()
         .appendField("I2C Start");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Generate a START condition. Typically used with SoftI2C primitive operations.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -498,9 +521,10 @@ Blockly.Blocks["machine.I2C_I2C.stop"] = {
   init: function() {
     this.appendDummyInput()
         .appendField("I2C Stop");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Generate a STOP condition. Typically used with SoftI2C primitive operations.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -520,9 +544,10 @@ Blockly.Blocks["machine.I2C_I2C.readinto"] = {
           ["True", "TRUE"],
           ["False", "FALSE"]
         ]), "nack");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read bytes into a buffer using primitive I2C operations.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -536,8 +561,9 @@ Blockly.Blocks["machine.I2C_I2C.write"] = {
         .appendField("I2C Write");
     this.appendValueInput("buffer")
         .appendField("Buffer");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true, "Number");
+    this.setInputsInline(true);
     this.setTooltip("Write bytes using primitive I2C operations and return the number of ACKs received.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -561,8 +587,9 @@ Blockly.Blocks["machine.I2C_I2C.readfrom"] = {
           ["True", "TRUE"],
           ["False", "FALSE"]
         ]), "stop");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read bytes from an I2C address.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -585,9 +612,10 @@ Blockly.Blocks["machine.I2C_I2C.readfrom_into"] = {
           ["True", "TRUE"],
           ["False", "FALSE"]
         ]), "stop");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read from an I2C address into a buffer.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -610,8 +638,9 @@ Blockly.Blocks["machine.I2C_I2C.writeto"] = {
           ["True", "TRUE"],
           ["False", "FALSE"]
         ]), "stop");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true, "Number");
+    this.setInputsInline(true);
     this.setTooltip("Write bytes to an I2C address and return the number of ACKs received.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -634,8 +663,9 @@ Blockly.Blocks["machine.I2C_I2C.writevto"] = {
           ["True", "TRUE"],
           ["False", "FALSE"]
         ]), "stop");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true, "Number");
+    this.setInputsInline(true);
     this.setTooltip("Write a list of buffers to an I2C address.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -659,8 +689,9 @@ Blockly.Blocks["machine.I2C_I2C.readfrom_mem"] = {
     this.appendValueInput("addrsize")
         .setCheck("Number")
         .appendField("Address Size");
-    this.setColour(0);
+    this.setColour(175);
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip("Read bytes from a device memory address.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -683,9 +714,10 @@ Blockly.Blocks["machine.I2C_I2C.readfrom_mem_into"] = {
     this.appendValueInput("addrsize")
         .setCheck("Number")
         .appendField("Address Size");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Read from a device memory address into a buffer.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
   }
@@ -708,10 +740,73 @@ Blockly.Blocks["machine.I2C_I2C.writeto_mem"] = {
     this.appendValueInput("addrsize")
         .setCheck("Number")
         .appendField("Address Size");
-    this.setColour(0);
+    this.setColour(175);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
+    this.setInputsInline(true);
     this.setTooltip("Write bytes to a device memory address.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
+  }
+};
+
+
+// Bus constructors (value blocks — return SPI/I2C/UART objects) ----------------
+
+Blockly.Blocks["spi"] = {
+  init: function() {
+    this.appendDummyInput().appendField("SPI");
+    this.appendValueInput("id").setCheck("Number").appendField("ID #");
+    this.appendValueInput("baudrate").setCheck("Number").appendField("Baudrate");
+    this.appendValueInput("polarity").setCheck("Number").appendField("Polarity");
+    this.appendValueInput("phase").setCheck("Number").appendField("Phase");
+    this.appendValueInput("bits").setCheck("Number").appendField("Bits");
+    this.appendDummyInput()
+        .appendField("First Bit")
+        .appendField(new Blockly.FieldDropdown([["MSB", "MSB"], ["LSB", "LSB"]]), "firstbit");
+    this.appendValueInput("sck").setCheck("Number").appendField("SCK");
+    this.appendValueInput("mosi").setCheck("Number").appendField("MOSI");
+    this.appendValueInput("miso").setCheck("Number").appendField("MISO");
+    this.setOutput(true, "SPI");
+    this.setColour(15);
+    this.setInputsInline(false);
+    this.setTooltip("Create a hardware SPI bus object.");
+    this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.SPI.html");
+  }
+};
+
+Blockly.Blocks["i2_c"] = {
+  init: function() {
+    this.appendDummyInput().appendField("I2C");
+    this.appendValueInput("id").setCheck("Number").appendField("ID #");
+    this.appendValueInput("sda").setCheck("Number").appendField("SDA");
+    this.appendValueInput("scl").setCheck("Number").appendField("SCL");
+    this.appendValueInput("freq").setCheck("Number").appendField("Freq");
+    this.setOutput(true, "I2C");
+    this.setColour(175);
+    this.setInputsInline(true);
+    this.setTooltip("Create a hardware I2C bus object.");
+    this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.I2C.html");
+  }
+};
+
+Blockly.Blocks["uart"] = {
+  init: function() {
+    this.appendDummyInput().appendField("UART");
+    this.appendValueInput("id").setCheck("Number").appendField("ID #");
+    this.appendValueInput("baudrate").setCheck("Number").appendField("Baudrate");
+    this.appendValueInput("bits").setCheck("Number").appendField("Bits");
+    this.appendValueInput("stop").setCheck("Number").appendField("Stop Bits");
+    this.appendDummyInput()
+        .appendField("Parity")
+        .appendField(new Blockly.FieldDropdown([["None", "NONE"], ["Even", "EVEN"], ["Odd", "ODD"]]), "parity");
+    this.appendValueInput("tx").setCheck("Number").appendField("TX");
+    this.appendValueInput("rx").setCheck("Number").appendField("RX");
+    this.appendValueInput("timeout").setCheck("Number").appendField("Timeout");
+    this.appendValueInput("timeout_char").setCheck("Number").appendField("Timeout Char");
+    this.setOutput(true, "UART");
+    this.setColour(135);
+    this.setInputsInline(false);
+    this.setTooltip("Create a hardware UART object.");
+    this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.UART.html");
   }
 };

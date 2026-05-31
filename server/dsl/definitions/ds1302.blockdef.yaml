@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=./blockdef_schema.json
+
+module: ds1302
+imports:
+  - from: ds1302
+    names: [DS1302]
+url: "https://github.com/micropython/micropython"
+
+categories:
+  - name: DS1302
+    color: 35
+    classes:
+      - name: DS1302
+        instance_mode: singleton
+        instance_name: ds1302
+        blocks:
+          - fn: __init__
+            tooltip: Create a DS1302 RTC instance.
+            params:
+              - name: clk_pin
+                pin_mode: output
+              - name: dat_pin
+                pin_mode: any
+              - name: rst_pin
+                pin_mode: output
+
+          - fn: get_time
+            kind: value
+            tooltip: Read the current time tuple from the RTC.
+
+          - fn: get_year
+            kind: value
+            tooltip: Read the current year from the RTC.
+
+          - fn: get_month
+            kind: value
+            tooltip: Read the current month from the RTC.
+
+          - fn: get_day
+            kind: value
+            tooltip: Read the current day from the RTC.
+
+          - fn: get_hour
+            kind: value
+            tooltip: Read the current hour from the RTC.
+
+          - fn: get_minute
+            kind: value
+            tooltip: Read the current minute from the RTC.
+
+          - fn: get_second
+            kind: value
+            tooltip: Read the current second from the RTC.
+
+          - fn: get_time_text
+            kind: value
+            tooltip: Format the current time as text.
+            params:
+              - name: show_seconds
+                type: Boolean
+                default: true
+
+          - fn: get_date_text
+            kind: value
+            tooltip: Format the current date as text.
+
+          - fn: set_time
+            tooltip: Set the RTC date and time.
+            params:
+              - name: year
+                type: Number
+              - name: month
+                type: Number
+              - name: day
+                type: Number
+              - name: hour
+                type: Number
+              - name: minute
+                type: Number
+              - name: second
+                type: Number

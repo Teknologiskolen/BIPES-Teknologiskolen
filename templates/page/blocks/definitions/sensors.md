@@ -143,7 +143,18 @@
 <button text="%{INSTALL_LIBRARY}: MAX30100" callbackKey="installPyLib"></button>
 
 # max30100_init
-<block type="max30100_init"></block>
+<block type="max30100_init">
+  <value name="scl">
+    <shadow type="math_number">
+      <field name="NUM">22</field>
+    </shadow>
+  </value>
+  <value name="sda">
+    <shadow type="math_number">
+      <field name="NUM">21</field>
+    </shadow>
+  </value>
+</block>
 
 # max30100_read
 <block type="max30100_read"></block>
@@ -389,10 +400,32 @@
 </block>
 
 # rfid_rc522_detect_card
-<block type="rfid_rc522_detect_card"></block>
+<block type="rfid_rc522_detect_card">
+  <value name="stat">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="tag">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # rfid_rc522_anticoll
-<block type="rfid_rc522_anticoll"></block>
+<block type="rfid_rc522_anticoll">
+  <value name="stat">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="tag">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # rfid_rc522_read_card
 <block type="rfid_rc522_read_card"></block>
@@ -439,9 +472,21 @@
 <block type="esp32_cam_capture"></block>
 
 # esp32_cam_red_led
-<block type="esp32_cam_red_led"></block>
+<block type="esp32_cam_red_led">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_cam_white_led
-<block type="esp32_cam_white_led"></block>
+<block type="esp32_cam_white_led">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # -

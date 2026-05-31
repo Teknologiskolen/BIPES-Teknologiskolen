@@ -42,7 +42,23 @@
 </block>
 
 # net_wiznet5k_init
-<block type="net_wiznet5k_init"></block>
+<block type="net_wiznet5k_init">
+  <value name="spi">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="cs">
+    <shadow type="math_number">
+      <field name="NUM">17</field>
+    </shadow>
+  </value>
+  <value name="rst">
+    <shadow type="math_number">
+      <field name="NUM">20</field>
+    </shadow>
+  </value>
+</block>
 
 # net_wiznet5k_isconnected
 <block type="net_wiznet5k_isconnected"></block>
@@ -51,7 +67,28 @@
 <block type="net_wiznet5k_regs"></block>
 
 # net_wiznet5k_ifconfig
-<block type="net_wiznet5k_ifconfig"></block>
+<block type="net_wiznet5k_ifconfig">
+  <value name="ip">
+    <shadow type="text">
+      <field name="TEXT">192.168.0.2</field>
+    </shadow>
+  </value>
+  <value name="subnet">
+    <shadow type="text">
+      <field name="TEXT">255.255.255.0</field>
+    </shadow>
+  </value>
+  <value name="gw">
+    <shadow type="text">
+      <field name="TEXT">192.168.0.1</field>
+    </shadow>
+  </value>
+  <value name="dns">
+    <shadow type="text">
+      <field name="TEXT">8.8.8.8</field>
+    </shadow>
+  </value>
+</block>
 
 # HTTP Client
 <category name="HTTP Client">
@@ -59,7 +96,13 @@
 <label text="GET Method"></label>
 
 # net_get_request
-<block type="net_get_request"></block>
+<block type="net_get_request">
+  <value name="URL">
+    <shadow type="text">
+      <field name="TEXT">http://</field>
+    </shadow>
+  </value>
+</block>
 
 # net_get_request&text
 <block type="net_get_request">
@@ -176,8 +219,16 @@
 
 # net_post_request
 <block type="net_post_request">
-  <field name="NET_POST_REQUEST_URL">Make HTTP POST Request URL</field>
-  <field name="NET_POST_REQUEST_DATA">Data</field>
+  <value name="URL">
+    <shadow type="text">
+      <field name="TEXT">http://</field>
+    </shadow>
+  </value>
+  <value name="data">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
 </block>
 
 # net_post_request_json
@@ -214,7 +265,13 @@
 </block>
 
 # net_http_server_send_response_jpg
-<block type="net_http_server_send_response_jpg"></block>
+<block type="net_http_server_send_response_jpg">
+  <value name="html">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
+</block>
 
 # net_http_server_close
 <block type="net_http_server_close"></block>
@@ -521,13 +578,46 @@
 <button text="%{DOCUMENTATION}: esp32_can" callbackKey="loadDoc"></button>
 
 # esp32_can_init
-<block type="esp32_can_init"></block>
+<block type="esp32_can_init">
+  <value name="mode">
+    <shadow type="text">
+      <field name="TEXT">NORMAL</field>
+    </shadow>
+  </value>
+  <value name="baudrate">
+    <shadow type="text">
+      <field name="TEXT">500000</field>
+    </shadow>
+  </value>
+  <value name="extframe">
+    <shadow type="text">
+      <field name="TEXT">False</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_filter
-<block type="esp32_can_filter"></block>
+<block type="esp32_can_filter">
+  <value name="filter">
+    <shadow type="text">
+      <field name="TEXT">0</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_send
-<block type="esp32_can_send"></block>
+<block type="esp32_can_send">
+  <value name="id">
+    <shadow type="text">
+      <field name="TEXT">0</field>
+    </shadow>
+  </value>
+  <value name="data">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_recv
 <block type="esp32_can_recv"></block>

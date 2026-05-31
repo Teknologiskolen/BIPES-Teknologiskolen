@@ -36,13 +36,46 @@
 </block>
 
 # mcp23017_setup
-<block type="mcp23017_setup"></block>
+<block type="mcp23017_setup">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="value">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # mcp23017_output
-<block type="mcp23017_output"></block>
+<block type="mcp23017_output">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="value">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # mcp23017_input
-<block type="mcp23017_input"></block>
+<block type="mcp23017_input">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="pullup">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # RC Servo Motor
 <category name="RC Servo Motor">

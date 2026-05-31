@@ -7,6 +7,7 @@ Blockly.Msg["LISTS"] = "Listen";
 Blockly.Msg["VARIABLES"] = "Variablen";
 Blockly.Msg["FUNCTIONS"] = "Funktionen";
 Blockly.Msg["TIMING"] = "Timing";
+Blockly.Msg["TIME"] = "Zeit";
 Blockly.Msg["MACHINE"] = "Maschine";
 Blockly.Msg["PINS"] = "Pins";
 Blockly.Msg["MICROCONTROLLER"] = "Mikrocontroller";

@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=./blockdef_schema.json
+
+module: st7735s
+imports:
+  - from: st7735s
+    names: [ST7735S, color565]
+  # Optional color constants — add to names above to import them:
+  # BLACK, WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, ORANGE, GRAY
+url: "https://github.com/micropython/micropython"
+
+categories:
+  - name: ST7735S
+    color: 210
+    classes:
+      - name: ST7735S
+        instance_mode: singleton
+        instance_name: st7735s
+        blocks:
+          - fn: __init__
+            tooltip: Create an ST7735S display instance. Pass an SPI bus object and the dc, rst and cs pins.
+            params:
+              - name: spi
+                type: SPI
+              - name: dc
+                pin_mode: output
+                default: 16
+              - name: rst
+                pin_mode: output
+                default: 20
+              - name: cs
+                pin_mode: output
+                default: 17
+              - name: width
+                type: Number
+                default: 160
+              - name: height
+                type: Number
+                default: 128
+
+          - fn: fill
+            tooltip: Fill the entire display with a single color.
+            params:
+              - name: color
+                type: Color565
+
+          - fn: fill_rect
+            tooltip: Fill a rectangle with a color.
+            params:
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: w
+                type: Number
+              - name: h
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: pixel
+            tooltip: Draw a single pixel.
+            params:
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: hline
+            tooltip: Draw a horizontal line.
+            params:
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: w
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: vline
+            tooltip: Draw a vertical line.
+            params:
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: h
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: rect
+            tooltip: Draw a rectangle outline.
+            params:
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: w
+                type: Number
+              - name: h
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: line
+            tooltip: Draw a line between two points.
+            params:
+              - name: x0
+                type: Number
+              - name: y0
+                type: Number
+              - name: x1
+                type: Number
+              - name: y1
+                type: Number
+              - name: color
+                type: Color565
+
+          - fn: text
+            tooltip: Draw a text string on the display.
+            params:
+              - name: string
+                type: String
+              - name: x
+                type: Number
+              - name: y
+                type: Number
+              - name: color
+                type: Color565
+              - name: size
+                type: Number
+                default: 1
+
+    blocks:
+      - fn: color565
+        kind: value
+        inline: true
+        output_type: Color565
+        supertype: Number
+        tooltip: Convert RGB values (0–255 each) to a 16-bit display color.
+        params:
+          - name: r
+            type: Number
+          - name: g
+            type: Number
+          - name: b
+            type: Number

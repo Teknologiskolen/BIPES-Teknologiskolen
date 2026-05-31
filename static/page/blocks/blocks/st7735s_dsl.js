@@ -1,32 +1,17 @@
-Blockly.Blocks["color565"] = {
-  init: function() {
-    this.appendDummyInput().appendField("Color 565");
-    this.appendValueInput("r").setCheck("Number").appendField("R");
-    this.appendValueInput("g").setCheck("Number").appendField("G");
-    this.appendValueInput("b").setCheck("Number").appendField("B");
-    this.setOutput(true, null);
-    this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("Convert RGB888 values into a 16-bit display color.");
-    this.setHelpUrl("");
-  }
-};
-
 Blockly.Blocks["st7735_s__create"] = {
   init: function() {
     this.appendDummyInput().appendField("Create ST7735S");
-    this.appendValueInput("dc_pin").setCheck("Number").appendField("DC Pin");
-    this.appendValueInput("sck_pin").setCheck("Number").appendField("SCK Pin");
-    this.appendValueInput("mosi_pin").setCheck("Number").appendField("MOSI Pin");
-    this.appendValueInput("rst_pin").setCheck("Number").appendField("RST Pin");
-    this.appendValueInput("cs_pin").setCheck("Number").appendField("CS Pin");
+    this.appendValueInput("spi").setCheck("SPI").appendField("SPI");
+    this.appendValueInput("dc").setCheck("Number").appendField("DC");
+    this.appendValueInput("rst").setCheck("Number").appendField("RST");
+    this.appendValueInput("cs").setCheck("Number").appendField("CS");
     this.appendValueInput("width").setCheck("Number").appendField("Width");
     this.appendValueInput("height").setCheck("Number").appendField("Height");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
     this.setInputsInline(false);
-    this.setTooltip("Create an ST7735S display instance.");
+    this.setTooltip("Create an ST7735S display instance. Pass an SPI bus object and the dc, rst and cs pins.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -34,12 +19,12 @@ Blockly.Blocks["st7735_s__create"] = {
 Blockly.Blocks["st7735_s__fill"] = {
   init: function() {
     this.appendDummyInput().appendField("Fill");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Fill the entire display with a single color.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -51,12 +36,12 @@ Blockly.Blocks["st7735_s__fill_rect"] = {
     this.appendValueInput("y").setCheck("Number").appendField("Y");
     this.appendValueInput("w").setCheck("Number").appendField("W");
     this.appendValueInput("h").setCheck("Number").appendField("H");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Fill a rectangle with a color.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -66,12 +51,12 @@ Blockly.Blocks["st7735_s__pixel"] = {
     this.appendDummyInput().appendField("Pixel");
     this.appendValueInput("x").setCheck("Number").appendField("X");
     this.appendValueInput("y").setCheck("Number").appendField("Y");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a single pixel.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -82,12 +67,12 @@ Blockly.Blocks["st7735_s__hline"] = {
     this.appendValueInput("x").setCheck("Number").appendField("X");
     this.appendValueInput("y").setCheck("Number").appendField("Y");
     this.appendValueInput("w").setCheck("Number").appendField("W");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a horizontal line.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -98,12 +83,12 @@ Blockly.Blocks["st7735_s__vline"] = {
     this.appendValueInput("x").setCheck("Number").appendField("X");
     this.appendValueInput("y").setCheck("Number").appendField("Y");
     this.appendValueInput("h").setCheck("Number").appendField("H");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a vertical line.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -115,12 +100,12 @@ Blockly.Blocks["st7735_s__rect"] = {
     this.appendValueInput("y").setCheck("Number").appendField("Y");
     this.appendValueInput("w").setCheck("Number").appendField("W");
     this.appendValueInput("h").setCheck("Number").appendField("H");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a rectangle outline.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -132,12 +117,12 @@ Blockly.Blocks["st7735_s__line"] = {
     this.appendValueInput("y0").setCheck("Number").appendField("Y 0");
     this.appendValueInput("x1").setCheck("Number").appendField("X 1");
     this.appendValueInput("y1").setCheck("Number").appendField("Y 1");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a line between two points.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };
@@ -145,16 +130,30 @@ Blockly.Blocks["st7735_s__line"] = {
 Blockly.Blocks["st7735_s__text"] = {
   init: function() {
     this.appendDummyInput().appendField("Text");
-    this.appendValueInput("string").appendField("String");
+    this.appendValueInput("string").setCheck("String").appendField("String");
     this.appendValueInput("x").setCheck("Number").appendField("X");
     this.appendValueInput("y").setCheck("Number").appendField("Y");
-    this.appendValueInput("color").setCheck("Number").appendField("Color");
+    this.appendValueInput("color").setCheck("Color565").appendField("Color");
     this.appendValueInput("size").setCheck("Number").appendField("Size");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Draw a text string on the display.");
+    this.setHelpUrl("https://github.com/micropython/micropython");
+  }
+};
+
+Blockly.Blocks["color565"] = {
+  init: function() {
+    this.appendDummyInput().appendField("Color 565");
+    this.appendValueInput("r").setCheck("Number").appendField("R");
+    this.appendValueInput("g").setCheck("Number").appendField("G");
+    this.appendValueInput("b").setCheck("Number").appendField("B");
+    this.setOutput(true, "Color565");
+    this.setColour(210);
+    this.setInputsInline(true);
+    this.setTooltip("Convert RGB values (0\u2013255 each) to a 16-bit display color.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
 };

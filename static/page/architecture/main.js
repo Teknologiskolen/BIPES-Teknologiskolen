@@ -605,8 +605,6 @@ class DataPage {
     this.selectedLinkId = link.id
     let transport = this.visualTransport(link, flow)
     let transportCfg = TRANSPORT_CONFIG[transport] || TRANSPORT_CONFIG['auto']
-    let isWifi = transport === 'websocket'
-    let isSerial = transport === 'webserial' || transport === 'webbluetooth'
     this.$.inspector.$.innerHTML = `
       <div class="data-inspector-head">
         <strong>${dataMsg('DataGraphInspectorTitle', 'Relation settings')}</strong>
@@ -627,15 +625,15 @@ class DataPage {
           ['stream', dataMsg('DataModeStream', 'Stream')],
           ['notify', dataMsg('DataModeNotify', 'Notify')]
         ], flow.locked)}
-        ${isWifi ? this.linkSelect(link, 'envelope', dataMsg('DataOutputEnvelope', 'Message envelope'), [
+        ${this.linkSelect(link, 'envelope', dataMsg('DataOutputEnvelope', 'Message envelope'), [
           ['auto', dataMsg('DataEnvelopeAuto', 'Auto for connection')],
           ['raw', dataMsg('DataEnvelopeRaw', 'Raw payload')],
           ['json', 'JSON'],
           ['topic-message-packet', dataMsg('DataEnvelopeTopicMessage', 'Topic/message packet')],
           ['function-call', dataMsg('DataEnvelopeFunctionCall', 'Function call')]
-        ], flow.locked) : ''}
-        ${isSerial ? this.linkInput(link, 'header', dataMsg('DataInputHeader', 'Start/header'), flow.locked) : ''}
-        ${isSerial ? this.linkInput(link, 'footer', dataMsg('DataInputFooter', 'End/footer'), flow.locked) : ''}
+        ], flow.locked)}
+        ${this.linkInput(link, 'header', dataMsg('DataInputHeader', 'Start/header'), flow.locked)}
+        ${this.linkInput(link, 'footer', dataMsg('DataInputFooter', 'End/footer'), flow.locked)}
         ${flow.locked ? '' : `<button type="button" class="data-danger" data-action="remove-link" data-link-id="${escapeHTML(link.id)}">${dataMsg('DataRelationDelete', 'Remove relation')}</button>`}
       </div>
     `

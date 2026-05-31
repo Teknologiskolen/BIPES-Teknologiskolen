@@ -7,7 +7,7 @@ Blockly.Blocks["ds1302__create"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Create a DS1302 RTC instance.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -18,7 +18,7 @@ Blockly.Blocks["ds1302__get_time"] = {
     this.appendDummyInput().appendField("Get Time");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current time tuple from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -29,7 +29,7 @@ Blockly.Blocks["ds1302__get_year"] = {
     this.appendDummyInput().appendField("Get Year");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current year from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -40,7 +40,7 @@ Blockly.Blocks["ds1302__get_month"] = {
     this.appendDummyInput().appendField("Get Month");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current month from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -51,7 +51,7 @@ Blockly.Blocks["ds1302__get_day"] = {
     this.appendDummyInput().appendField("Get Day");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current day from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -62,7 +62,7 @@ Blockly.Blocks["ds1302__get_hour"] = {
     this.appendDummyInput().appendField("Get Hour");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current hour from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -73,7 +73,7 @@ Blockly.Blocks["ds1302__get_minute"] = {
     this.appendDummyInput().appendField("Get Minute");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current minute from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -84,7 +84,7 @@ Blockly.Blocks["ds1302__get_second"] = {
     this.appendDummyInput().appendField("Get Second");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Read the current second from the RTC.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -96,7 +96,7 @@ Blockly.Blocks["ds1302__get_time_text"] = {
     this.appendValueInput("show_seconds").setCheck("Boolean").appendField("Show Seconds");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Format the current time as text.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }
@@ -107,7 +107,7 @@ Blockly.Blocks["ds1302__get_date_text"] = {
     this.appendDummyInput().appendField("Get Date Text");
     this.setOutput(true, null);
     this.setColour(35);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Format the current date as text.");
     this.setHelpUrl("https://github.com/micropython/micropython");
   }

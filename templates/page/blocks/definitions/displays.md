@@ -1,6 +1,9 @@
 # %{DISPLAYS}
 <category name="%{DISPLAYS}">
 
+# Display
+<category name="Display">
+
 # NeoPixel LED Strip
 <category name="NeoPixel LED Strip">
 <label text="NeoPixel RGB LED Strip"></label>
@@ -240,16 +243,34 @@
 <block type="char_lcd_clear"></block>
 
 # char_lcd_putstr
-<block type="char_lcd_putstr"></block>
+<block type="char_lcd_putstr">
+  <value name="text">
+    <shadow type="text">
+      <field name="TEXT">Hello</field>
+    </shadow>
+  </value>
+</block>
 
 # char_lcd_moveto
 <block type="char_lcd_moveto"></block>
 
 # char_lcd_backlight
-<block type="char_lcd_backlight"></block>
+<block type="char_lcd_backlight">
+  <value name="state">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
 
 # char_lcd_display
-<block type="char_lcd_display"></block>
+<block type="char_lcd_display">
+  <value name="state">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
 
 # ST7789 Display
 <category name="ST7789 Display">
@@ -442,7 +463,13 @@
 <block type="clear_oled"></block>
 
 # fill_oled
-<block type="fill_oled"></block>
+<block type="fill_oled">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # LED Matrix
 <category name="LED Matrix">

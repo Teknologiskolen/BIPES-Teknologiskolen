@@ -1,5 +1,6 @@
 Blockly.Python["sand_table_robot__create"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var motor1_pins = Blockly.Python.valueToCode(block, "motor1_pins", Blockly.Python.ORDER_ATOMIC);
   var motor2_pins = Blockly.Python.valueToCode(block, "motor2_pins", Blockly.Python.ORDER_ATOMIC);
   var sensor_shoulder_pin = Blockly.Python.valueToCode(block, "sensor_shoulder_pin", Blockly.Python.ORDER_ATOMIC);
@@ -19,18 +20,21 @@ Blockly.Python["sand_table_robot__create"] = function(block) {
 
 Blockly.Python["sand_table_robot__off"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var code = "sandMachine.off()" + "\n";
   return code;
 };
 
 Blockly.Python["sand_table_robot__home"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var code = "sandMachine.home()" + "\n";
   return code;
 };
 
 Blockly.Python["sand_table_robot__move_line"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var target_x = Blockly.Python.valueToCode(block, "target_x", Blockly.Python.ORDER_ATOMIC);
   var target_y = Blockly.Python.valueToCode(block, "target_y", Blockly.Python.ORDER_ATOMIC);
   var segments = Blockly.Python.valueToCode(block, "segments", Blockly.Python.ORDER_ATOMIC);
@@ -41,6 +45,7 @@ Blockly.Python["sand_table_robot__move_line"] = function(block) {
 
 Blockly.Python["sand_table_robot__move_arc"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var center_x = Blockly.Python.valueToCode(block, "center_x", Blockly.Python.ORDER_ATOMIC);
   var center_y = Blockly.Python.valueToCode(block, "center_y", Blockly.Python.ORDER_ATOMIC);
   var radius = Blockly.Python.valueToCode(block, "radius", Blockly.Python.ORDER_ATOMIC);
@@ -54,6 +59,7 @@ Blockly.Python["sand_table_robot__move_arc"] = function(block) {
 
 Blockly.Python["sand_table_robot__draw_spiral"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var max_radius = Blockly.Python.valueToCode(block, "max_radius", Blockly.Python.ORDER_ATOMIC);
   var vindinger = Blockly.Python.valueToCode(block, "vindinger", Blockly.Python.ORDER_ATOMIC);
   var segments_pr_omgang = Blockly.Python.valueToCode(block, "segments_pr_omgang", Blockly.Python.ORDER_ATOMIC);
@@ -64,6 +70,7 @@ Blockly.Python["sand_table_robot__draw_spiral"] = function(block) {
 
 Blockly.Python["sand_table_robot__draw_flower"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var max_radius = Blockly.Python.valueToCode(block, "max_radius", Blockly.Python.ORDER_ATOMIC);
   var petals = Blockly.Python.valueToCode(block, "petals", Blockly.Python.ORDER_ATOMIC);
   var speed = Blockly.Python.valueToCode(block, "speed", Blockly.Python.ORDER_ATOMIC);
@@ -73,6 +80,7 @@ Blockly.Python["sand_table_robot__draw_flower"] = function(block) {
 
 Blockly.Python["sand_table_robot__run_gcode_text"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var gcode_text = Blockly.Python.valueToCode(block, "gcode_text", Blockly.Python.ORDER_ATOMIC);
   var segments = Blockly.Python.valueToCode(block, "segments", Blockly.Python.ORDER_ATOMIC);
   var draw_speed_ms = Blockly.Python.valueToCode(block, "draw_speed_ms", Blockly.Python.ORDER_ATOMIC);
@@ -84,6 +92,7 @@ Blockly.Python["sand_table_robot__run_gcode_text"] = function(block) {
 
 Blockly.Python["sand_table_robot__run_gcode_file"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  Blockly.Python.definitions_["import_stepper"] = "import stepper";
   var path = Blockly.Python.valueToCode(block, "path", Blockly.Python.ORDER_ATOMIC);
   var segments = Blockly.Python.valueToCode(block, "segments", Blockly.Python.ORDER_ATOMIC);
   var draw_speed_ms = Blockly.Python.valueToCode(block, "draw_speed_ms", Blockly.Python.ORDER_ATOMIC);

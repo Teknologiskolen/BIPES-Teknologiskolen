@@ -208,12 +208,9 @@ class Actions {
 	      title: 'input',
 	      subtitle: 'input',
 	      topic: 'input',
-	      labelOne: 'input',
-	      messageOne: 'input',
-	      labelTwo: 'input',
-	      messageTwo: 'input',
-	      labelThree: 'input',
-	      messageThree: 'input',
+	      label1: 'input', message1: 'input',
+	      label2: 'input', message2: 'input',
+	      label3: 'input', message3: 'input',
 	      defaultState: 'input',
 	    },
 	    'button': {
@@ -462,12 +459,12 @@ class Actions {
 	        title: dashboardActionMsg('DashboardDefaultMode', 'Mode'),
 	        subtitle: dashboardActionMsg('DashboardDefaultChoose', 'Choose'),
 	        topic: 'mode',
-	        labelOne: dashboardActionMsg('DashboardActionOff', 'Off'),
-	        messageOne: 'off',
-	        labelTwo: dashboardActionMsg('DashboardDefaultAuto', 'Auto'),
-	        messageTwo: 'auto',
-	        labelThree: dashboardActionMsg('DashboardActionOn', 'On'),
-	        messageThree: 'on',
+	        label1: dashboardActionMsg('DashboardActionOff', 'Off'),
+	        message1: 'off',
+	        label2: dashboardActionMsg('DashboardDefaultAuto', 'Auto'),
+	        message2: 'auto',
+	        label3: dashboardActionMsg('DashboardActionOn', 'On'),
+	        message3: 'on',
 	        defaultState: 0,
 	        }
 	      break
@@ -615,13 +612,13 @@ class Actions {
 	      title: dashboardActionMsg('DashboardActionTitle', 'Title'),
 	      subtitle: dashboardActionMsg('DashboardActionSubtitle', 'Subtitle'),
 	      topic: dashboardActionMsg('DashboardActionTopic', 'Topic'),
-	      labelOne: dashboardActionMsg('DashboardActionStateOneLabel', 'State 1 label'),
-	      messageOne: dashboardActionMsg('DashboardActionStateOneMessage', 'State 1 message'),
-	      labelTwo: dashboardActionMsg('DashboardActionStateTwoLabel', 'State 2 label'),
-	      messageTwo: dashboardActionMsg('DashboardActionStateTwoMessage', 'State 2 message'),
-	      labelThree: dashboardActionMsg('DashboardActionStateThreeLabel', 'State 3 label'),
-	      messageThree: dashboardActionMsg('DashboardActionStateThreeMessage', 'State 3 message'),
-	      defaultState: dashboardActionMsg('DashboardActionDefaultState', 'Default state (0, 1, or 2)')
+	      label1: dashboardActionMsg('DashboardActionStateLabel', 'State 1 label'),
+	      message1: dashboardActionMsg('DashboardActionStateMessage', 'State 1 message'),
+	      label2: dashboardActionMsg('DashboardActionStateLabel', 'State 2 label'),
+	      message2: dashboardActionMsg('DashboardActionStateMessage', 'State 2 message'),
+	      label3: dashboardActionMsg('DashboardActionStateLabel', 'State 3 label'),
+	      message3: dashboardActionMsg('DashboardActionStateMessage', 'State 3 message'),
+	      defaultState: dashboardActionMsg('DashboardActionDefaultState', 'Default state (0-based index)')
 	    },
 	    'button': {
 	      dataFlowId: [dashboardActionMsg('DataFlowUse', 'Data flow'), Actions.outputDataFlowOptions],
@@ -935,12 +932,9 @@ class Action {
 			      case 'title':
 			      case 'subtitle':
 			      case 'topic':
-			      case 'labelOne':
-			      case 'messageOne':
-			      case 'labelTwo':
-			      case 'messageTwo':
-			      case 'labelThree':
-			      case 'messageThree':
+			      case 'label1': case 'message1':
+			      case 'label2': case 'message2':
+			      case 'label3': case 'message3':
 			      case 'defaultState':
               data.setup[this.key] = str
               ThreeStateSwitches.regen(obj, data)

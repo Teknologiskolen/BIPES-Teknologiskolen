@@ -14,7 +14,8 @@ Blockly.Blocks['wifi_client_connect'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["wifi_key"]), "WIFI_CLIENT_NET_KEY");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(200);
  this.setTooltip("Connect to a Wifi network");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -25,7 +26,8 @@ Blockly.Blocks['wifi_client_scan_networks'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable(Msg["wifi_scan"]), "NET_SCAN_WIFI");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(200);
  this.setTooltip("Scan wifi networks");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -45,7 +47,8 @@ Blockly.Blocks['net_ap_mode'] = {
         .appendField(new Blockly.FieldLabelSerializable("Network password"), "NET_NETWORK_KEY");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(200);
  this.setTooltip("Configure Access Point Mode");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -57,7 +60,8 @@ Blockly.Blocks['net_ifconfig'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable("Wifi current IP"), "NET_IFCONFIG");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(200);
  this.setTooltip("Wifi current IP");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -65,7 +69,7 @@ Blockly.Blocks['net_ifconfig'] = {
 
 Blockly.Blocks['net_wiznet5k_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Init WizNet5000");
 
@@ -89,6 +93,7 @@ Blockly.Blocks['net_wiznet5k_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -96,11 +101,12 @@ Blockly.Blocks['net_wiznet5k_init'] = {
 
 Blockly.Blocks['net_wiznet5k_isconnected'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Check if Ethernet is Connected");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -109,11 +115,12 @@ Blockly.Blocks['net_wiznet5k_isconnected'] = {
 
 Blockly.Blocks['net_wiznet5k_regs'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Dump Ethernet Registers");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -121,7 +128,7 @@ Blockly.Blocks['net_wiznet5k_regs'] = {
 
 Blockly.Blocks['net_wiznet5k_ifconfig'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Configure WizNet5000");
 
@@ -150,6 +157,7 @@ Blockly.Blocks['net_wiznet5k_ifconfig'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -166,7 +174,8 @@ Blockly.Blocks['net_get_request'] = {
         .setCheck("String")
         .appendField(new Blockly.FieldLabelSerializable("URL"), "BLOCK_NET_GET");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP GET Request");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -179,7 +188,8 @@ Blockly.Blocks['http_get_status'] = {
         .appendField(Msg["net_http_get_status"])
         .appendField(new Blockly.FieldVariable("request"), "request");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Status code of the HTTP GET request");
  this.setHelpUrl("bipes.net.br");
   }
@@ -191,7 +201,8 @@ Blockly.Blocks['http_get_content'] = {
         .appendField(Msg["net_http_get_content"])
         .appendField(new Blockly.FieldVariable("request"), "request");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Content of HTTP GET request");
  this.setHelpUrl("bipes.net.br");
   }
@@ -207,7 +218,8 @@ Blockly.Blocks['net_post_request'] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(new Blockly.FieldLabelSerializable("Data"), "NET_POST_REQUEST_DATA");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP POST Request");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -223,7 +235,8 @@ Blockly.Blocks['net_post_request_json'] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(new Blockly.FieldLabelSerializable("JSON Data"), "NET_POST_REQUEST_DATA");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP POST Request with JSON data");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -233,7 +246,7 @@ Blockly.Blocks['net_post_request_json'] = {
 
 Blockly.Blocks['net_http_server_start'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_start"]);
 
@@ -244,6 +257,7 @@ Blockly.Blocks['net_http_server_start'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -251,12 +265,13 @@ Blockly.Blocks['net_http_server_start'] = {
 
 Blockly.Blocks['net_http_server_accept'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_wait"]);
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -264,11 +279,12 @@ Blockly.Blocks['net_http_server_accept'] = {
 
 Blockly.Blocks['net_http_server_requested_page'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_requested_page"]);
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -276,7 +292,7 @@ Blockly.Blocks['net_http_server_requested_page'] = {
 
 Blockly.Blocks['net_http_server_send_response'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_send_response"]);
 
@@ -287,13 +303,14 @@ Blockly.Blocks['net_http_server_send_response'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_http_server_send_response_jpg'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_send_response"]);
 
@@ -304,6 +321,7 @@ Blockly.Blocks['net_http_server_send_response_jpg'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -312,11 +330,12 @@ Blockly.Blocks['net_http_server_send_response_jpg'] = {
 
 Blockly.Blocks['net_http_server_close'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField("Close HTTP Web Server");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -324,7 +343,7 @@ Blockly.Blocks['net_http_server_close'] = {
 // EMAIL -----------------------------------------------------------------------
 Blockly.Blocks['umail_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(185);
     this.appendDummyInput()
         .appendField("Init uMail Email Sender");
 
@@ -350,13 +369,14 @@ Blockly.Blocks['umail_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['umail_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(185);
     this.appendDummyInput()
         .appendField("Send email");
 
@@ -377,6 +397,7 @@ Blockly.Blocks['umail_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -384,7 +405,7 @@ Blockly.Blocks['umail_send'] = {
 // NTP Time --------------------------------------------------------------------
 Blockly.Blocks['net_ntp_sync'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(195);
     this.appendDummyInput()
         .appendField(Msg["ntp_sync"]);
 
@@ -398,6 +419,7 @@ Blockly.Blocks['net_ntp_sync'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -405,7 +427,7 @@ Blockly.Blocks['net_ntp_sync'] = {
 // TCP/IP Socket ---------------------------------------------------------------
 Blockly.Blocks['net_socket_connect'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("TCP/IP Socket Connect");
 
@@ -421,13 +443,14 @@ Blockly.Blocks['net_socket_connect'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_socket_receive'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Receive");
 
@@ -437,13 +460,14 @@ Blockly.Blocks['net_socket_receive'] = {
         .appendField("Bytes to receive:");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_socket_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Send");
 
@@ -454,6 +478,7 @@ Blockly.Blocks['net_socket_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -461,12 +486,13 @@ Blockly.Blocks['net_socket_send'] = {
 
 Blockly.Blocks['net_socket_close'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Close");
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -496,7 +522,8 @@ Blockly.Blocks['mqtt_init'] = {
         .appendField(new Blockly.FieldLabelSerializable("Password"), "MQTT_PASSWORD");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Start MQTT Client");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -516,7 +543,8 @@ Blockly.Blocks['mqtt_add_to_buffer'] = {
         .appendField(new Blockly.FieldLabelSerializable("Value"), "MQTT_VALUE");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Add Data to MQTT Buffer");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -540,8 +568,8 @@ Blockly.Blocks['mqtt_publish_buffer'] = {
         ]), 'MQTT_QOS');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Publish Buffer to MQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -568,8 +596,8 @@ Blockly.Blocks['mqtt_publish_payload'] = {
         ]), 'MQTT_QOS');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Publish Payload to MQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -586,7 +614,8 @@ Blockly.Blocks['mqtt_subscribe'] = {
         .appendField(new Blockly.FieldLabelSerializable("Topic"), "MQTT_TOPIC");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Subscribe to MQTT Topic");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -611,8 +640,8 @@ Blockly.Blocks['mqtt_set_callback'] = {
         .appendField('do');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Callback function must have topic and msg parameters");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -625,7 +654,8 @@ Blockly.Blocks['mqtt_check_msg'] = {
         .appendField(new Blockly.FieldLabelSerializable("Check MQTT Server for pending messages"), "BLOCK_MQTT_CHECK_Msg");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Check if the server has any pending messages. Non-blocking method. Subscription messages will be passed to the callback.");
      this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -638,7 +668,8 @@ Blockly.Blocks['mqtt_wait_msg'] = {
         .appendField(new Blockly.FieldLabelSerializable("Wait for MQTT Server messages"), "BLOCK_MQTT_WAIT_Msg");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Wait for server sending any message. Blocking method. Subscription messages will be passed to the callback.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -651,7 +682,8 @@ Blockly.Blocks['mqtt_disconnect'] = {
         .appendField(new Blockly.FieldLabelSerializable("Disconnect MQTT Client"), "BLOCK_MQTT_DISCONNECT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Disconnect the MQTT Client from Server.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -668,7 +700,8 @@ Blockly.Blocks['easymqtt_init'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["easymqtt_start"]), "BLOCK_EASYMQTT_INIT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Start EasyMQTT Client");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -689,7 +722,8 @@ Blockly.Blocks['easymqtt_publish_data'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["data"]), "EASYMQTT_PAYLOAD");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Publish Data to EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -705,7 +739,7 @@ Blockly.Blocks['easymqtt_publish_axis'] = {
         this.updateShape_();
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(230);
+        this.setColour(238);
         this.setMutator(new Blockly.Mutator(["easymqtt_publish_axis_item"]));
         this.setTooltip("The data will be stored in the browser, organized by topic, see the 'Databoard' tab.");
     },
@@ -761,7 +795,7 @@ Blockly.Blocks['easymqtt_publish_axis'] = {
 };
 Blockly.Blocks['easymqtt_publish_axis_container'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(238);
         this.appendDummyInput().appendField("dataset");
         this.appendStatementInput("STACK");
         this.setTooltip("Dataset composed by multiple axis, the first axis is 'x'.");
@@ -770,7 +804,7 @@ Blockly.Blocks['easymqtt_publish_axis_container'] = {
 };
 Blockly.Blocks['easymqtt_publish_axis_item'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(238);
         this.appendDummyInput().appendField("axis");
         this.setPreviousStatement(!0);
         this.setNextStatement(!0);
@@ -799,8 +833,8 @@ Blockly.Blocks['easymqtt_subscribe'] = {
         .appendField('do');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(238);
+    this.setInputsInline(true);
     this.setTooltip("Subscribe to a topic and define what to do when data is received from EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -819,7 +853,8 @@ Blockly.Blocks['easymqtt_receive_data'] = {
         ]), 'EASYMQTT_WAIT');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Receive Data from EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -832,7 +867,8 @@ Blockly.Blocks['easymqtt_disconnect'] = {
         .appendField(new Blockly.FieldLabelSerializable("EasyMQTT Stop"), "BLOCK_EASYMQTT_DISCONNECT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Disconnect the EasyMQTT Client from Server.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -852,7 +888,8 @@ Blockly.Blocks['bluetooth_repl_setup'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(250);
  this.setTooltip("Setup Web Bluetooth REPL");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -871,7 +908,8 @@ Blockly.Blocks['bluetooth_repl_start'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(250);
  this.setTooltip("Start REPL over Web Bluetooth");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -885,7 +923,8 @@ Blockly.Blocks['webrepl_setup'] = {
         .appendField("WebREPL Setup");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(248);
  this.setTooltip("Configure WebREPL");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -898,7 +937,8 @@ Blockly.Blocks['webrepl_start'] = {
         .appendField("Start WebREPL");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(248);
  this.setTooltip("Start WebREPL Server");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -907,7 +947,7 @@ Blockly.Blocks['webrepl_start'] = {
 //https://github.com/nos86/micropython/blob/esp32-can-driver-v3/docs/library/machine.CAN.rst
 Blockly.Blocks['esp32_can_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Init ESP32 CAN Bus Controller");
 
@@ -928,6 +968,7 @@ Blockly.Blocks['esp32_can_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -936,7 +977,7 @@ Blockly.Blocks['esp32_can_init'] = {
 
 Blockly.Blocks['esp32_can_filter'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Set CAN Filter");
 
@@ -947,6 +988,7 @@ Blockly.Blocks['esp32_can_filter'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -954,7 +996,7 @@ Blockly.Blocks['esp32_can_filter'] = {
 
 Blockly.Blocks['esp32_can_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Send CAN Frame");
 
@@ -970,6 +1012,7 @@ Blockly.Blocks['esp32_can_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -977,12 +1020,12 @@ Blockly.Blocks['esp32_can_send'] = {
 
 Blockly.Blocks['esp32_can_recv'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Receive CAN Frame");
 
     this.setOutput(true);
-
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -1001,10 +1044,10 @@ Blockly.Blocks['google_spreadsheet'] = {
     this.appendStatementInput("cells_values")
         .setCheck(null)
         .appendField("Cells");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(120);
+    this.setColour(130);
  this.setTooltip("");
  this.setHelpUrl("");
   }
@@ -1015,10 +1058,10 @@ Blockly.Blocks['cell_value'] = {
     this.appendValueInput("value")
         .setCheck(null)
         .appendField("Cell");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setColour(130);
  this.setTooltip("");
  this.setHelpUrl("");
   }

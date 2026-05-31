@@ -1,0 +1,374 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BlockdefFile",
+  "description": "Language-agnostic Blockly block definition file.",
+  "type": "object",
+  "required": ["module", "categories"],
+  "additionalProperties": false,
+  "properties": {
+    "module": {
+      "type": "string",
+      "pattern": "^[_a-zA-Z]\\w*$",
+      "description": "Module identifier (must be a valid Python identifier)."
+    },
+    "imports": {
+      "type": "array",
+      "description": "Python imports injected into generated code. Use a string for 'import X' or an object for 'from X import A, B'.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "→ import MODULE"
+          },
+          {
+            "type": "object",
+            "required": ["from", "names"],
+            "additionalProperties": false,
+            "description": "→ from MODULE import A, B, C",
+            "properties": {
+              "from": { "type": "string", "description": "Module to import from." },
+              "names": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" },
+                "description": "Names to import (classes, functions, constants)."
+              }
+            }
+          }
+        ]
+      }
+    },
+    "url": {
+      "type": "string",
+      "description": "Help URL applied to all blocks in this file."
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/CategoryDef" }
+    }
+  },
+  "$defs": {
+    "CategoryDef": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Blockly toolbox category label."
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "Blockly hue (0–360)."
+        },
+        "classes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ClassDef" }
+        },
+        "blocks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CategoryFunctionBlock" },
+          "description": "Top-level (non-class) blocks in this category. __init__ is not valid here."
+        }
+      }
+    },
+    "ClassDef": {
+      "description": "A class with Blockly blocks. Exactly one mode applies: singleton (one shared instance) or multiple (user-identified instances).",
+      "oneOf": [
+        { "$ref": "#/$defs/SingletonClassDef" },
+        { "$ref": "#/$defs/MultipleClassDef" }
+      ]
+    },
+    "SingletonClassDef": {
+      "type": "object",
+      "required": ["name", "instance_mode", "blocks"],
+      "additionalProperties": false,
+      "description": "A class with one shared instance. The variable name is fixed at author time (e.g. 'ds1302').",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python class name."
+        },
+        "instance_mode": {
+          "type": "string",
+          "enum": ["singleton"]
+        },
+        "instance_name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Fixed Python variable name for the shared instance. Must be a valid identifier."
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/FunctionBlock" }
+        }
+      }
+    },
+    "MultipleClassDef": {
+      "type": "object",
+      "required": ["name", "instance_mode", "blocks"],
+      "additionalProperties": false,
+      "description": "A class where multiple named instances can exist, identified by a user-provided key.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python class name."
+        },
+        "instance_mode": {
+          "type": "string",
+          "enum": ["multiple"]
+        },
+        "method_ref": {
+          "type": "string",
+          "enum": ["key_input", "object_input"],
+          "description": "How method blocks refer to their instance. 'key_input' adds a numeric ID field; 'object_input' takes an instance block."
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/FunctionBlock" }
+        }
+      }
+    },
+    "FunctionBlock": {
+      "type": "object",
+      "required": ["fn"],
+      "additionalProperties": false,
+      "properties": {
+        "fn": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python function or method name (use __init__ for the constructor)."
+        },
+        "label": {
+          "type": "string",
+          "description": "Block label shown in Blockly. Auto-derived from fn if omitted."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["value", "statement", "hat"],
+          "description": "Block shape: value returns a value; statement is a void action; hat starts a handler. Constructors are always statements."
+        },
+        "inline": {
+          "type": "boolean",
+          "description": "Render inputs inline (all on one row)."
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Hover tooltip text shown in Blockly."
+        },
+        "output_type": {
+          "type": "string",
+          "description": "For value blocks: the primary Blockly output type (e.g. 'Color565', 'SPI'). Only blocks with matching output_type can snap into inputs typed accordingly."
+        },
+        "supertype": {
+          "type": "string",
+          "description": "Supertype of output_type. Only valid on value blocks. Declares that output_type is a subtype of supertype (e.g. Color565 <: Number), so the block can also snap into inputs that accept the supertype. Must be a known built-in or platform type."
+        },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ParamDef" }
+        }
+      },
+      "allOf": [
+        {
+          "description": "output_type is only meaningful on kind: value blocks. If output_type is present, kind must be explicitly set to 'value'.",
+          "if": { "required": ["output_type"] },
+          "then": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "value" } }
+          }
+        },
+        {
+          "description": "supertype requires both output_type and kind: value.",
+          "if": { "required": ["supertype"] },
+          "then": {
+            "required": ["output_type", "kind"],
+            "properties": { "kind": { "const": "value" } }
+          }
+        }
+      ]
+    },
+    "CategoryFunctionBlock": {
+      "description": "A function block at category level (not inside a class). __init__ is not valid here — constructors only make sense inside a class.",
+      "allOf": [
+        { "$ref": "#/$defs/FunctionBlock" },
+        {
+          "properties": {
+            "fn": { "not": { "const": "__init__" } }
+          }
+        }
+      ]
+    },
+    "ParamDef": {
+      "description": "A parameter definition. Exactly one mode applies: value input (type/default), GPIO pin (pin_mode), legacy raw pin (pin), or dropdown (options). These are mutually exclusive alternatives — each maps to a distinct Blockly input kind.",
+      "oneOf": [
+        { "$ref": "#/$defs/ValueParamDef" },
+        { "$ref": "#/$defs/PinParamDef" },
+        { "$ref": "#/$defs/LegacyPinParamDef" },
+        { "$ref": "#/$defs/DropdownParamDef" }
+      ]
+    },
+    "ValueParamDef": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "A value input: accepts a connected block, optionally restricted by type.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python parameter name."
+        },
+        "type": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          ],
+          "description": "Blockly type-check for the connected block. A single string (e.g. 'Number') or a list (['Number','SPI']) to accept multiple types. Built-in: Number, String, Boolean, Any. Custom values (e.g. Color565) restrict the slot to blocks with the matching output_type."
+        },
+        "default": {
+          "description": "Default value rendered as a shadow block. Must be compatible with the declared type.",
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "number" },
+            { "type": "string" },
+            { "type": "array", "items": { "type": ["boolean", "number", "string"] } }
+          ]
+        },
+        "keyword": {
+          "type": "boolean",
+          "description": "Emit as a keyword argument (name=value) in generated Python. Use for bus constructors like SPI(0, baudrate=..., sck=Pin(n))."
+        }
+      },
+      "allOf": [
+        {
+          "description": "If type is Number and a default is given, the default must be a JSON number (not a string or boolean).",
+          "if": {
+            "properties": { "type": { "const": "Number" } },
+            "required": ["type", "default"]
+          },
+          "then": {
+            "properties": { "default": { "type": "number", "not": { "type": "boolean" } } }
+          }
+        },
+        {
+          "description": "If type is Boolean and a default is given, the default must be a JSON boolean.",
+          "if": {
+            "properties": { "type": { "const": "Boolean" } },
+            "required": ["type", "default"]
+          },
+          "then": {
+            "properties": { "default": { "type": "boolean" } }
+          }
+        },
+        {
+          "description": "If type is String and a default is given, the default must be a JSON string.",
+          "if": {
+            "properties": { "type": { "const": "String" } },
+            "required": ["type", "default"]
+          },
+          "then": {
+            "properties": { "default": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "PinParamDef": {
+      "type": "object",
+      "required": ["name", "pin_mode"],
+      "additionalProperties": false,
+      "description": "A GPIO pin input. Renders a pinout shadow block; wraps the number in Pin(n, Pin.IN/OUT) or Pin(n) in generated code.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python parameter name."
+        },
+        "pin_mode": {
+          "type": "string",
+          "enum": ["input", "output", "any"],
+          "description": "GPIO direction. 'input' → Pin(n, Pin.IN); 'output' → Pin(n, Pin.OUT); 'any' → Pin(n)."
+        },
+        "default": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "null" }
+          ],
+          "description": "Default pin number shown in the shadow block."
+        },
+        "keyword": {
+          "type": "boolean",
+          "description": "Emit as a keyword argument in generated Python."
+        }
+      }
+    },
+    "LegacyPinParamDef": {
+      "type": "object",
+      "required": ["name", "pin"],
+      "additionalProperties": false,
+      "description": "Legacy: renders a pinout shadow block and passes the raw pin integer (no Pin() wrapper). Prefer pin_mode for new blocks.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python parameter name."
+        },
+        "pin": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Must be true. Marks this as a legacy raw-pin parameter."
+        },
+        "default": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "null" }
+          ],
+          "description": "Default pin number shown in the shadow block."
+        },
+        "keyword": {
+          "type": "boolean",
+          "description": "Emit as a keyword argument in generated Python."
+        }
+      }
+    },
+    "DropdownParamDef": {
+      "type": "object",
+      "required": ["name", "options"],
+      "additionalProperties": false,
+      "description": "A dropdown field: renders as a fixed-choice selector in the block, not a value input.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[_a-zA-Z]\\w*$",
+          "description": "Python parameter name."
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/DropdownOption" },
+          "description": "List of dropdown choices."
+        },
+        "default": {
+          "type": "string",
+          "description": "Default selected option value."
+        }
+      }
+    },
+    "DropdownOption": {
+      "type": "object",
+      "required": ["label", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "description": "Human-readable display text." },
+        "value": { "type": "string", "description": "Code value passed to the generated function call." }
+      }
+    }
+  }
+}

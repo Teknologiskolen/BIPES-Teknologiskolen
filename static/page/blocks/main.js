@@ -131,10 +131,29 @@ class Blocks {
     },250)
   }
   sanitizeLegacyXml (xmlText){
-    if (typeof xmlText !== 'string' || xmlText.indexOf('strip_name') === -1)
+    if (typeof xmlText !== 'string' || !xmlText)
       return xmlText
 
-    return xmlText.replace(/<field name="strip_name">[\s\S]*?<\/field>/g, '')
+    if (xmlText.indexOf('strip_name') !== -1)
+      xmlText = xmlText.replace(/<field name="strip_name">[\s\S]*?<\/field>/g, '')
+
+    // Strip stale top-level <shadow> blocks. These occur when saved projects have
+    // shadow blocks whose type is now incompatible with the input they used to fill
+    // (e.g. a math_number shadow where an SPI block is now required). Blockly orphans
+    // them at the top level of the XML and then throws "Shadow block cannot be a
+    // top-level block" when trying to load the workspace.
+    if (xmlText.indexOf('<shadow') !== -1) {
+      try {
+        const dom = new DOMParser().parseFromString(xmlText, 'text/xml')
+        const root = dom.documentElement
+        Array.from(root.childNodes)
+          .filter(n => n.nodeName === 'shadow')
+          .forEach(n => root.removeChild(n))
+        xmlText = new XMLSerializer().serializeToString(dom)
+      } catch(_e) { /* keep original if XML parsing fails */ }
+    }
+
+    return xmlText
   }
   /*
    * On load a project, load the blocks' scope of the project.
@@ -145,11 +164,17 @@ class Blocks {
     if (obj.hasOwnProperty('xml')) {
       this.loadedWorkspace = false
       Blockly.Events.disable()
-      Blockly.Xml.clearWorkspaceAndLoadFromXml(
-        Blockly.Xml.textToDom(this.sanitizeLegacyXml(obj.xml)),
-        this.workspace
-      )
-      Blockly.Events.enable()
+      try {
+        Blockly.Xml.clearWorkspaceAndLoadFromXml(
+          Blockly.Xml.textToDom(this.sanitizeLegacyXml(obj.xml)),
+          this.workspace
+        )
+      } catch(e) {
+        console.warn('Blocks: could not restore workspace, starting fresh.', e.message)
+        this.workspace.clear()
+      } finally {
+        Blockly.Events.enable()
+      }
       // Update code if generating
       this.code.update()
     }
@@ -526,11 +551,17 @@ let blocksRegisterCallbacks = (workspace) => {
         return response.text()
       }).then(response => {
         Blockly.Events.disable()
-        Blockly.Xml.clearWorkspaceAndLoadFromXml(
-          Blockly.Xml.textToDom(bipes.page.blocks.sanitizeLegacyXml(response)),
-          bipes.page.blocks.workspace
-        )
-        Blockly.Events.enable()
+        try {
+          Blockly.Xml.clearWorkspaceAndLoadFromXml(
+            Blockly.Xml.textToDom(bipes.page.blocks.sanitizeLegacyXml(response)),
+            bipes.page.blocks.workspace
+          )
+        } catch(e) {
+          console.warn('Blocks: could not load example XML.', e.message)
+          bipes.page.blocks.workspace.clear()
+        } finally {
+          Blockly.Events.enable()
+        }
       })
   })
 

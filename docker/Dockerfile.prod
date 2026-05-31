@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir Flask gunicorn flask-mqtt paho-mqtt psycopg psycopg-binary argon2-cffi
+RUN pip install --no-cache-dir Flask gunicorn flask-mqtt paho-mqtt psycopg psycopg-binary argon2-cffi pyyaml jsonschema
 
 # Create logs directory
 RUN mkdir -p /app/logs

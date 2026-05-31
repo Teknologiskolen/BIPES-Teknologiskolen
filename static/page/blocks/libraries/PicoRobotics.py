@@ -1,14 +1,6 @@
 import machine
 import utime
 
-# @block {
-#   "category": "Robotics Board DSL",
-#   "color": 45,
-#   "url": "https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython",
-#   "instanceMode": "singleton",
-#   "instanceName": "board",
-#   "methodInstanceMode": "fixed_name"
-# }
 # Pico Robotics Board blocks generated from the Python library.
 class KitronikPicoRobotics:
     #Class variables - these should be the same for all instances of the class.
@@ -54,11 +46,6 @@ class KitronikPicoRobotics:
     # Adjusts the servos.
     # This block should be used if the connected servo does not respond correctly to the 'servoWrite' command.
     # Try changing the value by small amounts and testing the servo until it correctly sets to the angle.
-    # @block {
-    #   "params": {
-    #     "change": {"checkType": "Number"}
-    #   }
-    # }
     # Adjust the global servo calibration by a small amount.
     def adjustServos(self, change):
         if change < -25:
@@ -77,13 +64,6 @@ class KitronikPicoRobotics:
     # in the servos Ive examined this is 0.5ms or a count of 102
     #to clauclate the count for the corect pulse is simply:
     # (degrees x count per degree )+ offset 
-    # @block {
-    #   "label": "turn servo {servo} to {degrees} degrees",
-    #   "params": {
-    #     "servo": {"checkType": "Number"},
-    #     "degrees": {"checkType": "Number"}
-    #   }
-    # }
     # Turn a servo motor to the requested angle in degrees.
     def servoWrite(self,servo, degrees):
         #check the degrees is a reasonable number. we expect 0-180, so cap at those values.
@@ -103,12 +83,6 @@ class KitronikPicoRobotics:
 
     # Takes the servo to change and the angle in radians to move to.
     # 0 radians to 3.1416
-    # @block {
-    #   "params": {
-    #     "servo": {"checkType": "Number"},
-    #     "radians": {"checkType": "Number"}
-    #   }
-    # }
     # Turn a servo motor to the requested angle in radians.
     def servoWriteRadians(self, servo, radians):
         if servo < 1:
@@ -129,17 +103,6 @@ class KitronikPicoRobotics:
 
     #Driving the motor is simpler than the servo - just convert 0-100% to 0-4095 and push it to the correct registers.
     #each motor has 4 writes - low and high bytes for a pair of registers. 
-    # @block {
-    #   "label": "start dc motor {motor} direction {direction} speed {speed}",
-    #   "params": {
-    #     "motor": {"checkType": "Number"},
-    #     "direction": {
-    #       "inputKind": "field_dropdown",
-    #       "options": [["Forward", "f"], ["Reverse", "r"]]
-    #     },
-    #     "speed": {"checkType": "Number"}
-    #   }
-    # }
     # Start a DC motor with direction and speed control.
     def motorOn(self,motor, direction, speed):
         #cap speed to 0-100%
@@ -173,12 +136,6 @@ class KitronikPicoRobotics:
             self.i2c.writeto_mem(self.CHIP_ADDRESS, motorReg+1,bytes([0]))
             raise Exception("INVALID DIRECTION")
     #To turn off set the speed to 0...
-    # @block {
-    #   "label": "stop dc motor {motor}",
-    #   "params": {
-    #     "motor": {"checkType": "Number"}
-    #   }
-    # }
     # Stop a DC motor.
     def motorOff(self,motor):
         self.motorOn(motor,"f",0)
@@ -190,18 +147,6 @@ class KitronikPicoRobotics:
     #speed sets the length of the pulses (and hence the speed...)
     #so is 'backwards' - the fastest that works reliably with the motors I have to hand is 20mS, but slower than that is good. tested to 2000 (2 seconds per step).
     # motor should be 1 or 2 - 1 is terminals for motor 1 and 2 on PCB, 2 is terminals for motor 3 and 4 on PCB
-    # @block {
-    #   "params": {
-    #     "motor": {"checkType": "Number"},
-    #     "direction": {
-    #       "inputKind": "field_dropdown",
-    #       "options": [["Forward", "f"], ["Reverse", "r"]]
-    #     },
-    #     "steps": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number", "defaultValue": 20},
-    #     "holdPosition": {"checkType": "Boolean", "defaultValue": false}
-    #   }
-    # }
     # Step a motor a fixed number of full steps.
     def step(self,motor, direction, steps, speed =20, holdPosition=False):
 
@@ -234,19 +179,6 @@ class KitronikPicoRobotics:
 
     #Step an angle. this is limited by the step resolution - so 200 steps is 1.8 degrees per step for instance.
     # a request for 20 degrees with 200 steps/rev will result in 11 steps - or 19.8 rather than 20.
-    # @block {
-    #   "params": {
-    #     "motor": {"checkType": "Number"},
-    #     "direction": {
-    #       "inputKind": "field_dropdown",
-    #       "options": [["Forward", "f"], ["Reverse", "r"]]
-    #     },
-    #     "angle": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number", "defaultValue": 20},
-    #     "holdPosition": {"checkType": "Boolean", "defaultValue": false},
-    #     "stepsPerRev": {"checkType": "Number", "defaultValue": 200}
-    #   }
-    # }
     # Step a motor by a requested angle.
     def stepAngle(self,motor, direction, angle, speed =20, holdPosition=False, stepsPerRev=200):
         steps = int(angle/(360/stepsPerRev))
@@ -256,14 +188,6 @@ class KitronikPicoRobotics:
 
     # initialaisation code for using:
         #defaults to the standard pins and address for the kitronik board, but could be overridden
-    # @block {
-    #   "label": "create robotics board address {I2CAddress} sda {sda} scl {scl}",
-    #   "params": {
-    #     "I2CAddress": {"checkType": "Number"},
-    #     "sda": {"checkType": "Number"},
-    #     "scl": {"checkType": "Number"}
-    #   }
-    # }
     # Create and initialize the Kitronik Pico Robotics board.
     def __init__(self, I2CAddress=108,sda=8,scl=9):
         self.CHIP_ADDRESS = 108

@@ -1,13 +1,12 @@
 Blockly.Blocks["kitronik_pico_robotics__create"] = {
   init: function() {
-    this.appendDummyInput().appendField("Create Kitronik Pico Robotics");
-    this.appendValueInput("I2CAddress").setCheck("Number").appendField("I2C Address");
-    this.appendValueInput("sda").setCheck("Number").appendField("SDA");
-    this.appendValueInput("scl").setCheck("Number").appendField("SCL");
+    this.appendValueInput("I2CAddress").setCheck("Number").appendField("create robotics board address");
+    this.appendValueInput("sda").setCheck("Number").appendField("sda");
+    this.appendValueInput("scl").setCheck("Number").appendField("scl");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Create and initialize the Kitronik Pico Robotics board.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -20,7 +19,7 @@ Blockly.Blocks["kitronik_pico_robotics__adjust_servos"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Adjust the global servo calibration by a small amount.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -28,13 +27,13 @@ Blockly.Blocks["kitronik_pico_robotics__adjust_servos"] = {
 
 Blockly.Blocks["kitronik_pico_robotics__servo_write"] = {
   init: function() {
-    this.appendDummyInput().appendField("Servo Write");
-    this.appendValueInput("servo").setCheck("Number").appendField("Servo");
-    this.appendValueInput("degrees").setCheck("Number").appendField("Degrees");
+    this.appendValueInput("servo").setCheck("Number").appendField("turn servo");
+    this.appendValueInput("degrees").setCheck("Number").appendField("to");
+    this.appendDummyInput().appendField("degrees");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Turn a servo motor to the requested angle in degrees.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -48,7 +47,7 @@ Blockly.Blocks["kitronik_pico_robotics__servo_write_radians"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Turn a servo motor to the requested angle in radians.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -56,14 +55,13 @@ Blockly.Blocks["kitronik_pico_robotics__servo_write_radians"] = {
 
 Blockly.Blocks["kitronik_pico_robotics__motor_on"] = {
   init: function() {
-    this.appendDummyInput().appendField("Motor On");
-    this.appendValueInput("motor").setCheck("Number").appendField("Motor");
-    this.appendDummyInput().appendField("Direction").appendField(new Blockly.FieldDropdown([["Forward", "f"], ["Reverse", "r"]]), "direction");
-    this.appendValueInput("speed").setCheck("Number").appendField("Speed");
+    this.appendValueInput("motor").setCheck("Number").appendField("start dc motor");
+    this.appendDummyInput().appendField("direction ").appendField(new Blockly.FieldDropdown([["Forward", "f"], ["Reverse", "r"]]), "direction");
+    this.appendValueInput("speed").setCheck("Number").appendField("speed");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Start a DC motor with direction and speed control.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -71,12 +69,11 @@ Blockly.Blocks["kitronik_pico_robotics__motor_on"] = {
 
 Blockly.Blocks["kitronik_pico_robotics__motor_off"] = {
   init: function() {
-    this.appendDummyInput().appendField("Motor Off");
-    this.appendValueInput("motor").setCheck("Number").appendField("Motor");
+    this.appendValueInput("motor").setCheck("Number").appendField("stop dc motor");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Stop a DC motor.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }
@@ -93,7 +90,7 @@ Blockly.Blocks["kitronik_pico_robotics__step"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setTooltip("Step a motor a fixed number of full steps.");
     this.setHelpUrl("https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython");
   }

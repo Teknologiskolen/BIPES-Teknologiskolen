@@ -22,6 +22,7 @@ BIPES Help&Development
 
    contribute/forking
    contribute/translating-documenting
+   contribute/dsl-block-generator
    contribute/create-block
 
 .. toctree::

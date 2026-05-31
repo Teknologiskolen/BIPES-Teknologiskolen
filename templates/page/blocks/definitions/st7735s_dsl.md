@@ -3,48 +3,32 @@
 <label text="ST7735S"></label>
 <button text="%{INSTALL_LIBRARY}: st7735s" callbackKey="installPyLib"></button>
 
-# color565
-<block type="color565">
-  <value name="r">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
-    </shadow>
-  </value>
-  <value name="g">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
-    </shadow>
-  </value>
-  <value name="b">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
-    </shadow>
-  </value>
-</block>
-
 # st7735_s__create
 <block type="st7735_s__create">
-  <value name="dc_pin">
+  <value name="spi">
+    <shadow type="spi">
+      <field name="firstbit">MSB</field>
+      <value name="id"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="baudrate"><shadow type="math_number"><field name="NUM">1000000</field></shadow></value>
+      <value name="polarity"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="phase"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="bits"><shadow type="math_number"><field name="NUM">8</field></shadow></value>
+      <value name="sck"><shadow type="math_number"><field name="NUM">18</field></shadow></value>
+      <value name="mosi"><shadow type="math_number"><field name="NUM">19</field></shadow></value>
+      <value name="miso"><shadow type="math_number"><field name="NUM">16</field></shadow></value>
+    </shadow>
+  </value>
+  <value name="dc">
     <shadow type="pinout">
       <field name="PIN">16</field>
     </shadow>
   </value>
-  <value name="sck_pin">
-    <shadow type="pinout">
-      <field name="PIN">18</field>
-    </shadow>
-  </value>
-  <value name="mosi_pin">
-    <shadow type="pinout">
-      <field name="PIN">19</field>
-    </shadow>
-  </value>
-  <value name="rst_pin">
+  <value name="rst">
     <shadow type="pinout">
       <field name="PIN">20</field>
     </shadow>
   </value>
-  <value name="cs_pin">
+  <value name="cs">
     <shadow type="pinout">
       <field name="PIN">17</field>
     </shadow>
@@ -64,8 +48,10 @@
 # st7735_s__fill
 <block type="st7735_s__fill">
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -93,8 +79,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -112,8 +100,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -136,8 +126,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -160,8 +152,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -189,8 +183,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -218,8 +214,10 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
 </block>
@@ -242,13 +240,34 @@
     </shadow>
   </value>
   <value name="color">
-    <shadow type="math_number">
-      <field name="NUM">0</field>
+    <shadow type="color565">
+      <value name="r"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="g"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+      <value name="b"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
     </shadow>
   </value>
   <value name="size">
     <shadow type="math_number">
       <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
+
+# color565
+<block type="color565">
+  <value name="r">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="g">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="b">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
     </shadow>
   </value>
 </block>

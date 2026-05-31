@@ -1,0 +1,135 @@
+# yaml-language-server: $schema=./blockdef_schema.json
+
+module: sand_table_robot
+imports:
+  - sand_table_robot
+  - stepper
+
+categories:
+  - name: Sand Drawing Machine
+    color: 20
+    classes:
+      - name: SandTableRobot
+        instance_mode: singleton
+        instance_name: sandMachine
+        blocks:
+          - fn: __init__
+            label: "create sand robot shoulder motor pins {motor1_pins} elbow motor pins {motor2_pins} shoulder sensor {sensor_shoulder_pin} elbow sensor {sensor_elbow_pin}"
+            tooltip: Create a sand table robot instance.
+            params:
+              - name: motor1_pins
+              - name: motor2_pins
+              - name: sensor_shoulder_pin
+                type: Number
+              - name: sensor_elbow_pin
+                type: Number
+              - name: L1
+                type: Number
+              - name: L2
+                type: Number
+              - name: steps_per_rev
+                type: Number
+              - name: backlash_deg_m1
+                type: Number
+              - name: backlash_deg_m2
+                type: Number
+              - name: homing_dir_shoulder
+                type: Number
+              - name: homing_dir_elbow
+                type: Number
+              - name: homing_clear_steps
+                type: Number
+              - name: default_speed_ms
+                type: Number
+
+          - fn: "off"
+            tooltip: Turn off both stepper motors.
+
+          - fn: home
+            tooltip: Move the robot to its home position using limit sensors.
+
+          - fn: move_line
+            label: "move line to x {target_x} y {target_y} segments {segments} speed {speed}"
+            tooltip: Move the robot in a straight line to the target point.
+            params:
+              - name: target_x
+                type: Number
+              - name: target_y
+                type: Number
+              - name: segments
+                type: Number
+              - name: speed
+                type: Number
+
+          - fn: move_arc
+            label: "move arc center x {center_x} center y {center_y} radius {radius} start angle {start_angle} end angle {end_angle} segments {segments} speed {speed}"
+            tooltip: Draw an arc on the sand table.
+            params:
+              - name: center_x
+                type: Number
+              - name: center_y
+                type: Number
+              - name: radius
+                type: Number
+              - name: start_angle
+                type: Number
+              - name: end_angle
+                type: Number
+              - name: segments
+                type: Number
+              - name: speed
+                type: Number
+
+          - fn: draw_spiral
+            label: "draw spiral max radius {max_radius} turns {vindinger} segments per turn {segments_pr_omgang} speed {speed}"
+            tooltip: Draw a spiral pattern.
+            params:
+              - name: max_radius
+                type: Number
+              - name: vindinger
+                type: Number
+              - name: segments_pr_omgang
+                type: Number
+              - name: speed
+                type: Number
+
+          - fn: draw_flower
+            label: "draw flower radius {max_radius} petals {petals} speed {speed}"
+            tooltip: Draw a flower pattern.
+            params:
+              - name: max_radius
+                type: Number
+              - name: petals
+                type: Number
+              - name: speed
+                type: Number
+
+          - fn: run_gcode_text
+            label: "run gcode text {gcode_text} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}"
+            tooltip: Run G-code from a text string.
+            params:
+              - name: gcode_text
+                type: String
+              - name: segments
+                type: Number
+              - name: draw_speed_ms
+                type: Number
+              - name: travel_speed_ms
+                type: Number
+              - name: reset_modal
+                type: Boolean
+
+          - fn: run_gcode_file
+            label: "run gcode file {path} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}"
+            tooltip: Run G-code from a file path on the device.
+            params:
+              - name: path
+                type: String
+              - name: segments
+                type: Number
+              - name: draw_speed_ms
+                type: Number
+              - name: travel_speed_ms
+                type: Number
+              - name: reset_modal
+                type: Boolean

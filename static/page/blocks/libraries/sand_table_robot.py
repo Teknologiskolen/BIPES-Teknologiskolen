@@ -4,13 +4,6 @@ from machine import Pin
 import stepper
 
 
-# @block {
-#   "category": "Sand Drawing Machine DSL",
-#   "color": 20,
-#   "instanceMode": "singleton",
-#   "instanceName": "sandMachine",
-#   "methodInstanceMode": "key_input"
-# }
 # Sand table robot blocks generated from the Python library.
 class SandTableRobot:
     """
@@ -67,24 +60,6 @@ class SandTableRobot:
     # -----------------------------
     # Constructor / configuration
     # -----------------------------
-    # @block {
-    #   "label": "create sand robot shoulder motor pins {motor1_pins} elbow motor pins {motor2_pins} shoulder sensor {sensor_shoulder_pin} elbow sensor {sensor_elbow_pin}",
-    #   "params": {
-    #     "motor1_pins": {"defaultValue": [17, 16, 15, 14]},
-    #     "motor2_pins": {"defaultValue": [21, 20, 19, 18]},
-    #     "sensor_shoulder_pin": {"checkType": "Number"},
-    #     "sensor_elbow_pin": {"checkType": "Number"},
-    #     "L1": {"checkType": "Number"},
-    #     "L2": {"checkType": "Number"},
-    #     "steps_per_rev": {"checkType": "Number"},
-    #     "backlash_deg_m1": {"checkType": "Number"},
-    #     "backlash_deg_m2": {"checkType": "Number"},
-    #     "homing_dir_shoulder": {"checkType": "Number"},
-    #     "homing_dir_elbow": {"checkType": "Number"},
-    #     "homing_clear_steps": {"checkType": "Number"},
-    #     "default_speed_ms": {"checkType": "Number"}
-    #   }
-    # }
     # Create a sand table robot instance.
     def __init__(
         self,
@@ -141,9 +116,6 @@ class SandTableRobot:
     # -----------------------------
     # Internal helpers
     # -----------------------------
-    # @block {
-    #   "label": "sand robot turn motors off"
-    # }
     # Turn off both motors
     def off(self):
         self.skulder.reset()
@@ -317,7 +289,6 @@ class SandTableRobot:
     # -----------------------------
     # Public: Homing
     # -----------------------------
-    # @block {}
     # Move the robot to its home position.
     def home(self):
         print("Starter Homing...")
@@ -366,15 +337,6 @@ class SandTableRobot:
     # ==========================================================
     # --- PUBLIC DRAWING API (now uses your IK + step deltas)
     # ==========================================================
-    # @block {
-    #   "label": "Move line to x {target_x} y {target_y} segments {segments} speed {speed}",
-    #   "params": {
-    #     "target_x": {"checkType": "Number"},
-    #     "target_y": {"checkType": "Number"},
-    #     "segments": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number"}
-    #   }
-    # }
     # Move the robot in a straight line to the target point.
     def move_line(self, target_x, target_y, segments=500, speed=None):
         if speed is None:
@@ -429,18 +391,6 @@ class SandTableRobot:
         self.last_x = float(reached_x)
         self.last_y = float(reached_y)
 
-    # @block {
-    #   "label": "Move arc center x {center_x} center y {center_y} radius {radius} start angle {start_angle} end angle {end_angle} segments {segments} speed {speed}",
-    #   "params": {
-    #     "center_x": {"checkType": "Number"},
-    #     "center_y": {"checkType": "Number"},
-    #     "radius": {"checkType": "Number"},
-    #     "start_angle": {"checkType": "Number"},
-    #     "end_angle": {"checkType": "Number"},
-    #     "segments": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number"}
-    #   }
-    # }
     # Draw an arc on the sand table.
     def move_arc(self, center_x, center_y, radius, start_angle, end_angle, segments=50, speed=None):
         if speed is None:
@@ -460,15 +410,6 @@ class SandTableRobot:
             target_y = center_y + radius * math.sin(current_angle)
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
-    # @block {
-    #   "label": "Draw spiral max radius {max_radius} turns {vindinger} segments per turn {segments_pr_omgang} speed {speed}",
-    #   "params": {
-    #     "max_radius": {"checkType": "Number"},
-    #     "vindinger": {"checkType": "Number"},
-    #     "segments_pr_omgang": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number"}
-    #   }
-    # }
     # Draw a spiral pattern.
     def draw_spiral(self, max_radius, vindinger=10, segments_pr_omgang=60, speed=None):
         if speed is None:
@@ -487,14 +428,6 @@ class SandTableRobot:
             target_y = current_radius * math.sin(angle_rad)
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
-    # @block {
-    #   "label": "Draw flower radius {max_radius} petals {petals} speed {speed}",
-    #   "params": {
-    #     "max_radius": {"checkType": "Number"},
-    #     "petals": {"checkType": "Number"},
-    #     "speed": {"checkType": "Number"}
-    #   }
-    # }
     # Draw a flower pattern.
     def draw_flower(self, max_radius, petals=5, speed=None):
         if speed is None:
@@ -513,15 +446,6 @@ class SandTableRobot:
     # ==========================================================
     # --- PUBLIC: Run G-code (unchanged)
     # ==========================================================
-    # @block {
-    #   "label": "Run gcode text {gcode_text} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
-    #   "params": {
-    #     "segments": {"checkType": "Number"},
-    #     "draw_speed_ms": {"checkType": "Number"},
-    #     "travel_speed_ms": {"checkType": "Number"},
-    #     "reset_modal": {"checkType": "Boolean"}
-    #   }
-    # }
     # Run G-code from a text string.
     def run_gcode_text(self, gcode_text, segments=40, draw_speed_ms=None, travel_speed_ms=None, reset_modal=True):
         if reset_modal:
@@ -529,15 +453,6 @@ class SandTableRobot:
         for raw in gcode_text.split('\n'):
             self._gcode_process_line(raw, segments=segments, draw_speed_ms=draw_speed_ms, travel_speed_ms=travel_speed_ms)
 
-    # @block {
-    #   "label": "Run gcode file {path} segments {segments} draw speed {draw_speed_ms} travel speed {travel_speed_ms} reset modal {reset_modal}",
-    #   "params": {
-    #     "segments": {"checkType": "Number"},
-    #     "draw_speed_ms": {"checkType": "Number"},
-    #     "travel_speed_ms": {"checkType": "Number"},
-    #     "reset_modal": {"checkType": "Boolean"}
-    #   }
-    # }
     # Run G-code from a file path.
     def run_gcode_file(self, path, segments=40, draw_speed_ms=None, travel_speed_ms=None, reset_modal=True):
         if reset_modal:

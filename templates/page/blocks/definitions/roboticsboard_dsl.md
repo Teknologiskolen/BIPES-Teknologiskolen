@@ -7,17 +7,17 @@
 <block type="kitronik_pico_robotics__create">
   <value name="I2CAddress">
     <shadow type="math_number">
-      <field name="NUM">108</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="sda">
     <shadow type="pinout">
-      <field name="PIN">8</field>
+      <field name="PIN">0</field>
     </shadow>
   </value>
   <value name="scl">
     <shadow type="pinout">
-      <field name="PIN">9</field>
+      <field name="PIN">0</field>
     </shadow>
   </value>
 </block>

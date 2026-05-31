@@ -7,8 +7,8 @@ Blockly.Blocks["dfplayer__create"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("Create a DFPlayer instance.");
+    this.setInputsInline(true);
+    this.setTooltip("Create a DFPlayer Mini instance.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -20,8 +20,8 @@ Blockly.Blocks["dfplayer__play"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Play a track by number (1\u20133000).");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -34,8 +34,8 @@ Blockly.Blocks["dfplayer__play_folder"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Play a track from a numbered folder (folder 1\u201399, track 1\u2013255).");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -48,8 +48,8 @@ Blockly.Blocks["dfplayer__play_mp3"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Play a track from the /mp3 folder (track 1\u20139999).");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -60,8 +60,8 @@ Blockly.Blocks["dfplayer__pause"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Pause playback.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -72,8 +72,8 @@ Blockly.Blocks["dfplayer__resume"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Resume playback.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -84,8 +84,8 @@ Blockly.Blocks["dfplayer__stop"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Stop playback.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -97,8 +97,8 @@ Blockly.Blocks["dfplayer__loop_current"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Enable or disable looping of the current track.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -109,8 +109,8 @@ Blockly.Blocks["dfplayer__next"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Skip to the next track.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -121,8 +121,8 @@ Blockly.Blocks["dfplayer__prev"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Go back to the previous track.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -134,8 +134,8 @@ Blockly.Blocks["dfplayer__volume"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Set the volume level (0\u201330).");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -146,8 +146,8 @@ Blockly.Blocks["dfplayer__volume_up"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Increase the volume by one step.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -158,8 +158,8 @@ Blockly.Blocks["dfplayer__volume_down"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Decrease the volume by one step.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -171,8 +171,8 @@ Blockly.Blocks["dfplayer__eq"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Set the equalizer preset.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -183,8 +183,8 @@ Blockly.Blocks["dfplayer__reset"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Reset the DFPlayer module.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -195,8 +195,8 @@ Blockly.Blocks["dfplayer__sleep"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Put the DFPlayer into standby mode.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };
@@ -207,8 +207,8 @@ Blockly.Blocks["dfplayer__wake"] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(300);
-    this.setInputsInline(false);
-    this.setTooltip("");
+    this.setInputsInline(true);
+    this.setTooltip("Wake the DFPlayer from standby mode.");
     this.setHelpUrl("https://github.com/mannbro/PicoDFPlayer");
   }
 };

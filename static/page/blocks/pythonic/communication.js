@@ -296,3 +296,80 @@ Blockly.Python["machine.I2C_I2C.writeto_mem"] = function(block) {
   var addrsize = Blockly.Python.valueToCode(block, 'addrsize', Blockly.Python.ORDER_ATOMIC) || '8';
   return 'i2c.writeto_mem(' + addr + ', ' + memaddr + ', ' + buffer + ', addrsize=' + addrsize + ')\n';
 };
+
+
+// Bus constructors -------------------------------------------------------------
+
+Blockly.Python["spi"] = function(block) {
+  Blockly.Python.definitions_["from_machine_buses"] = "from machine import SPI, I2C, UART, Pin";
+  var id = Blockly.Python.valueToCode(block, "id", Blockly.Python.ORDER_ATOMIC) || '0';
+  var baudrate = Blockly.Python.valueToCode(block, "baudrate", Blockly.Python.ORDER_ATOMIC) || '1000000';
+  var polarity = Blockly.Python.valueToCode(block, "polarity", Blockly.Python.ORDER_ATOMIC) || '0';
+  var phase = Blockly.Python.valueToCode(block, "phase", Blockly.Python.ORDER_ATOMIC) || '0';
+  var bits = Blockly.Python.valueToCode(block, "bits", Blockly.Python.ORDER_ATOMIC) || '8';
+  var firstbit = block.getFieldValue('firstbit') === 'LSB' ? 'SPI.LSB' : 'SPI.MSB';
+  var sck_raw = Blockly.Python.valueToCode(block, "sck", Blockly.Python.ORDER_ATOMIC) || '18';
+  var sck_key = sck_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var sck = "sck_" + sck_key;
+  Blockly.Python.definitions_["pin_sck_" + sck_key] = sck + " = Pin(" + sck_raw + ")";
+  var mosi_raw = Blockly.Python.valueToCode(block, "mosi", Blockly.Python.ORDER_ATOMIC) || '19';
+  var mosi_key = mosi_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var mosi = "mosi_" + mosi_key;
+  Blockly.Python.definitions_["pin_mosi_" + mosi_key] = mosi + " = Pin(" + mosi_raw + ")";
+  var miso_raw = Blockly.Python.valueToCode(block, "miso", Blockly.Python.ORDER_ATOMIC) || '16';
+  var miso_key = miso_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var miso = "miso_" + miso_key;
+  Blockly.Python.definitions_["pin_miso_" + miso_key] = miso + " = Pin(" + miso_raw + ")";
+  var _bus_key = id.replace(/[^a-zA-Z0-9_]/g, "");
+  var _bus_var = "spi_" + _bus_key;
+  Blockly.Python.definitions_["bus_spi_" + _bus_key] = _bus_var + " = SPI(" + id
+      + ", baudrate=" + baudrate + ", polarity=" + polarity + ", phase=" + phase
+      + ", bits=" + bits + ", firstbit=" + firstbit
+      + ", sck=" + sck + ", mosi=" + mosi + ", miso=" + miso + ")";
+  return [_bus_var, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python["i2_c"] = function(block) {
+  Blockly.Python.definitions_["from_machine_buses"] = "from machine import SPI, I2C, UART, Pin";
+  var id = Blockly.Python.valueToCode(block, "id", Blockly.Python.ORDER_ATOMIC);
+  var sda_raw = Blockly.Python.valueToCode(block, "sda", Blockly.Python.ORDER_ATOMIC);
+  var sda_key = sda_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var sda = "sda_" + sda_key;
+  Blockly.Python.definitions_["pin_sda_" + sda_key] = sda + " = Pin(" + sda_raw + ")";
+  var scl_raw = Blockly.Python.valueToCode(block, "scl", Blockly.Python.ORDER_ATOMIC);
+  var scl_key = scl_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var scl = "scl_" + scl_key;
+  Blockly.Python.definitions_["pin_scl_" + scl_key] = scl + " = Pin(" + scl_raw + ")";
+  var freq = Blockly.Python.valueToCode(block, "freq", Blockly.Python.ORDER_ATOMIC);
+  var _bus_key = id.replace(/[^a-zA-Z0-9_]/g, "");
+  var _bus_var = "i2c_" + _bus_key;
+  Blockly.Python.definitions_["bus_i2c_" + _bus_key] = _bus_var + " = I2C(" + id + ", sda=" + sda + ", scl=" + scl + ", freq=" + freq + ")";
+  return [_bus_var, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python["uart"] = function(block) {
+  Blockly.Python.definitions_["from_machine_buses"] = "from machine import SPI, I2C, UART, Pin";
+  var id = Blockly.Python.valueToCode(block, "id", Blockly.Python.ORDER_ATOMIC) || '1';
+  var baudrate = Blockly.Python.valueToCode(block, "baudrate", Blockly.Python.ORDER_ATOMIC) || '9600';
+  var bits = Blockly.Python.valueToCode(block, "bits", Blockly.Python.ORDER_ATOMIC) || '8';
+  var stop = Blockly.Python.valueToCode(block, "stop", Blockly.Python.ORDER_ATOMIC) || '1';
+  var parityValue = block.getFieldValue('parity');
+  var parity = parityValue === 'NONE' ? 'None' : parityValue === 'EVEN' ? '0' : '1';
+  var tx_raw = Blockly.Python.valueToCode(block, "tx", Blockly.Python.ORDER_ATOMIC) || '4';
+  var tx_key = tx_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var tx = "tx_" + tx_key;
+  Blockly.Python.definitions_["pin_tx_" + tx_key] = tx + " = Pin(" + tx_raw + ")";
+  var rx_raw = Blockly.Python.valueToCode(block, "rx", Blockly.Python.ORDER_ATOMIC) || '5';
+  var rx_key = rx_raw.replace(/[^a-zA-Z0-9_]/g, "");
+  var rx = "rx_" + rx_key;
+  Blockly.Python.definitions_["pin_rx_" + rx_key] = rx + " = Pin(" + rx_raw + ")";
+  var timeout = Blockly.Python.valueToCode(block, "timeout", Blockly.Python.ORDER_ATOMIC) || '0';
+  var timeout_char = Blockly.Python.valueToCode(block, "timeout_char", Blockly.Python.ORDER_ATOMIC) || '0';
+  var _bus_key = id.replace(/[^a-zA-Z0-9_]/g, "");
+  var _bus_var = "uart_" + _bus_key;
+  Blockly.Python.definitions_["bus_uart_" + _bus_key] = _bus_var + " = UART(" + id
+      + ", baudrate=" + baudrate + ", bits=" + bits + ", parity=" + parity
+      + ", stop=" + stop + ", tx=" + tx + ", rx=" + rx
+      + ", timeout=" + timeout + ", timeout_char=" + timeout_char + ")";
+  return [_bus_var, Blockly.Python.ORDER_ATOMIC];
+};

@@ -1,7 +1,7 @@
 # Sand Drawing Machine
 <category name="Sand Drawing Machine">
 <label text="Sand Drawing Machine"></label>
-<button text="%{INSTALL_LIBRARY}: sandRobot" callbackKey="installPyLib"></button>
+<button text="%{INSTALL_LIBRARY}: sand_table_robot" callbackKey="installPyLib"></button>
 <button text="%{INSTALL_LIBRARY}: stepper" callbackKey="installPyLib"></button>
 
 # sand_table_robot__create
@@ -11,22 +11,22 @@
       <mutation items="4"></mutation>
       <value name="ADD0">
         <shadow type="pinout">
-          <field name="PIN">17</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD1">
         <shadow type="pinout">
-          <field name="PIN">16</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD2">
         <shadow type="pinout">
-          <field name="PIN">15</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD3">
         <shadow type="pinout">
-          <field name="PIN">14</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
     </shadow>
@@ -36,22 +36,22 @@
       <mutation items="4"></mutation>
       <value name="ADD0">
         <shadow type="pinout">
-          <field name="PIN">21</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD1">
         <shadow type="pinout">
-          <field name="PIN">20</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD2">
         <shadow type="pinout">
-          <field name="PIN">19</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
       <value name="ADD3">
         <shadow type="pinout">
-          <field name="PIN">18</field>
+          <field name="PIN">0</field>
         </shadow>
       </value>
     </shadow>
@@ -68,47 +68,47 @@
   </value>
   <value name="L1">
     <shadow type="math_number">
-      <field name="NUM">31.0</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="L2">
     <shadow type="math_number">
-      <field name="NUM">31.0</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="steps_per_rev">
     <shadow type="math_number">
-      <field name="NUM">4096.0</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="backlash_deg_m1">
     <shadow type="math_number">
-      <field name="NUM">3.2</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="backlash_deg_m2">
     <shadow type="math_number">
-      <field name="NUM">3.0</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="homing_dir_shoulder">
     <shadow type="math_number">
-      <field name="NUM">1</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="homing_dir_elbow">
     <shadow type="math_number">
-      <field name="NUM">1</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="homing_clear_steps">
     <shadow type="math_number">
-      <field name="NUM">500</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="default_speed_ms">
     <shadow type="math_number">
-      <field name="NUM">2</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
 </block>
@@ -135,7 +135,7 @@
   </value>
   <value name="segments">
     <shadow type="math_number">
-      <field name="NUM">500</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="speed">
@@ -174,7 +174,7 @@
   </value>
   <value name="segments">
     <shadow type="math_number">
-      <field name="NUM">50</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="speed">
@@ -193,12 +193,12 @@
   </value>
   <value name="vindinger">
     <shadow type="math_number">
-      <field name="NUM">10</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="segments_pr_omgang">
     <shadow type="math_number">
-      <field name="NUM">60</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="speed">
@@ -217,7 +217,7 @@
   </value>
   <value name="petals">
     <shadow type="math_number">
-      <field name="NUM">5</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="speed">
@@ -236,7 +236,7 @@
   </value>
   <value name="segments">
     <shadow type="math_number">
-      <field name="NUM">40</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="draw_speed_ms">
@@ -251,7 +251,7 @@
   </value>
   <value name="reset_modal">
     <shadow type="logic_boolean">
-      <field name="BOOL">TRUE</field>
+      <field name="BOOL">FALSE</field>
     </shadow>
   </value>
 </block>
@@ -265,7 +265,7 @@
   </value>
   <value name="segments">
     <shadow type="math_number">
-      <field name="NUM">40</field>
+      <field name="NUM">0</field>
     </shadow>
   </value>
   <value name="draw_speed_ms">
@@ -280,7 +280,7 @@
   </value>
   <value name="reset_modal">
     <shadow type="logic_boolean">
-      <field name="BOOL">TRUE</field>
+      <field name="BOOL">FALSE</field>
     </shadow>
   </value>
 </block>
