@@ -3,35 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIPES - {{ t.app_title }}</title>
+    <title>BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body class="landing-page {{ theme }}">
+<body class="landing-page {{ theme }}" data-i18n-doctitle="app_title">
     <div class="landing-container">
         <div class="landing-header">
             <img class="auth-logo" src="/static/media/icon/icon-192x192.png" alt="BIPES logo">
-            <h1>{{ t.welcome }}</h1>
-            <p class="subtitle">{{ t.app_title }}</p>
+            <h1 data-i18n="welcome">Welcome to BIPES</h1>
+            <p class="subtitle" data-i18n="app_title">Block based Integrated Platform for Embedded Systems</p>
         </div>
 
         <div class="landing-content">
             <div class="login-options">
                 <a href="/login/teacher" class="login-option teacher-option" data-auth-preserve>
-                    <div class="option-icon">👨‍🏫</div>
-                    <h2>{{ t.teacher_login }}</h2>
-                    <p>{{ t.teacher_login_help }}</p>
+                    <div class="option-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="8" rx="1"/><path d="M4.5 5.5h7M4.5 7.5h4.5"/><circle cx="15" cy="11" r="2"/><path d="M11.5 17.5c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5"/></svg></div>
+                    <h2 data-i18n="teacher_login">Teacher Login</h2>
+                    <p data-i18n="teacher_login_help">Manage classes and share projects with students</p>
                 </a>
 
                 <a href="/login/student" class="login-option student-option" data-auth-preserve>
-                    <div class="option-icon">👨‍🎓</div>
-                    <h2>{{ t.student_login }}</h2>
-                    <p>{{ t.student_login_help }}</p>
+                    <div class="option-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l8 3.25L10 9.5 2 6.25 10 3z"/><path d="M5 8.25V12c0 1.38 2.24 2.5 5 2.5s5-1.12 5-2.5V8.25"/><path d="M18 6.25v4"/></svg></div>
+                    <h2 data-i18n="student_login">Student Login</h2>
+                    <p data-i18n="student_login_help">Access your projects from any device</p>
                 </a>
 
                 <a href="/ide" class="login-option guest-option" data-auth-ide>
-                    <div class="option-icon">🚀</div>
-                    <h2>{{ t.guest_login }}</h2>
-                    <p>{{ t.guest_login_help }}</p>
+                    <div class="option-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2c2.5 1.6 4 4.6 4 8l-1.4 3h-5.2L6 10c0-3.4 1.5-6.4 4-8z"/><circle cx="10" cy="8" r="1.5"/><path d="M6.6 13c-1.6.5-2.6 2-2.6 4 2 0 3.5-1 4.1-2.5M13.4 13c1.6.5 2.6 2 2.6 4-2 0-3.5-1-4.1-2.5"/></svg></div>
+                    <h2 data-i18n="guest_login">Continue as Guest</h2>
+                    <p data-i18n="guest_login_help">Start coding without an account</p>
                 </a>
             </div>
 
@@ -39,10 +39,10 @@
     </div>
     <div id="status-bar" class="auth-status-bar">
         <div id="extra">
-            <button id="forum" class="status-icon" type="button" title="{{ t.forum }}">{{ t.forum }}</button>
-            <button id="theme" class="status-icon" type="button" title="{{ t.change_theme }}">{{ t.mode }}</button>
-            <span id="language" class="status-icon">{{ t.language }}
-                <select id="auth-language" title="{{ t.language }}">
+            <button id="forum" class="status-icon" type="button" title="Forum" data-i18n="forum" data-i18n-title="forum">Forum</button>
+            <button id="theme" class="status-icon" type="button" title="Change theme" data-i18n="mode" data-i18n-title="change_theme">Mode</button>
+            <span id="language" class="status-icon"><span data-i18n="language">Language</span>
+                <select id="auth-language" title="Language" data-i18n-title="language">
                     {% for key, value in available_lang.items() -%}
                     <option value="{{ key }}">{{ value }}</option>
                     {% endfor %}
@@ -51,7 +51,8 @@
         </div>
         <div id="globals"></div>
     </div>
-    <script>window.authText = {{ t|tojson }};</script>
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
 </body>
 </html>

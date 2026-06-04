@@ -1,198 +1,128 @@
 # Block Definition DSL — Reference
 
-This document describes the `.blockdef` file format, the textX grammar that defines it,
-the Python metamodel produced by parsing, and how the full code-generation pipeline works.
+This document describes the `.blockdef.yaml` file format, the JSON Schema that validates it,
+the Python AST produced by parsing, and how the full code-generation pipeline works.
 
 ---
 
 ## 1. Purpose
 
-A `.blockdef` file is a **language-agnostic** description of how functions and classes in
-any source file (MicroPython, C, JavaScript, …) map to **Blockly blocks**.
+A `.blockdef.yaml` file is a **language-agnostic** description of how functions and classes
+in a MicroPython library map to **Blockly blocks**.
 
-The source file itself is never read or modified. The `.blockdef` file is the single source
-of truth. The pipeline reads it and emits three artefacts automatically:
+The MicroPython library file is never read or modified. The `.blockdef.yaml` file is the
+single source of truth for the Blockly interface. The pipeline reads it and emits three
+artefacts automatically:
 
 | Artefact | Location | Purpose |
 |---|---|---|
 | Blockly block definitions | `static/page/blocks/blocks/*_dsl.js` | Visual shape of each block in the editor |
-| Python code generators | `static/page/blocks/pythonic/*_dsl.js` | JavaScript that converts a placed block back to Python code |
-| Toolbox definition | `templates/page/blocks/definitions/*_dsl.md` | XML fragment that places blocks in the sidebar toolbox |
+| Python code generators | `static/page/blocks/pythonic/*_dsl.js` | JavaScript that converts a placed block back to MicroPython code |
+| Toolbox definition | `templates/page/blocks/definitions/*_dsl.md` | Markdown/XML fragment that places blocks in the sidebar toolbox |
+
+### Why YAML and JSON Schema
+
+YAML was chosen over a custom DSL syntax for two reasons:
+
+1. **Live feedback during authoring.** JSON Schema can validate a YAML file structurally
+   in editors that support it (missing required fields, wrong block kinds, invalid parameter
+   alternatives, incompatible defaults). Errors appear before the generator runs.
+
+2. **Separation of concerns.** The `.blockdef.yaml` file only describes which parts of a
+   MicroPython library should be exposed as Blockly blocks. The MicroPython `.py` file
+   remains a normal library file that can still be uploaded and used directly on the
+   microcontroller. The DSL does not modify or replace the library — it only describes
+   its Blockly interface.
 
 ---
 
-## 2. Grammar
+## 2. Schema and validation
 
-File: `server/block_dsl/block_grammar.tx`
+File: `server/dsl/definitions/blockdef_schema.json`
 
-This is a [textX](https://textx.github.io/textX/) PEG grammar. textX reads the grammar
-once and auto-generates a Python parser and a set of metamodel classes from it.
+Validation runs in two phases:
 
-```
-BlockdefFile:
-    'module' name=/[_a-zA-Z]\w*/
-    imports*=ImportDecl
-    ('url' url=STRING)?
-    categories*=CategoryDef
-;
-
-ImportDecl:
-    'import' name=STRING
-;
-
-CategoryDef:
-    'category' name=STRING ('color' '=' color=INT)?
-    '{' entries*=CategoryEntry '}'
-;
-
-CategoryEntry: ClassDef | FunctionBlock;
-
-ClassDef:
-    'class' class_name=/[_a-zA-Z]\w*/
-    'as' instance_mode=/singleton|multiple/
-    ('named' instance_name=STRING)?
-    ('ref' method_ref=/key_input|object_input/)?
-    '{' blocks*=FunctionBlock '}'
-;
-
-FunctionBlock:
-    'block' fn_name=/[_a-zA-Z]\w*/
-    ('label'   '=' label=STRING)?
-    ('kind'    '=' kind=/value|statement|hat/)?
-    ('inline'  '=' inline=BOOL)?
-    ('tooltip' '=' tooltip=STRING)?
-    ('{' params*=ParamDef '}')?
-;
-
-ParamDef:
-    'param' name=/[_a-zA-Z]\w*/
-    ('type'    '=' type_name=/Number|String|Boolean|Any/)?
-    ('default' '=' default=ParamDefault)?
-    (is_pin?='pin')?
-    ('options' '[' options+=DropdownOpt[','] ']')?
-;
-
-ParamDefault:
-    SeqDefault | BoolDefault | FloatDefault | IntDefault | StrDefault
-;
-
-SeqDefault:
-    '[' items*=ScalarDefault[','] ']'
-;
-
-ScalarDefault:
-    BoolDefault | FloatDefault | IntDefault | StrDefault
-;
-
-FloatDefault: val=FLOAT;
-IntDefault:   val=INT;
-BoolDefault:  val=BOOL;
-StrDefault:   val=STRING;
-
-DropdownOpt:
-    '(' label=STRING ',' val=STRING ')'
-;
-
-// textX skips any rule named "Comment" automatically during parsing.
-Comment:
-    /\/\/.*/
-;
-```
-
-### Grammar operator reference
-
-| Operator | Meaning | Python type on the object |
+| Phase | Tool | What it checks |
 |---|---|---|
-| `attr=Rule` | Exactly one match | Single object or `''` / `0` / `False` when optional and absent |
-| `attrs*=Rule` | Zero or more | `list` |
-| `attrs+=Rule` | One or more | `list` |
-| `flag?='kw'` | Boolean keyword flag | `bool` — `True` if the keyword is present |
-| `(…)?` | Optional group | All assignments inside default to absent values |
-| `A \| B` | Ordered choice (PEG) | First alternative that matches wins |
-| `/regex/` | Regex terminal | `str` — bypasses keyword checking |
-| `STRING` | Quoted string literal | `str` (quotes stripped) |
-| `INT` | Integer literal | `int` |
-| `FLOAT` | Float literal (requires `.`) | `float` |
-| `BOOL` | `true` or `false` | `bool` |
+| 1 — Structural | JSON Schema (Draft 7) | Required fields, allowed properties, valid enum values, mutually exclusive param alternatives, default type compatibility |
+| 2 — Semantic | Python AST traversal (`_validate_ast`) | Duplicate names, invalid `__init__` placement, circular output/input types, unresolved type references, `supertype` constraints |
 
-### Attribute ordering constraint
-
-Because the grammar uses PEG ordered optionals, **attributes within a `block` or `param`
-declaration must appear in the order they are listed in the grammar rule**.
-Any subset is valid; skipped attributes simply take their default value.
-
-For `FunctionBlock` the order is: `label` → `kind` → `inline` → `tooltip`
-
-For `ParamDef` the order is: `type` → `default` → `pin` → `options`
+**Rule:** Schema/JSON Schema defines what can be *parsed*. Semantic validation defines
+what *makes sense*.
 
 ---
 
 ## 3. Metamodel
 
-When textX loads the grammar it creates one Python class per rule. Parsing a `.blockdef`
-file produces an **object graph** of instances of these classes. Every instance also
-receives a `.parent` back-reference to the object that contains it.
+File: `server/dsl/scripts/blockdef_ast.py`
+
+The metamodel is expressed as Python dataclasses. These are the M2-level concepts.
+Parsing a `.blockdef.yaml` file produces an **object graph** (the M1 abstract syntax)
+of instances of these classes.
 
 ### Object graph shape
 
 ```
 BlockdefFile
- ├─ .name          str                         module identifier
- ├─ .url           str                         help URL ('' if absent)
- ├─ .imports       list[ImportDecl]
- │    └─ .name     str                         Python import name
- └─ .categories   list[CategoryDef]
-      ├─ .name     str
-      ├─ .color    int                         0 if absent
-      └─ .entries  list[ClassDef | FunctionBlock]
-           │
-           ├── ClassDef
-           │    ├─ .class_name      str
-           │    ├─ .instance_mode   str        "singleton" | "multiple"
-           │    ├─ .instance_name   str        '' if absent
-           │    ├─ .method_ref      str        '' if absent
-           │    └─ .blocks          list[FunctionBlock]
-           │
-           └── FunctionBlock
-                ├─ .fn_name    str
-                ├─ .label      str             '' if absent
-                ├─ .kind       str             '' | "value" | "statement" | "hat"
-                ├─ .inline     bool            False if absent
-                ├─ .tooltip    str             '' if absent
-                └─ .params     list[ParamDef]
-                      ├─ .name       str
-                      ├─ .type_name  str       '' | "Number" | "String" | "Boolean" | "Any"
-                      ├─ .default    ParamDefault | None
-                      ├─ .is_pin     bool
-                      └─ .options    list[DropdownOpt]
-                               ├─ .label  str  (display text)
-                               └─ .val    str  (code value)
+ ├─ module        str                       Python module/import name
+ ├─ url           str                       help URL ('' if absent)
+ ├─ imports       list[ImportSpec]
+ │    ├─ module   str
+ │    └─ names    list[str]                 empty → "import module"
+ └─ categories    list[CategoryDef]
+      ├─ name     str
+      ├─ color    int | None
+      ├─ classes  list[SingletonClassDef | MultipleClassDef]
+      │    ├── SingletonClassDef
+      │    │    ├─ name           str
+      │    │    ├─ instance_name  str | None
+      │    │    └─ blocks         list[FunctionBlockDef]
+      │    │
+      │    └── MultipleClassDef
+      │         ├─ name        str
+      │         ├─ method_ref  str          "key_input" | "object_input"
+      │         └─ blocks      list[FunctionBlockDef]
+      │
+      └─ blocks   list[FunctionBlockDef]    (top-level, not inside a class)
+           ├─ fn           str
+           ├─ label        str | None
+           ├─ kind         str | None       "value" | "statement" | "hat"
+           ├─ inline       bool | None
+           ├─ tooltip      str
+           ├─ output_type  str | None       Blockly output type (e.g. "Color565")
+           ├─ supertype    str | None       e.g. "Number" → setOutput(true, ["Color565","Number"])
+           └─ params       list[AnyParamDef]
+                ├── ValueParamDef
+                │    ├─ name     str
+                │    ├─ type     str | list[str] | None
+                │    ├─ default  Any
+                │    └─ keyword  bool        True → name=value in generated code
+                │
+                ├── PinParamDef
+                │    ├─ name      str
+                │    ├─ pin_mode  str        "input" | "output" | "any"
+                │    ├─ default   int | None
+                │    └─ keyword   bool
+                │
+                ├── LegacyPinParamDef        passes raw integer, no Pin() wrapping
+                │    ├─ name     str
+                │    ├─ default  int | None
+                │    └─ keyword  bool
+                │
+                └── DropdownParamDef
+                     ├─ name     str
+                     ├─ default  str | None
+                     └─ options  list[DropdownOption]
+                          ├─ label  str      display text
+                          └─ value  str      code value
 ```
 
-### `ParamDefault` hierarchy
+### Why separate subclasses instead of a `kind` flag
 
-`param.default` is `None` when no default is written. Otherwise it is one of:
-
-| Class | `.val` type | Example in .blockdef |
-|---|---|---|
-| `BoolDefault` | `bool` | `default=true` |
-| `IntDefault` | `int` | `default=42` |
-| `FloatDefault` | `float` | `default=3.14` |
-| `StrDefault` | `str` | `default="hello"` |
-| `SeqDefault` | — | `default=[0, 2, 4]` |
-
-`SeqDefault` has `.items` — a `list` of the scalar types above — instead of `.val`.
-
-### Absent-value defaults
-
-textX does **not** use `None` for absent string/int matches; it uses the zero-value of the
-type (`''` for strings, `0` for ints, `False` for bools). The parser normalises these:
-
-```python
-fb.kind or None          # '' → None
-fb.label or None         # '' → None
-cat.color or None        # 0  → None  (be careful if 0 is a valid color)
-```
+From `blockdef_ast.py` docstring:
+> "Mutually exclusive alternatives (singleton vs multiple, value vs pin vs dropdown) are
+> encoded as separate classes rather than mode flags on a shared struct — following the
+> MDSD principle that alternatives in a rule generate subclasses in the metamodel."
 
 ---
 
@@ -200,108 +130,147 @@ cat.color or None        # 0  → None  (be careful if 0 is a valid color)
 
 ### Minimal file
 
-```
-module my_lib
-import "my_lib"
+```yaml
+module: my_lib
+imports:
+  - my_lib
 
-category "My Library" color=120 {
-    block do_something tooltip="Does something useful."
-}
+categories:
+  - name: My Library
+    color: 120
+    blocks:
+      - fn: do_something
+        tooltip: Does something useful.
 ```
 
 ### Module header
 
-```
-module <identifier>          // becomes source_module_name on every BlockSpec
-import "<python_module>"     // repeat for each dependency
-url "<help_url>"             // optional; attached to every block's help button
+```yaml
+module: <identifier>          # becomes source_module_name on every BlockSpec
+url: <help_url>               # optional; attached to every block's help button
+imports:
+  - <python_module>           # simple import: "import <module>"
+  - from: <module>            # named import: "from <module> import <names>"
+    names: [Name1, Name2]
 ```
 
 ### Standalone function block
 
-```
-block <fn_name>
-    [label="Human readable label"]
-    [kind=value|statement|hat]     // default: statement
-    [inline=true|false]            // default: false
-    [tooltip="Shown on hover."]
-    [{
-        param <name> [type=Number|String|Boolean|Any] [default=<value>] [pin]
-                     [options[("Label","code"), ...]]
-    }]
+```yaml
+- fn: <fn_name>
+  label: "Human readable label"   # optional
+  kind: value | statement | hat   # optional; default: statement
+  inline: true | false            # optional
+  tooltip: "Shown on hover."      # optional
+  params:
+    - name: <name>
+      type: Number | String | Boolean | Any   # optional
+      default: <value>                         # optional
 ```
 
 ### Class block (singleton)
 
 A singleton class creates exactly one instance in the generated code under a fixed name.
-`__init__` becomes the constructor block; every other declared method becomes a method block.
+`__init__` becomes the constructor block; every other declared function becomes a method block.
 
-```
-class <ClassName> as singleton named "<instance_name>" {
-    block __init__ tooltip="Create the instance." {
-        param <pin>  type=Number  pin
-    }
-    block <method>  kind=value  tooltip="Returns a value."
-    block <method2> tooltip="Does something." {
-        param <arg>  type=Number
-    }
-}
+```yaml
+classes:
+  - name: DS1302
+    instance_mode: singleton
+    instance_name: ds1302       # fixed variable name in generated code
+    blocks:
+      - fn: __init__
+        tooltip: Create a DS1302 RTC instance.
+        params:
+          - name: clk_pin
+            pin_mode: output
+          - name: dat_pin
+            pin_mode: output
+          - name: rst_pin
+            pin_mode: output
+
+      - fn: get_time
+        kind: value
+        tooltip: Read the current time tuple from the RTC.
 ```
 
-Generated code template examples:
-- Constructor: `<instance_name> = <Module>.<ClassName>(<args>)`
-- Method:      `<instance_name>.<method_name>(<args>)`
+Generated code patterns:
+- Constructor: `ds1302 = ds1302.DS1302(clk_pin_X, dat_pin_Y, rst_pin_Z)`
+- Method:      `ds1302.get_time()`
 
 ### Class block (multiple instances)
 
 Multiple-instance classes track objects in a dict keyed by a numeric `id`.
 Each method block automatically receives an `id` input that selects which instance to call.
 
+```yaml
+classes:
+  - name: Motor
+    instance_mode: multiple
+    method_ref: key_input       # optional; default: key_input
+    blocks:
+      - fn: __init__
+        params:
+          - name: pin
+            pin_mode: output
+
+      - fn: set_speed
+        kind: statement
+        params:
+          - name: speed
+            type: Number
 ```
-class <ClassName> as multiple [ref key_input|object_input] {
-    block __init__ {
-        param id     type=Number    // required — used as the dict key
-        param <pin>  type=Number  pin
-    }
-    block <method>  kind=value
-}
+
+Generated code patterns:
+- Constructor: `motor_instances[{id}] = motor.Motor(pin_X)`
+- Method:      `motor_instances[{id}].set_speed({speed})`
+
+### Parameter kinds
+
+#### Value parameter
+
+```yaml
+- name: count
+  type: Number        # Blockly check type; also Number | String | Boolean | Any | custom
+  default: 10         # optional; must match type
+  keyword: false      # optional; true → name=value in generated Python
 ```
 
-Generated code template examples:
-- Constructor: `<class_name>_instances[{id}] = <Module>.<ClassName>(<args>)`
-- Method:      `<class_name>_instances[{id}].<method_name>(<args>)`
+#### Pin parameter
 
-### Parameter types
-
-| `type=` value | Blockly check type | Shadow block |
-|---|---|---|
-| `Number` | `"Number"` | `math_number` |
-| `String` | `"String"` | `text` |
-| `Boolean` | `"Boolean"` | `logic_boolean` |
-| `Any` | `null` (no check) | `math_number` |
-| *(absent)* | `null` | depends on default value |
-
-### `pin` flag
-
-Adding `pin` to a param marks it as a hardware pin input. The emitter renders a `pinout`
-shadow block as the default, and the check type defaults to `Number` if not explicitly set.
-
-### Dropdown options
-
+```yaml
+- name: clk_pin
+  pin_mode: output    # "input" | "output" | "any"
+  default: 18         # optional
+  keyword: false
 ```
-param mode options[("Fast", "fast"), ("Slow", "slow"), ("Off", "off")]
+
+The emitter generates `Pin(n, Pin.OUT)` (output), `Pin(n, Pin.IN)` (input), or `Pin(n)` (any).
+The variable is hoisted to `definitions_` so it appears once at the top of generated code.
+
+#### Dropdown parameter
+
+```yaml
+- name: mode
+  options:
+    - label: Fast
+      value: "fast"
+    - label: Slow
+      value: "slow"
 ```
 
 Renders as a `Blockly.FieldDropdown` instead of a value input connector.
 
-### Default values
+### Output type and supertype
 
+```yaml
+- fn: color565
+  kind: value
+  output_type: Color565     # primary Blockly output type
+  supertype: Number         # Color565 is also accepted where Number is expected
 ```
-param count   type=Number   default=10
-param enabled type=Boolean  default=true
-param label   type=String   default="hello"
-param pins    type=Number   default=[0, 2, 4, 6]   // renders as lists_create_with
-```
+
+Emits: `this.setOutput(true, ["Color565", "Number"])` — the block satisfies both type checks.
 
 ---
 
@@ -310,49 +279,71 @@ param pins    type=Number   default=[0, 2, 4, 6]   // renders as lists_create_wi
 ### File map
 
 ```
-server/block_dsl/
-  block_grammar.tx       textX grammar (source of truth for the DSL syntax)
-  blockdef_parser.py     Parses .blockdef → ParseResult
-  integrate.py           Registers targets; wires both pipelines into one call
-  emitters.py            Renders BlockSpec → JS / MD text (shared with old pipeline)
-  python_generator.py    Builds GeneratorSpec from BlockSpec (shared)
-  toolbox_builder.py     Groups BlockSpec into ToolboxCategory (shared)
-  model.py               Shared dataclasses: BlockSpec, InputSpec, ParseResult, …
-  builder.py             humanize_identifier(), snake_case() helpers (shared)
+server/dsl/
+  definitions/
+    blockdef_schema.json       JSON Schema — M2 structural validation (Phase 1)
+  scripts/
+    blockdef_ast.py            Typed dataclasses — M2 metamodel
+    blockdef_parser.py         YAML → BlockdefFile AST → BlockSpec list
+    model.py                   Shared dataclasses: BlockSpec, InputSpec, ParseResult, …
+    emitters.py                BlockSpec → JS / MD text
+    python_generator.py        BlockSpec → GeneratorSpec
+    toolbox_builder.py         BlockSpec → ToolboxCategory
+    builder.py                 humanize_identifier(), snake_case() helpers
+    integrate.py               Wires pipeline into one call; registers targets
+    pipeline.py                DefaultPipeline (alternative annotation-based approach)
+    validation.py              Shared model validation
+    scanner.py                 Comment annotation scanner (annotation pipeline)
+    extractor.py               Python AST source extractor (annotation pipeline)
+    resolver.py                Source metadata resolver (annotation pipeline)
 
-static/page/blocks/libraries/
-  ds1302.blockdef        Example definition file
+server/dsl/definitions/
+  ds1302.blockdef.yaml         Example definition file
+  st7735s.blockdef.yaml        Example with custom output type + supertype
+  sand_table_robot.blockdef.yaml
 ```
 
 ### Pipeline — step by step
 
 ```
-.blockdef file
+.blockdef.yaml file
      │
      ▼
-[1] textX metamodel_from_file("block_grammar.tx")
-     │  Compiles the grammar into a PEG parser (done once at BlockdefParser.__init__)
+[1] yaml.safe_load()
+     │  Reads raw YAML into a Python dict
      │
      ▼
-[2] mm.model_from_file("ds1302.blockdef")
-     │  Parses the file, returns a BlockdefFile object graph
+[2] _validate_schema(raw, path, validator)
+     │  JSON Schema (Draft 7) structural validation
+     │  Rejects: missing fields, unknown keys, invalid enums, wrong param alternatives
+     │  Raises BlockdefValidationError on failure
      │
      ▼
-[3] BlockdefParser._extract_blocks(model)
-     │  Walks the object graph:
-     │    • For each CategoryDef
-     │        • For each ClassDef  → _blocks_from_class()
-     │            • Orders constructor first
-     │            • Calls _block_spec() for each FunctionBlock
-     │        • For each top-level FunctionBlock → _block_spec()
-     │  Returns list[BlockSpec]
+[3] _parse_blockdef_file(raw, import_specs)
+     │  Builds the BlockdefFile AST (M1 abstract syntax)
+     │  raw dict → BlockdefFile(CategoryDef, SingletonClassDef/MultipleClassDef,
+     │                          FunctionBlockDef, ValueParamDef/PinParamDef/…)
      │
      ▼
-[4] SimpleToolboxBuilder.build_toolbox(blocks)
+[4] _validate_ast(bdf, path)
+     │  Semantic validation on the typed AST
+     │  Rejects: duplicate names, __init__ at category level, type mismatches,
+     │           invalid supertype use, circular output/input types,
+     │           unresolved custom type references
+     │
+     ▼
+[5] BlockdefParser._extract_blocks(bdf)
+     │  M1 AST → list[BlockSpec]  (model transformation)
+     │  For each CategoryDef:
+     │    For each ClassDef → _blocks_from_class()  (constructor first, then methods)
+     │    For each top-level FunctionBlockDef → _block_from_fn()
+     │
+     ▼
+[6] SimpleToolboxBuilder.build_toolbox(blocks)
      │  Groups BlockSpec by category name → list[ToolboxCategory]
      │
      ▼
-[5] PythonGeneratorBuilder.build_generators(blocks)
+[7] PythonGeneratorBuilder.build_generators(blocks)
      │  Derives a code template string for each block:
      │    Singleton constructor:  "ds1302 = ds1302.DS1302({clk_pin}, …)"
      │    Singleton method:       "ds1302.get_time()"
@@ -361,21 +352,26 @@ static/page/blocks/libraries/
      │  Returns list[GeneratorSpec]
      │
      ▼
-[6] Emitters (shared with the Python-annotation pipeline)
+[8] Emitters
      │
      ├─ emit_blockly_blocks_js(blocks)
      │     Renders each BlockSpec as a Blockly.Blocks["type"] = { init: … } JS object.
      │     Handles label placeholders like "Set {id} speed" → inline value inputs.
+     │     Uses definitions_["import_..."] to hoist imports to the top of generated code.
      │
      ├─ emit_python_generators_js(generators, blocks_by_type)
      │     Renders each GeneratorSpec as a Blockly.Python["type"] = function(block) { … }.
      │     Reads each input with valueToCode / getFieldValue depending on InputKind.
+     │     Hoists Pin setup, bus objects, and instance registries into definitions_.
      │
      └─ emit_definition_markdown(category, library, blocks)
-           Renders the toolbox XML fragment with shadow (default) values per input.
+           Renders the toolbox Markdown/XML fragment.
+           Auto-generates shadow (default) blocks per input type:
+             Number → math_number, Boolean → logic_boolean, String → text,
+             SPI/I2C/UART → pre-filled bus shadow, Pin → pinout shadow.
 ```
 
-### How _block_spec() builds a BlockSpec
+### How _block_from_fn() builds a BlockSpec
 
 ```python
 BlockSpec(
@@ -388,106 +384,119 @@ BlockSpec(
     kind         = BlockKind.VALUE           # from fb.kind; constructors are always STATEMENT
     is_constructor_block = False
     inputs_inline = False                    # from fb.inline
-    inputs       = [InputSpec(…), …]        # built by _build_inputs()
-    source_module_name   = "ds1302"          # from BlockdefFile.name
-    source_function_name = "get_time_text"   # from FunctionBlock.fn_name
-    source_class_name    = "DS1302"          # from ClassDef.class_name
+    inputs       = [InputSpec(…), …]        # built by _build_inputs_ast()
+    source_module_name   = "ds1302"          # from BlockdefFile.module
+    source_function_name = "get_time_text"   # from FunctionBlockDef.fn
+    source_class_name    = "DS1302"          # from ClassDef.name
     instance_ref         = InstanceReferenceSpec(
                                mode=FIXED_NAME,
                                fixed_instance_name="ds1302"
                            )
+    output_type       = None
+    output_supertypes = []
 )
 ```
 
-### How _input_from_param() builds an InputSpec
+### How _input_from_param_ast() builds an InputSpec
 
 ```
-ParamDef in .blockdef            →   InputSpec
+ParamDef in YAML               →   InputSpec
 ─────────────────────────────────────────────────────────────
-options=[…]                      →   FIELD_DROPDOWN + options list
-is_pin=True, type absent         →   INPUT_VALUE, check_type="Number"
-type=Number                      →   INPUT_VALUE, check_type="Number"
-type=Boolean, default=true       →   INPUT_VALUE, check_type="Boolean", default_value=True
-type=Any / absent                →   INPUT_VALUE, check_type=None
+options: [...]                 →   FIELD_DROPDOWN + options list
+pin_mode: output               →   INPUT_VALUE, check_type="Number", pin_mode="output"
+pin: true  (legacy)            →   INPUT_VALUE, check_type="Number"  (no Pin() wrapping)
+type: Number                   →   INPUT_VALUE, check_type="Number"
+type: Boolean, default: true   →   INPUT_VALUE, check_type="Boolean", default_value=True
+type: Any / absent             →   INPUT_VALUE, check_type=None
 ```
 
 ### Instance reference modes
 
-| `.blockdef` declaration | InstanceReferenceSpec produced | Generated code pattern |
+| YAML declaration | InstanceReferenceSpec produced | Generated code pattern |
 |---|---|---|
-| `as singleton named "x"` | `FIXED_NAME, fixed="x"` | `x.method(…)` |
-| `as singleton` (no name) | `FIXED_NAME, fixed=None` | `<class_name>.method(…)` |
-| `as multiple` | `KEY_INPUT, key="id"` | `<cls>_instances[{id}].method(…)` |
-| `as multiple ref object_input` | `OBJECT_INPUT` | object passed as input connector |
+| `instance_mode: singleton` + `instance_name: x` | `FIXED_NAME, fixed="x"` | `x.method(…)` |
+| `instance_mode: singleton` (no name) | `FIXED_NAME, fixed=None` | `ClassName.method(…)` |
+| `instance_mode: multiple` | `KEY_INPUT, key="id"` | `cls_instances[{id}].method(…)` |
+| `instance_mode: multiple` + `method_ref: object_input` | `OBJECT_INPUT` | object passed as input connector |
 
-### Registering a new .blockdef target
+### Registering a new .blockdef.yaml target
 
-In `server/block_dsl/integrate.py`, add an entry to `DEFAULT_BLOCKDEF_TARGETS`:
+In `server/dsl/scripts/integrate.py`, add an entry to `DEFAULT_BLOCKDEF_TARGETS`:
 
 ```python
 BlockdefTarget(
-    blockdef          = "static/page/blocks/libraries/<name>.blockdef",
-    library_name      = "<import_name>",
-    output_block_js   = "static/page/blocks/blocks/<name>_dsl.js",
-    output_generator_js = "static/page/blocks/pythonic/<name>_dsl.js",
+    blockdef             = "server/dsl/definitions/<name>.blockdef.yaml",
+    library_name         = "<import_name>",
+    output_block_js      = "static/page/blocks/blocks/<name>_dsl.js",
+    output_generator_js  = "static/page/blocks/pythonic/<name>_dsl.js",
     output_definition_md = "templates/page/blocks/definitions/<name>_dsl.md",
-    extra_library_names = ("dep1", "dep2"),   # optional
+    extra_library_names  = ("dep1", "dep2"),   # optional
 )
 ```
 
-`generate_default_artifacts()` (called from `app.py` at startup) runs both the old
-Python-annotation pipeline and the `.blockdef` pipeline automatically.
-
 ---
 
-## 6. Complete example — ds1302.blockdef
+## 6. Complete example — ds1302.blockdef.yaml
 
-```
-// Block definitions for the DS1302 real-time clock driver.
+```yaml
+module: ds1302
+url: "https://github.com/micropython/micropython"
+imports:
+  - ds1302
 
-module ds1302
-import "ds1302"
-url "https://github.com/micropython/micropython"
+categories:
+  - name: DS1302 DSL
+    color: 35
+    classes:
+      - name: DS1302
+        instance_mode: singleton
+        instance_name: ds1302
+        blocks:
+          - fn: __init__
+            tooltip: Create a DS1302 RTC instance.
+            params:
+              - name: clk_pin
+                pin_mode: output
+              - name: dat_pin
+                pin_mode: output
+              - name: rst_pin
+                pin_mode: output
 
-category "DS1302 DSL" color=35 {
+          - fn: get_time
+            kind: value
+            tooltip: Read the current time tuple from the RTC.
 
-    class DS1302 as singleton named "ds1302" {
+          - fn: get_year
+            kind: value
+            tooltip: Read the current year from the RTC.
 
-        block __init__ tooltip="Create a DS1302 RTC instance." {
-            param clk_pin type=Number pin
-            param dat_pin type=Number pin
-            param rst_pin type=Number pin
-        }
+          - fn: get_time_text
+            kind: value
+            tooltip: Format the current time as text.
+            params:
+              - name: show_seconds
+                type: Boolean
+                default: true
 
-        block get_time      kind=value tooltip="Read the current time tuple from the RTC."
-        block get_year      kind=value tooltip="Read the current year from the RTC."
-        block get_month     kind=value tooltip="Read the current month from the RTC."
-        block get_day       kind=value tooltip="Read the current day from the RTC."
-        block get_hour      kind=value tooltip="Read the current hour from the RTC."
-        block get_minute    kind=value tooltip="Read the current minute from the RTC."
-        block get_second    kind=value tooltip="Read the current second from the RTC."
-
-        block get_time_text kind=value tooltip="Format the current time as text." {
-            param show_seconds type=Boolean default=true
-        }
-
-        block get_date_text kind=value tooltip="Format the current date as text."
-
-        block set_time tooltip="Set the RTC date and time." {
-            param year   type=Number
-            param month  type=Number
-            param day    type=Number
-            param hour   type=Number
-            param minute type=Number
-            param second type=Number
-        }
-    }
-}
+          - fn: set_time
+            tooltip: Set the RTC date and time.
+            params:
+              - name: year
+                type: Number
+              - name: month
+                type: Number
+              - name: day
+                type: Number
+              - name: hour
+                type: Number
+              - name: minute
+                type: Number
+              - name: second
+                type: Number
 ```
 
 This single file produces:
 
-- **11 Blockly blocks** (1 constructor + 10 methods)
-- **11 Python code generators** with correct singleton instance references
-- **1 toolbox markdown** with `pinout` shadows on pin inputs and typed shadows elsewhere
-- **Identical output** to the previous Python-annotation pipeline for the same library
+- Blockly block definitions (one per fn)
+- Python code generators with correct singleton instance references
+- A toolbox markdown with `pinout` shadows on pin inputs and typed shadows elsewhere

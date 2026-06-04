@@ -17,7 +17,7 @@ class Prompt {
     $.section = new DOM(DOM.get('section#prompt'))
     $.promptXterm = new DOM('div', {className:"xterm"})
     $.stopProgramButton = new DOM('button', {
-        innerText:Msg['StopExecution'],
+        innerHTML:'<svg width="14" height="14" style="flex:0 0 auto;vertical-align:middle" viewBox="0 0 20 20" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="1.5"/></svg><span>'+Msg['StopExecution']+'</span>',
         className:'master',
         title:'(Ctrl+Shift+S)'
       })
@@ -29,9 +29,9 @@ class Prompt {
         })
     $.quickActions = new DOM('div', {className:"quick-actions"})
       .append([
-        new DOM('button', {innerText:Msg['ClearConsole']})
+        new DOM('button', {innerHTML:'<svg width="14" height="14" style="flex:0 0 auto;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4H16a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 16 16H7.5L2.5 10l5-6z"/><path d="M9 8l4 4M13 8l-4 4"/></svg><span>'+Msg['ClearConsole']+'</span>'})
           .onclick(this, ()=>{this.prompt.clear()}),
-        new DOM('button', {innerText:Msg['ResetDevice'], className:'master'})
+        new DOM('button', {innerHTML:'<svg width="14" height="14" style="flex:0 0 auto;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 7A6 6 0 1 0 16 10"/><path d="M16 3.5V7h-3.5"/></svg><span>'+Msg['ResetDevice']+'</span>', className:'master'})
           .onclick(command, () => {
             command.dispatch(channel, 'rawPush', [
                 '\x04',
@@ -39,14 +39,14 @@ class Prompt {
               ])
             }),
         $.stopProgramButton,
-        new DOM('button', {innerText:Msg['StopTimers'], className:'master'})
+        new DOM('button', {innerHTML:'<svg width="14" height="14" style="flex:0 0 auto;vertical-align:middle" viewBox="0 0 20 20" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="1.5"/></svg><span>'+Msg['StopTimers']+'</span>', className:'master'})
           .onclick(command, () => {
             command.dispatch(channel, 'push', [
                 'from machine import Timer; [Timer(i).deinit() for i in range(0,16)]\r',
                 channel.targetDevice, [], command.tabUID
               ])
             }),
-        new DOM('button', {innerText:Msg['DeviceInfo'], className:'master'})
+        new DOM('button', {innerHTML:'<svg width="14" height="14" style="flex:0 0 auto;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 9.2v4.3"/><circle cx="10" cy="6.4" r="0.4" fill="currentColor"/></svg><span>'+Msg['DeviceInfo']+'</span>', className:'master'})
           .onclick(command, () => {
             command.dispatch(channel, 'push', [
                 'import os; os.uname()\r',

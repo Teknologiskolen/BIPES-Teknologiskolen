@@ -20,19 +20,15 @@ function fieldName (path){
   return `data-architecture-${String(path).replace(/[^a-z0-9_-]+/gi, '-')}`
 }
 
+// Pipeline node types. A "device" is one shared node that can be both a data source and
+// a target (hence bidirectional relations). BIPES is the always-present middle-man hub
+// and is not offered in the palette. ML / Vision are processing nodes that BIPES feeds.
 const ACTOR_TYPES = [
-  ['source-device', dataMsg('DataSourceDevice',       'Source device')],
-  ['webcam',        dataMsg('DataSourceWebcam',        'Webcam')],
-  ['ml',            dataMsg('DataActorML',             'ML inference')],
-  ['vision',        dataMsg('DataActorVision',         'Vision')],
-  ['transform',     dataMsg('DataActorTransform',      'Transform')],
-  ['rule',          dataMsg('DataActorRule',           'Rule / filter')],
-  ['widget',        dataMsg('DataActorWidget',         'Widget')],
-  ['target-device', dataMsg('DataDestinationDevice',   'Target device')],
-  ['mqtt',          'MQTT'],
-  ['service',       'Service'],
-  ['bipes',         'BIPES'],
-  ['custom',        'Actor']
+  ['device', dataMsg('DataNodeDevice',  'Device')],
+  ['webcam', dataMsg('DataNodeWebcam',  'Webcam')],
+  ['ml',     dataMsg('DataNodeML',      'ML')],
+  ['vision', dataMsg('DataNodeVision',  'Vision')],
+  ['bipes',  'BIPES']
 ]
 
 const TRANSPORT_CONFIG = {
@@ -47,17 +43,10 @@ const TRANSPORT_CONFIG = {
 
 const ACTOR_ICONS = {
   'bipes':         '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="5" width="10" height="10" rx="1.5"/><line x1="7.5" y1="5" x2="7.5" y2="2.5"/><line x1="10" y1="5" x2="10" y2="2.5"/><line x1="12.5" y1="5" x2="12.5" y2="2.5"/><line x1="7.5" y1="15" x2="7.5" y2="17.5"/><line x1="10" y1="15" x2="10" y2="17.5"/><line x1="12.5" y1="15" x2="12.5" y2="17.5"/><line x1="5" y1="7.5" x2="2.5" y2="7.5"/><line x1="5" y1="12.5" x2="2.5" y2="12.5"/><line x1="15" y1="7.5" x2="17.5" y2="7.5"/><line x1="15" y1="12.5" x2="17.5" y2="12.5"/></svg>',
-  'source-device': '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="5" width="11" height="10" rx="1.5"/><polyline points="14,9 18,10 14,11"/></svg>',
-  'target-device': '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="7" y="5" width="11" height="10" rx="1.5"/><polyline points="6,9 2,10 6,11"/></svg>',
+  'device':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="10" height="14" rx="1.5"/><line x1="8.5" y1="14.5" x2="11.5" y2="14.5"/><polyline points="2.5,8 1,10 2.5,12"/><polyline points="17.5,8 19,10 17.5,12"/><line x1="1" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="19" y2="10"/></svg>',
   'webcam':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="16" height="12" rx="2"/><circle cx="10" cy="10" r="3.5"/></svg>',
   'ml':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="2"/><circle cx="3" cy="5" r="1.5"/><circle cx="3" cy="15" r="1.5"/><circle cx="17" cy="5" r="1.5"/><circle cx="17" cy="15" r="1.5"/><line x1="4.5" y1="5.5" x2="8.5" y2="9.2"/><line x1="4.5" y1="14.5" x2="8.5" y2="10.8"/><line x1="15.5" y1="5.5" x2="11.5" y2="9.2"/><line x1="15.5" y1="14.5" x2="11.5" y2="10.8"/></svg>',
-  'vision':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg>',
-  'transform':     '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h14l-5 6v5l-4-2V10L3 4z"/></svg>',
-  'rule':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L18 10L10 18L2 10Z"/></svg>',
-  'widget':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/><rect x="2" y="11" width="7" height="7" rx="1"/><rect x="11" y="11" width="7" height="7" rx="1"/></svg>',
-  'mqtt':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 16v-4"/><path d="M7 18l3-2 3 2"/><path d="M4 12a8 8 0 0 1 12 0"/><path d="M1 9a12 12 0 0 1 18 0"/></svg>',
-  'service':       '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="10" cy="5" rx="8" ry="2.5"/><path d="M2 5v4c0 1.38 3.58 2.5 8 2.5s8-1.12 8-2.5V5"/><path d="M2 9v4c0 1.38 3.58 2.5 8 2.5s8-1.12 8-2.5V9"/><path d="M2 13v3c0 1.38 3.58 2.5 8 2.5s8-1.12 8-2.5v-3"/></svg>',
-  'custom':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="7" r="3"/><path d="M4 18c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>'
+  'vision':        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg>'
 }
 
 class DataPage {
@@ -205,7 +194,7 @@ class DataPage {
     this.$.addActorMenuBtn = new DOM('button', {
       id:'data-add-actor',
       className:'icon',
-      title:dataMsg('DataActorAdd', 'Add actor')
+      title:dataMsg('DataNodeAdd', 'Add node')
     }).onclick(this, this.toggleActorMenu)
 
     this.$.headerLeft = new DOM('div', {className:'data-header-left'}).append([
@@ -324,7 +313,7 @@ class DataPage {
 
     let description = dataflow.describe(flow)
     this.$.workspaceHeader.$.innerHTML = `
-      <p class="data-panel-description">${escapeHTML(description.relation)} · ${(flow.architecture.nodes || []).length} ${dataMsg('DataActorsCount', 'actors')} · ${(flow.architecture.links || []).length} ${dataMsg('DataRelationsCount', 'relations')}</p>
+      <p class="data-panel-description">${escapeHTML(description.relation)} · ${(flow.architecture.nodes || []).length} ${dataMsg('DataNodesCount', 'nodes')} · ${(flow.architecture.links || []).length} ${dataMsg('DataRelationsCount', 'relations')}</p>
     `
 
     this.updateBoardSize(flow)
@@ -395,7 +384,7 @@ class DataPage {
       if (!flow.locked && node.type != 'bipes') {
         let removeBtn = new DOM('button', {
           className:'data-node-remove',
-          title:dataMsg('DataActorDelete', 'Remove actor'),
+          title:dataMsg('DataNodeDelete', 'Remove node'),
           innerText:'×'
         })
           .ondown(this, (ev) => {ev.stopPropagation()})
@@ -558,37 +547,63 @@ class DataPage {
   }
 
   renderNodeInspector (flow, node){
-    let isDeviceNode = node.type === 'source-device' || node.type === 'target-device'
+    let isDeviceNode = node.type === 'device'
+    let isMlNode = node.type === 'ml'
+    let isVisionNode = node.type === 'vision'
     let deviceOptions = isDeviceNode ? this.connectedDeviceOptions() : []
     let transport = isDeviceNode ? (this.getDeviceProtocol(node.deviceUid) || this.getActiveDeviceTransport()) : null
     let transportCfg = transport ? (TRANSPORT_CONFIG[transport] || TRANSPORT_CONFIG['auto']) : null
+    let mlOptions = isMlNode ? this.mlWorkspaceOptions() : []
+    let visionOptions = isVisionNode ? this.visionSetupOptions() : []
     this.$.inspector.$.innerHTML = `
       <div class="data-inspector-head">
-        <strong>${dataMsg('DataActorInspectorTitle', 'Actor settings')}</strong>
+        <strong>${dataMsg('DataNodeInspectorTitle', 'Node settings')}</strong>
         <button type="button" class="data-inspector-close" title="${dataMsg('DataInspectorClose', 'Close')}">×</button>
       </div>
       <div class="data-inspector-body">
-        <p>${dataMsg('DataActorInspectorHelp', 'Configure the actor\'s name, type, and device binding.')}</p>
-        ${this.nodeInput(node, 'label', dataMsg('DataActorLabel', 'Actor name'), flow.locked || node.type == 'bipes')}
-        ${this.nodeSelect(node, 'type', dataMsg('DataActorType', 'Actor type'), ACTOR_TYPES, flow.locked || node.type == 'bipes')}
+        <p>${dataMsg('DataNodeInspectorHelp', 'Configure the node name, type and connection.')}</p>
+        ${this.nodeInput(node, 'label', dataMsg('DataNodeLabel', 'Node name'), flow.locked || node.type == 'bipes')}
+        ${this.nodeSelect(node, 'type', dataMsg('DataNodeType', 'Node type'), ACTOR_TYPES, flow.locked || node.type == 'bipes')}
         ${isDeviceNode ? `
           <div class="data-field">
-            <span>${dataMsg('DataActorDevice', 'Bound device')}</span>
-            ${deviceOptions.length > 0 ? `
-              <select data-node-id="${escapeHTML(node.id)}" data-node-field="deviceUid" ${flow.locked ? 'disabled' : ''}>
-                <option value="">${dataMsg('DataActorDeviceAuto', 'Active device (auto)')}</option>
-                ${deviceOptions.map(({uid, label}) => `<option value="${escapeHTML(uid)}" ${node.deviceUid == uid ? 'selected' : ''}>${escapeHTML(label)}</option>`).join('')}
-              </select>
-            ` : `<span class="data-transport-hint">${dataMsg('DataNoDeviceConnected', 'No device connected yet')}</span>`}
+            <span>${dataMsg('DataNodeDevicePick', 'Device')}</span>
+            <select data-node-id="${escapeHTML(node.id)}" data-node-field="deviceUid" ${flow.locked ? 'disabled' : ''}>
+              <option value="">${dataMsg('DataNodeDeviceCurrent', 'Current device')}</option>
+              ${deviceOptions.map(({uid, label}) => `<option value="${escapeHTML(uid)}" ${node.deviceUid == uid ? 'selected' : ''}>${escapeHTML(label)}</option>`).join('')}
+            </select>
+            ${deviceOptions.length === 0 ? `<span class="data-transport-hint">${dataMsg('DataNoDeviceConnected', 'No device connected yet — using current device')}</span>` : ''}
           </div>
           ${transport ? `
             <div class="data-field">
-              <span>${dataMsg('DataActorTransport', 'Connection type')}</span>
+              <span>${dataMsg('DataNodeTransport', 'Connection type')}</span>
               <div class="data-transport-indicator" data-transport="${escapeHTML(transport)}">
                 <span class="data-transport-badge">${escapeHTML(transportCfg.label)}</span>
+                <span class="data-transport-hint">${dataMsg('DataTransportFromConnection', 'From how the device is connected')}</span>
               </div>
             </div>
           ` : ''}
+        ` : ''}
+        ${isMlNode ? `
+          <div class="data-field">
+            <span>${dataMsg('DataNodeMlWorkspace', 'ML workspace')}</span>
+            ${mlOptions.length > 0 ? `
+              <select data-node-id="${escapeHTML(node.id)}" data-node-field="mlWorkspaceId" ${flow.locked ? 'disabled' : ''}>
+                <option value="">${dataMsg('DataNodeBindNone', 'Not selected')}</option>
+                ${mlOptions.map(({id, name}) => `<option value="${escapeHTML(id)}" ${node.mlWorkspaceId == id ? 'selected' : ''}>${escapeHTML(name)}</option>`).join('')}
+              </select>
+            ` : `<span class="data-transport-hint">${dataMsg('DataNodeNoMlWorkspace', 'No ML workspaces yet')}</span>`}
+          </div>
+        ` : ''}
+        ${isVisionNode ? `
+          <div class="data-field">
+            <span>${dataMsg('DataNodeVisionSetup', 'Vision graph')}</span>
+            ${visionOptions.length > 0 ? `
+              <select data-node-id="${escapeHTML(node.id)}" data-node-field="visionSetupId" ${flow.locked ? 'disabled' : ''}>
+                <option value="">${dataMsg('DataNodeBindNone', 'Not selected')}</option>
+                ${visionOptions.map(({id, name}) => `<option value="${escapeHTML(id)}" ${node.visionSetupId == id ? 'selected' : ''}>${escapeHTML(name)}</option>`).join('')}
+              </select>
+            ` : `<span class="data-transport-hint">${dataMsg('DataNodeNoVisionSetup', 'No Vision graphs yet')}</span>`}
+          </div>
         ` : ''}
       </div>
     `
@@ -601,10 +616,22 @@ class DataPage {
     this.attachInspectorFields()
   }
 
+  linkRole (link, flow){
+    let source = this.findNode(link.sourceId, flow)
+    let target = this.findNode(link.targetId, flow)
+    if (target?.type === 'bipes' && (source?.type === 'device' || source?.type === 'webcam'))
+      return 'input'
+    if (source?.type === 'bipes' && target?.type === 'device')
+      return 'output'
+    return 'internal'
+  }
+
   renderLinkInspector (flow, link){
     this.selectedLinkId = link.id
     let transport = this.visualTransport(link, flow)
     let transportCfg = TRANSPORT_CONFIG[transport] || TRANSPORT_CONFIG['auto']
+    let role = this.linkRole(link, flow)
+    let locked = flow.locked
     this.$.inspector.$.innerHTML = `
       <div class="data-inspector-head">
         <strong>${dataMsg('DataGraphInspectorTitle', 'Relation settings')}</strong>
@@ -612,29 +639,65 @@ class DataPage {
       </div>
       <div class="data-inspector-body">
         <p>${escapeHTML(this.relationLabel(link, flow))}</p>
+        ${this.linkSelect(link, 'transport', dataMsg('DataRelationTransport', 'Transport'), [
+          ['auto', dataMsg('DataTransportAutoDevice', 'Auto (from device)')],
+          ['mqtt', 'MQTT']
+        ], locked)}
         <div class="data-field">
-          <span>${dataMsg('DataRelationTransport', 'Transport')}</span>
+          <span>${dataMsg('DataRelationResolved', 'Resolved connection')}</span>
           <div class="data-transport-indicator" data-transport="${escapeHTML(transport)}">
             <span class="data-transport-badge">${escapeHTML(transportCfg.label)}</span>
-            <span class="data-transport-hint">${dataMsg('DataTransportFromDevice', 'Reflects active device connection')}</span>
+            <span class="data-transport-hint">${dataMsg('DataTransportFromDevice', 'Reflects how the device is connected')}</span>
           </div>
         </div>
+        ${link.transport === 'mqtt' ? `
+          ${this.linkInput(link, 'mqttPublishTopic', dataMsg('DataRelationMqttPublish', 'Publish topic'), locked)}
+          ${this.linkInput(link, 'mqttSubscribeTopic', dataMsg('DataRelationMqttSubscribe', 'Subscribe topic'), locked)}
+          ${this.linkSelect(link, 'qos', dataMsg('DataRelationMqttQos', 'QoS'), [['0', '0'], ['1', '1'], ['2', '2']], locked)}
+          ${this.linkPills(link, 'retain', dataMsg('DataRelationMqttRetain', 'Retain'), [['false', dataMsg('DataOff', 'Off')], ['true', dataMsg('DataOn', 'On')]], locked)}
+        ` : ''}
         ${this.linkPills(link, 'mode', dataMsg('DataRelationMode', 'Mode'), [
           ['manual', dataMsg('DataModeManual', 'Manual')],
           ['request', dataMsg('DataModeRequest', 'Request')],
           ['stream', dataMsg('DataModeStream', 'Stream')],
           ['notify', dataMsg('DataModeNotify', 'Notify')]
-        ], flow.locked)}
-        ${this.linkSelect(link, 'envelope', dataMsg('DataOutputEnvelope', 'Message envelope'), [
-          ['auto', dataMsg('DataEnvelopeAuto', 'Auto for connection')],
-          ['raw', dataMsg('DataEnvelopeRaw', 'Raw payload')],
-          ['json', 'JSON'],
-          ['topic-message-packet', dataMsg('DataEnvelopeTopicMessage', 'Topic/message packet')],
-          ['function-call', dataMsg('DataEnvelopeFunctionCall', 'Function call')]
-        ], flow.locked)}
-        ${this.linkInput(link, 'header', dataMsg('DataInputHeader', 'Start/header'), flow.locked)}
-        ${this.linkInput(link, 'footer', dataMsg('DataInputFooter', 'End/footer'), flow.locked)}
-        ${flow.locked ? '' : `<button type="button" class="data-danger" data-action="remove-link" data-link-id="${escapeHTML(link.id)}">${dataMsg('DataRelationDelete', 'Remove relation')}</button>`}
+        ], locked)}
+        ${role === 'input' ? `
+          ${link.mode === 'stream' ? this.linkInput(link, 'fps', dataMsg('DataRelationFps', 'Frames per second'), locked) : ''}
+          ${link.mode === 'notify' ? this.linkInput(link, 'notifyMessage', dataMsg('DataRelationNotifyMessage', 'New-data message'), locked) : ''}
+        ` : ''}
+        ${role === 'output' ? `
+          ${this.linkSelect(link, 'outputFormat', dataMsg('DataOutputFormat', 'Output format'), [
+            ['json', 'JSON'],
+            ['csv', 'CSV'],
+            ['avro', 'Avro'],
+            ['parquet', 'Parquet'],
+            ['raw-binary', dataMsg('DataFormatRawBinary', 'Raw binary')],
+            ['command', dataMsg('DataFormatCommand', 'Device command')]
+          ], locked)}
+          ${link.outputFormat === 'command' ? this.linkInput(link, 'commandTemplate', dataMsg('DataRelationCommandTemplate', 'Command template'), locked) : ''}
+          ${this.linkSelect(link, 'envelope', dataMsg('DataOutputEnvelope', 'Message envelope'), [
+            ['auto', dataMsg('DataEnvelopeAuto', 'Auto for connection')],
+            ['raw', dataMsg('DataEnvelopeRaw', 'Raw payload')],
+            ['json', 'JSON'],
+            ['topic-message-packet', dataMsg('DataEnvelopeTopicMessage', 'Topic/message packet')],
+            ['function-call', dataMsg('DataEnvelopeFunctionCall', 'Function call')]
+          ], locked)}
+          ${this.linkInput(link, 'header', dataMsg('DataInputHeader', 'Start/header'), locked)}
+          ${this.linkInput(link, 'footer', dataMsg('DataInputFooter', 'End/footer'), locked)}
+          ${this.linkPills(link, 'sendPolicy', dataMsg('DataRelationSendPolicy', 'Send policy'), [
+            ['onResult', dataMsg('DataSendOnResult', 'On result')],
+            ['onChange', dataMsg('DataSendOnChange', 'On change')],
+            ['onRule', dataMsg('DataSendOnRule', 'On rule')],
+            ['manual', dataMsg('DataModeManual', 'Manual')]
+          ], locked)}
+          ${link.sendPolicy === 'onRule' ? `
+            ${this.linkInput(link, 'ruleMetric', dataMsg('DataRelationRuleMetric', 'Rule metric'), locked)}
+            ${this.linkSelect(link, 'ruleOperator', dataMsg('DataRelationRuleOperator', 'Operator'), [['>=', '≥'], ['>', '>'], ['<=', '≤'], ['<', '<'], ['==', '='], ['!=', '≠']], locked)}
+            ${this.linkInput(link, 'ruleValue', dataMsg('DataRelationRuleValue', 'Rule value'), locked)}
+          ` : ''}
+        ` : ''}
+        ${locked ? '' : `<button type="button" class="data-danger" data-action="remove-link" data-link-id="${escapeHTML(link.id)}">${dataMsg('DataRelationDelete', 'Remove relation')}</button>`}
       </div>
     `
     this.$.inspector.$.classList.add('data-inspector--open')
@@ -807,7 +870,7 @@ class DataPage {
 
     let title = document.createElement('h2')
     title.className = 'data-actor-popup-title'
-    title.textContent = dataMsg('DataActorAdd', 'Add actor')
+    title.textContent = dataMsg('DataNodeAdd', 'Add node')
     card.appendChild(title)
 
     let grid = document.createElement('div')
@@ -819,7 +882,7 @@ class DataPage {
         let btn = document.createElement('button')
         btn.className = 'data-actor-btn'
         btn.dataset.actorType = type
-        btn.innerHTML = `${ACTOR_ICONS[type] || ''}<span>${escapeHTML(label)}</span>`
+        btn.innerHTML = `${this.actorIcon(type)}<span>${escapeHTML(label)}</span>`
         btn.addEventListener('click', () => {
           this.addNode(type)
           this.closeActorMenu()
@@ -839,7 +902,7 @@ class DataPage {
     Animate.off(this.$.addActorPopup.$)
   }
 
-  addNode (type = 'custom'){
+  addNode (type = 'device'){
     let flow = dataflow.get(this.selectedId)
     if (!flow || flow.locked)
       return
@@ -922,6 +985,10 @@ class DataPage {
       node.type = value
     if (field == 'deviceUid')
       node.deviceUid = String(value || '')
+    if (field == 'mlWorkspaceId')
+      node.mlWorkspaceId = String(value || '')
+    if (field == 'visionSetupId')
+      node.visionSetupId = String(value || '')
     this.selectedNodeId = nodeId
     dataflow.save(flow)
     this.render()
@@ -1170,23 +1237,16 @@ class DataPage {
     let target = this.findNode(targetId, flow)
     if (source?.type == 'webcam' || target?.type == 'webcam')
       return 'browser'
-    if (source?.type == 'mqtt' || target?.type == 'mqtt')
-      return 'mqtt'
-    if (source?.type == 'widget' || target?.type == 'widget')
-      return 'internal'
-    if (source?.type == 'service' || target?.type == 'service')
-      return 'websocket'
-    if (source?.type == 'source-device' || source?.type == 'target-device' || target?.type == 'source-device' || target?.type == 'target-device')
+    // A device relation resolves its real transport from how the device is connected.
+    if (source?.type == 'device' || target?.type == 'device')
       return 'auto'
-    const processTypes = ['ml', 'vision', 'transform', 'rule', 'bipes']
-    if (processTypes.includes(source?.type) || processTypes.includes(target?.type))
-      return 'internal'
+    // ml / vision / bipes are in-browser processing nodes.
     return 'internal'
   }
 
   actorTypeLabel (type){
     let item = ACTOR_TYPES.find(([value]) => value == type)
-    return item ? item[1] : 'Actor'
+    return item ? item[1] : dataMsg('DataNodeDevice', 'Device')
   }
 
   actorTypeAllowed (type){
@@ -1194,7 +1254,20 @@ class DataPage {
   }
 
   actorIcon (type){
-    return ACTOR_ICONS[type] || ACTOR_ICONS['custom']
+    return ACTOR_ICONS[type] || ACTOR_ICONS['device']
+  }
+
+  // The channel stores the protocol as connection.currentProtocol ('WebSerial' /
+  // 'WebSocket' / 'WebBluetooth'); normalise it to the lowercase TRANSPORT_CONFIG keys.
+  normalizeProtocol (raw){
+    if (!raw) return null
+    let key = String(raw).toLowerCase()
+    return TRANSPORT_CONFIG[key] ? key : null
+  }
+
+  connectionProtocol (conn){
+    if (!conn) return null
+    return this.normalizeProtocol(conn.currentProtocol || conn.protocol || conn.type)
   }
 
   getDeviceProtocol (deviceUid){
@@ -1202,7 +1275,7 @@ class DataPage {
       let ch = window.bipes && bipes.channel
       if (!ch || !deviceUid) return null
       let conn = ch.connections && ch.connections[deviceUid]
-      return conn ? (conn.protocol || conn.type || null) : null
+      return this.connectionProtocol(conn)
     } catch { return null }
   }
 
@@ -1213,15 +1286,17 @@ class DataPage {
       let uid = ch.targetDevice
       if (!uid) return 'auto'
       let conn = ch.connections && ch.connections[uid]
-      return conn ? (conn.protocol || conn.type || 'auto') : 'auto'
+      return this.connectionProtocol(conn) || 'auto'
     } catch { return 'auto' }
   }
 
   visualTransport (link, flow = dataflow.get(this.selectedId)){
+    // An explicit MQTT relation overrides the device's auto-detected protocol.
+    if (link.transport === 'mqtt') return 'mqtt'
+
     let source = this.findNode(link.sourceId, flow)
     let target = this.findNode(link.targetId, flow)
-    let deviceTypes = ['source-device', 'target-device']
-    let deviceNode = [source, target].find((n) => n && deviceTypes.includes(n.type))
+    let deviceNode = [source, target].find((n) => n && n.type === 'device')
 
     if (deviceNode) {
       let protocol = this.getDeviceProtocol(deviceNode.deviceUid)
@@ -1229,9 +1304,7 @@ class DataPage {
       return this.getActiveDeviceTransport()
     }
 
-    if (source?.type === 'mqtt' || target?.type === 'mqtt') return 'mqtt'
     if (source?.type === 'webcam' || target?.type === 'webcam') return 'browser'
-    if (source?.type === 'widget' || target?.type === 'widget') return 'internal'
     return link.communication || 'internal'
   }
 
@@ -1240,11 +1313,30 @@ class DataPage {
       let ch = window.bipes && bipes.channel
       if (!ch || !ch.connections) return []
       return Object.entries(ch.connections).map(([uid, conn]) => {
-        let proto = conn.protocol || conn.type || 'unknown'
+        let proto = this.connectionProtocol(conn) || 'auto'
         let label = TRANSPORT_CONFIG[proto] ? TRANSPORT_CONFIG[proto].label : proto
-        return {uid, label:`${conn.name || uid} (${label})`}
+        let name = conn.name || `${dataMsg('DataNodeDevice', 'Device')} ${String(uid).slice(0, 4)}`
+        return {uid, label:`${name} (${label})`}
       })
     } catch { return [] }
+  }
+
+  mlWorkspaceOptions (){
+    try {
+      let ml = window.bipes && bipes.page && bipes.page.ml
+      if (ml && typeof ml.getWorkspaces === 'function')
+        return ml.getWorkspaces().map(({id, name}) => ({id, name:name || id}))
+    } catch {}
+    return []
+  }
+
+  visionSetupOptions (){
+    try {
+      let vision = window.bipes && bipes.page && bipes.page.vision
+      if (vision && typeof vision.getSetups === 'function')
+        return vision.getSetups().map(({id, name}) => ({id, name:name || id}))
+    } catch {}
+    return []
   }
 
   uniqueNodeId (flow, type){

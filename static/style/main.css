@@ -226,16 +226,20 @@ body.light nav.on {
     overflow-y: auto;
   }
   nav.on, nav div {
-	  width: 13.5em;
+	  min-width: 13.5em;
+	  width: max-content;
+	  max-width: 20em;
   }
   nav.on a {
-    width: 13rem;
+    min-width: 13rem;
+    width: auto;
   }
 }
 nav a, nav span {
   border-radius: .5rem;
   height: 3rem;
   overflow: hidden;
+  text-overflow: ellipsis;
   box-sizing: border-box;
 }
 @media only screen and (max-width: 26rem) {
@@ -271,7 +275,9 @@ nav a, nav span {
     font-weight: normal;
     overflow: hidden;
     height: 2rem;
-    width: 3rem;
+    min-width: 3rem;
+    width: auto;
+    padding: 0 .35rem;
     font-weight: bold;
     overflow: visible;
   }
@@ -379,7 +385,7 @@ nav #prompt::before {
 	background-position: left calc(-1.5rem*30) top;
 }
 nav #prompt.on::before {
-	background-position: left calc(-1.5rem*30) top;
+	background-position: left calc(-1.5rem*30) bottom;
 }
 nav #architecture::before {
 	background-position: left calc(-1.5rem*54) top;
@@ -1221,7 +1227,17 @@ body.light div#status-bar span#language:before {
 }
 
 @media screen and (max-width:39.99rem) {
+  /* Keep the language + theme controls reachable on phones: instead of hiding the whole
+     bar, pin it to the top, let it wrap, and drop only the verbose connection details. */
   div#status-bar {
+    width: 100vw;
+    top: 0;
+    height: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    z-index: 5;
+  }
+  div#status-bar #globals {
     display: none;
   }
 }

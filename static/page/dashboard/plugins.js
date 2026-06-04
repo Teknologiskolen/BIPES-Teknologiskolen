@@ -1397,7 +1397,7 @@ function sendConsoleCommand(targetDevice, code, options = {}) {
 
 function dataFlowFormattedOutput (setup, topic, value, fields = {}) {
   let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
-  let output = flow && flow.output ? flow.output : {}
+  let output = flow ? dataflow.flowOutput(flow) : {}
   let format = output.format || 'raw-binary'
   let transport = dataFlowEffectiveTransport(output, setup || {})
   let textValue = String(value)
@@ -1550,16 +1550,19 @@ function dataFlowCsvValue (value) {
 
 function dataFlowProcessedOutput (setup) {
   let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
-  if (!flow || !flow.process || !flow.output || flow.process.type == 'raw')
+  if (!flow || !dataflow.flowHasProcessor(flow))
     return null
-  return flow.output
+  return dataflow.flowOutput(flow)
 }
 
 function dataFlowInputNotifyMessage (setup) {
   let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
-  if (!flow || !flow.input || flow.input.sourceType != 'device' || flow.input.mode != 'notify')
+  if (!flow)
     return ''
-  return flow.input.notifyMessage || ''
+  let input = dataflow.flowInput(flow)
+  if (input.sourceType != 'device' || input.mode != 'notify')
+    return ''
+  return input.notifyMessage || ''
 }
 
 function dataFlowRulePass (output = {}, fields = {}) {
@@ -1594,12 +1597,13 @@ function dataFlowRulePass (output = {}, fields = {}) {
 
 function dataFlowTarget (setup, fallbackTarget) {
   let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
-  if (flow && flow.output) {
-    if (flow.output.destination == 'device')
+  if (flow) {
+    let destination = dataflow.flowOutput(flow).destination
+    if (destination == 'device')
       return 'Console'
-    if (flow.output.destination == 'mqtt')
+    if (destination == 'mqtt')
       return 'EasyMQTT'
-    if (flow.output.destination == 'none')
+    if (destination == 'none')
       return 'none'
   }
   return fallbackTarget || 'Console'
@@ -1609,6 +1613,7 @@ function sendWidgetOutput (setup, topic, value, options = {}) {
   let output = dataFlowFormattedOutput(setup, topic, value, options.fields || {})
   let target = dataFlowTarget(setup, setup.target)
   let flow = setup && setup.dataFlowId ? dataflow.get(setup.dataFlowId) : null
+  let flowOut = flow ? dataflow.flowOutput(flow) : {}
 
   if (target == 'none')
     return false
@@ -1616,9 +1621,9 @@ function sendWidgetOutput (setup, topic, value, options = {}) {
   if (target == 'EasyMQTT')
     return sendEasyMQTT(output.mqttTopic, output.mqttMessage)
 
-  return sendConsoleCommand((flow && flow.output && flow.output.targetDevice) || setup.targetDevice || 'active', output.deviceCode || output.consoleCode, {
+  return sendConsoleCommand(flowOut.targetDevice || setup.targetDevice || 'active', output.deviceCode || output.consoleCode, {
     deviceRef:setup.targetDeviceRef || null,
-    transport:(flow && flow.output && flow.output.transport) || 'auto',
+    transport:flowOut.transport || 'auto',
     quiet:options.quiet,
     nonInterrupting:output.deviceRaw || options.nonInterrupting
   })

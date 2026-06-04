@@ -168,16 +168,22 @@ body.light section#device #devices button.on h4 {
 }
 section#device button#disconnect {
   float: left;
-  width: 8em;
   min-width: 8em;
+  width: auto;
+  padding-left: .5em;
+  padding-right: .5em;
+  white-space: nowrap;
   margin-top: -2em;
   margin-left: -1.75em;
   display: none;
 }
 section#device button#fetch {
   float: left;
-  width: 7.5em;
   min-width: 7em;
+  width: auto;
+  padding-left: .5em;
+  padding-right: .5em;
+  white-space: nowrap;
   margin-top: -4em;
   margin-left: -1.75rem;
   display: none;
@@ -194,11 +200,10 @@ section#device .device-connect #new-connection .funky {
   padding: 0;
 }
 section#device .device-connect #new-connection .funky button {
-  flex: 0 0 8.5rem;
-  width: 8.5rem;
+  flex: 0 0 auto;
   min-width: 8.5rem;
-  max-width: 8.5rem;
-  padding: 0;
+  width: auto;
+  padding: 0 .5rem;
 }
 section#device .device-connect.master #new-connection {
   height: 9rem;

@@ -65,6 +65,12 @@ body {
     font-size: 4rem;
     margin-bottom: 20px;
 }
+.login-option .option-icon svg {
+    width: 4rem;
+    height: 4rem;
+    display: inline-block;
+    vertical-align: middle;
+}
 
 .login-option h2 {
     font-size: 1.8rem;
@@ -770,7 +776,16 @@ div#status-bar button.on#theme:before {
 }
 
 @media screen and (max-width:39.99rem) {
+    /* Keep the language + theme switcher reachable on phones. */
     #status-bar.auth-status-bar {
+        width: 100vw;
+        height: auto;
+        top: auto;
+        bottom: 0;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    #status-bar.auth-status-bar #globals {
         display: none;
     }
 }

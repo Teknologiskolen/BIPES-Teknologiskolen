@@ -119,7 +119,7 @@ class Actions {
 	  let options = []
 
 	  dataflow.all()
-	    .filter((flow) => flow.input && flow.input.sourceType == 'bipes')
+	    .filter((flow) => dataflow.flowInput(flow).sourceType == 'bipes')
 	    .forEach((flow) => {
 	      let description = dataflow.describe(flow)
 	      options.push({
@@ -138,7 +138,7 @@ class Actions {
 	  return options
 	}
 	static outputDataFlowId (){
-	  let flow = dataflow.all().find((item) => item.input && item.input.sourceType == 'bipes')
+	  let flow = dataflow.all().find((item) => dataflow.flowInput(item).sourceType == 'bipes')
 	  return flow ? flow.id : dataflow.selectedId()
 	}
 
@@ -400,21 +400,24 @@ class Actions {
 	    return
 
 	  let flow = data.setup.dataFlowId ? dataflow.get(data.setup.dataFlowId) : null
-	  if (!flow || !flow.input || flow.input.sourceType == 'bipes')
+	  if (!flow)
+	    return
+	  let input = dataflow.flowInput(flow)
+	  if (input.sourceType == 'bipes')
 	    return
 
-	  if (flow.input.sourceType == 'webcam') {
+	  if (input.sourceType == 'webcam') {
 	    data.setup.source = 'Webcam'
-	  } else if (flow.input.sourceType == 'device') {
-	    if (flow.input.transport == 'websocket') {
+	  } else if (input.sourceType == 'device') {
+	    if (input.transport == 'websocket') {
 	      data.setup.source = 'Image URL'
-	      data.setup.imageUrl = flow.input.url || data.setup.imageUrl || ''
+	      data.setup.imageUrl = input.url || data.setup.imageUrl || ''
 	    } else {
 	      data.setup.source = 'Source device'
-	      data.setup.sourceDevice = flow.input.deviceUid || data.setup.sourceDevice || ''
+	      data.setup.sourceDevice = input.deviceUid || data.setup.sourceDevice || ''
 	    }
-	    data.setup.triggerMode = flow.input.mode == 'stream' ? 'interval' : 'newImage'
-	    data.setup.streamFps = flow.input.fps || data.setup.streamFps || 4
+	    data.setup.triggerMode = input.mode == 'stream' ? 'interval' : 'newImage'
+	    data.setup.streamFps = input.fps || data.setup.streamFps || 4
 	  }
 	}
 	static defaults (plugin){

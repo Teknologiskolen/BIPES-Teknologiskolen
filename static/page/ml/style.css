@@ -1,9 +1,15 @@
 nav #ml::before {
-  background-position: left calc(-1.5rem*53) top;
+  background-image: url("/static/media/nav-ml.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 nav #ml.on::before {
-  background-position: left calc(-1.5rem*53) bottom;
+  background-image: url("/static/media/nav-ml-on.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 section#ml {
@@ -966,6 +972,13 @@ body.dark section#ml .ml-empty-panel {
 
 section#ml .ml-empty-panel strong {
   color: var(--ml-ink);
+}
+
+section#ml .ml-empty-panel .ml-empty-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--ml-muted);
+  opacity: 0.7;
 }
 
 section#ml .ml-empty-panel.ml-empty-panel-compact {

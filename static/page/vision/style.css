@@ -1,9 +1,15 @@
 nav #vision::before {
-  background-position: left calc(-1.5rem*42) top;
+  background-image: url("/static/media/nav-vision.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 nav #vision.on::before {
-  background-position: left calc(-1.5rem*42) bottom;
+  background-image: url("/static/media/nav-vision-on.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 section#vision {

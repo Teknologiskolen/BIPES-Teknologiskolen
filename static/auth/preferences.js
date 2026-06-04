@@ -5,10 +5,37 @@
     const query = new URLSearchParams(window.location.search);
     const storedTheme = localStorage.getItem('bipes_auth_theme');
     const storedLanguage = localStorage.getItem('bipes_auth_language');
-    const authText = window.authText || {};
+    // Auth-page strings live in static/msg/<lang>.js as `AuthMsg` (single source of
+    // truth, shared with the IDE's translation files). The matching language file is
+    // loaded before this script, so window.AuthMsg holds the current language.
+    const authText = window.authText || window.AuthMsg || {};
+    // Re-expose for the page scripts (login.js / register.js / setup.js) that read window.authText.
+    window.authText = authText;
 
     function t(key, fallback) {
         return authText[key] || fallback;
+    }
+
+    // Replace baked-in (English) fallback text with the active language. Elements opt in
+    // via data-i18n (textContent), data-i18n-placeholder, data-i18n-title (attributes),
+    // and the document title via <body data-i18n-doctitle="...">.
+    function applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+            const value = authText[el.getAttribute('data-i18n')];
+            if (value) { el.textContent = value; }
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+            const value = authText[el.getAttribute('data-i18n-placeholder')];
+            if (value) { el.setAttribute('placeholder', value); }
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+            const value = authText[el.getAttribute('data-i18n-title')];
+            if (value) { el.setAttribute('title', value); }
+        });
+        const docTitleKey = document.body && document.body.getAttribute('data-i18n-doctitle');
+        if (docTitleKey && authText[docTitleKey]) {
+            document.title = authText[docTitleKey] + ' - BIPES';
+        }
     }
 
     let currentTheme = supportedThemes.has(query.get('theme'))
@@ -78,6 +105,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.lang = currentLanguage;
+        applyTranslations();
         setBodyTheme(currentTheme);
         updateUrlPreferences({
             lang: currentLanguage,

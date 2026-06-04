@@ -67,191 +67,8 @@ available_lang = {
     #'zh-hant':'Chinese (traditional)'
 }
 
-auth_text = {
-    'en': {
-        'app_title': 'Block based Integrated Platform for Embedded Systems',
-        'welcome': 'Welcome to BIPES',
-        'teacher_login': 'Teacher Login',
-        'teacher_login_help': 'Manage classes and share projects with students',
-        'student_login': 'Student Login',
-        'student_login_help': 'Access your projects from any device',
-        'guest_login': 'Continue as Guest',
-        'guest_login_help': 'Start coding without an account',
-        'forum': 'Forum',
-        'mode': 'Mode',
-        'change_theme': 'Change theme',
-        'language': 'Language',
-        'login': 'Login',
-        'login_subtitle': 'Access your BIPES account',
-        'teacher_subtitle': 'Manage classes and shared projects',
-        'student_subtitle': 'Sign in with your class code, username, and password',
-        'email': 'Email',
-        'password': 'Password',
-        'login_as_teacher': 'Login as Teacher',
-        'class_code': 'Class Code',
-        'username': 'Username',
-        'back_home': 'Back to Home',
-        'register_prompt': "Don't have an account?",
-        'register_here': 'Register here',
-        'loading': 'Loading...',
-        'login_success': 'Login successful! Redirecting...',
-        'login_failed': 'Login failed',
-        'network_error': 'Network error. Please try again.',
-        'setup_welcome': 'Welcome! Please set up your account...',
-        'register_title': 'Teacher Registration',
-        'register_subtitle': 'Create your teacher account to manage classes',
-        'full_name': 'Full Name',
-        'confirm_password': 'Confirm Password',
-        'minimum_password': 'Minimum 8 characters',
-        'terms': 'I agree to the Terms of Service',
-        'create_account': 'Create Account',
-        'creating_account': 'Creating Account...',
-        'already_account': 'Already have an account?',
-        'login_here': 'Login here',
-        'passwords_no_match': 'Passwords do not match',
-        'password_min': 'Password must be at least 8 characters',
-        'registration_success': 'Registration successful! Redirecting...',
-        'registration_failed': 'Registration failed',
-        'setup_title': 'Welcome!',
-        'setup_subtitle': 'Please set up your account',
-        'setup_info_label': 'First-time setup required:',
-        'setup_info': 'Please change your password to secure your account.',
-        'current_password': 'Current Password',
-        'current_password_placeholder': 'Your teacher-provided password',
-        'new_password': 'New Password',
-        'new_password_placeholder': 'Choose a new password',
-        'confirm_new_password': 'Confirm New Password',
-        'confirm_new_password_placeholder': 'Confirm your new password',
-        'complete_setup': 'Complete Setup',
-        'setting_up': 'Setting up...',
-        'required_fields': '* Required fields',
-        'new_password_min': 'New password must be at least 8 characters',
-        'password_change_failed': 'Failed to change password',
-        'setup_complete': 'Account setup complete! Redirecting to IDE...'
-    },
-    'da': {
-        'app_title': 'Blockbaseret integreret platform til indlejrede systemer',
-        'welcome': 'Velkommen til BIPES',
-        'teacher_login': 'Lærerlogin',
-        'teacher_login_help': 'Administrer klasser og del projekter med elever',
-        'student_login': 'Elevlogin',
-        'student_login_help': 'Få adgang til dine projekter fra enhver enhed',
-        'guest_login': 'Fortsæt som gæst',
-        'guest_login_help': 'Begynd at kode uden en konto',
-        'forum': 'Forum',
-        'mode': 'Tilstand',
-        'change_theme': 'Skift tema',
-        'language': 'Sprog',
-        'login': 'Log ind',
-        'login_subtitle': 'Få adgang til din BIPES-konto',
-        'teacher_subtitle': 'Administrer klasser og delte projekter',
-        'student_subtitle': 'Log ind med klassekode, brugernavn og adgangskode',
-        'email': 'E-mail',
-        'password': 'Adgangskode',
-        'login_as_teacher': 'Log ind som lærer',
-        'class_code': 'Klassekode',
-        'username': 'Brugernavn',
-        'back_home': 'Tilbage til forsiden',
-        'register_prompt': 'Har du ikke en konto?',
-        'register_here': 'Registrer dig her',
-        'loading': 'Indlæser...',
-        'login_success': 'Login lykkedes! Sender dig videre...',
-        'login_failed': 'Login mislykkedes',
-        'network_error': 'Netværksfejl. Prøv igen.',
-        'setup_welcome': 'Velkommen! Opsæt venligst din konto...',
-        'register_title': 'Lærerregistrering',
-        'register_subtitle': 'Opret din lærerkonto for at administrere klasser',
-        'full_name': 'Fulde navn',
-        'confirm_password': 'Bekræft adgangskode',
-        'minimum_password': 'Mindst 8 tegn',
-        'terms': 'Jeg accepterer servicevilkårene',
-        'create_account': 'Opret konto',
-        'creating_account': 'Opretter konto...',
-        'already_account': 'Har du allerede en konto?',
-        'login_here': 'Log ind her',
-        'passwords_no_match': 'Adgangskoderne er ikke ens',
-        'password_min': 'Adgangskoden skal være mindst 8 tegn',
-        'registration_success': 'Registrering lykkedes! Sender dig videre...',
-        'registration_failed': 'Registrering mislykkedes',
-        'setup_title': 'Velkommen!',
-        'setup_subtitle': 'Opsæt venligst din konto',
-        'setup_info_label': 'Førstegangsopsætning kræves:',
-        'setup_info': 'Skift din adgangskode for at sikre din konto.',
-        'current_password': 'Nuværende adgangskode',
-        'current_password_placeholder': 'Adgangskoden fra din lærer',
-        'new_password': 'Ny adgangskode',
-        'new_password_placeholder': 'Vælg en ny adgangskode',
-        'confirm_new_password': 'Bekræft ny adgangskode',
-        'confirm_new_password_placeholder': 'Bekræft din nye adgangskode',
-        'complete_setup': 'Fuldfør opsætning',
-        'setting_up': 'Opsætter...',
-        'required_fields': '* Obligatoriske felter',
-        'new_password_min': 'Den nye adgangskode skal være mindst 8 tegn',
-        'password_change_failed': 'Kunne ikke ændre adgangskode',
-        'setup_complete': 'Kontoopsætning fuldført! Sender dig til IDE...'
-    },
-    'de': {
-        'app_title': 'Blockbasierte integrierte Plattform für eingebettete Systeme',
-        'welcome': 'Willkommen bei BIPES',
-        'teacher_login': 'Lehrer-Login',
-        'teacher_login_help': 'Klassen verwalten und Projekte mit Schülern teilen',
-        'student_login': 'Schüler-Login',
-        'student_login_help': 'Von jedem Gerät auf deine Projekte zugreifen',
-        'guest_login': 'Als Gast fortfahren',
-        'guest_login_help': 'Ohne Konto direkt mit dem Programmieren beginnen',
-        'forum': 'Forum',
-        'mode': 'Modus',
-        'change_theme': 'Design wechseln',
-        'language': 'Sprache',
-        'login': 'Anmelden',
-        'login_subtitle': 'Melde dich bei deinem BIPES-Konto an',
-        'teacher_subtitle': 'Klassen und geteilte Projekte verwalten',
-        'student_subtitle': 'Mit Klassencode, Benutzername und Passwort anmelden',
-        'email': 'E-Mail',
-        'password': 'Passwort',
-        'login_as_teacher': 'Als Lehrer anmelden',
-        'class_code': 'Klassencode',
-        'username': 'Benutzername',
-        'back_home': 'Zur Startseite',
-        'register_prompt': 'Du hast noch kein Konto?',
-        'register_here': 'Hier registrieren',
-        'loading': 'Wird geladen...',
-        'login_success': 'Anmeldung erfolgreich! Weiterleitung...',
-        'login_failed': 'Anmeldung fehlgeschlagen',
-        'network_error': 'Netzwerkfehler. Bitte erneut versuchen.',
-        'setup_welcome': 'Willkommen! Bitte richte dein Konto ein...',
-        'register_title': 'Lehrerregistrierung',
-        'register_subtitle': 'Erstelle dein Lehrerkonto, um Klassen zu verwalten',
-        'full_name': 'Vollständiger Name',
-        'confirm_password': 'Passwort bestätigen',
-        'minimum_password': 'Mindestens 8 Zeichen',
-        'terms': 'Ich akzeptiere die Nutzungsbedingungen',
-        'create_account': 'Konto erstellen',
-        'creating_account': 'Konto wird erstellt...',
-        'already_account': 'Du hast bereits ein Konto?',
-        'login_here': 'Hier anmelden',
-        'passwords_no_match': 'Die Passwörter stimmen nicht überein',
-        'password_min': 'Das Passwort muss mindestens 8 Zeichen lang sein',
-        'registration_success': 'Registrierung erfolgreich! Weiterleitung...',
-        'registration_failed': 'Registrierung fehlgeschlagen',
-        'setup_title': 'Willkommen!',
-        'setup_subtitle': 'Bitte richte dein Konto ein',
-        'setup_info_label': 'Ersteinrichtung erforderlich:',
-        'setup_info': 'Bitte ändere dein Passwort, um dein Konto zu sichern.',
-        'current_password': 'Aktuelles Passwort',
-        'current_password_placeholder': 'Das Passwort von deiner Lehrkraft',
-        'new_password': 'Neues Passwort',
-        'new_password_placeholder': 'Wähle ein neues Passwort',
-        'confirm_new_password': 'Neues Passwort bestätigen',
-        'confirm_new_password_placeholder': 'Bestätige dein neues Passwort',
-        'complete_setup': 'Einrichtung abschließen',
-        'setting_up': 'Einrichtung läuft...',
-        'required_fields': '* Pflichtfelder',
-        'new_password_min': 'Das neue Passwort muss mindestens 8 Zeichen lang sein',
-        'password_change_failed': 'Passwort konnte nicht geändert werden',
-        'setup_complete': 'Kontoeinrichtung abgeschlossen! Weiterleitung zur IDE...'
-    }
-}
+# Auth-page translations live in static/msg/<lang>.js as `AuthMsg` (single source of
+# truth, shared with the IDE) and are applied client-side via static/auth/preferences.js.
 # Note: Default theme is in the static/base/tool.js urlDefaults function.
 
 # Preferred order in the navigation bar
@@ -288,8 +105,10 @@ lang_str = [
     'page/blocks/msg/{{ lang }}.js'
 ]
 
-# Create app for developemnt mode
-def create_app(database="sqlite"):
+# Create app for development mode.
+# Default to PostgreSQL: it is the only backend with the full teacher/student/class/auth
+# schema (docker/init-db.sql). SQLite is supported for guest-only mode (AUTH_MODE=guest).
+def create_app(database="postgresql"):
     assert database == "sqlite" or database == "postgresql" or database == None, \
            'Invalid database engine "' + database + '"'
 
@@ -417,6 +236,16 @@ def create_app(database="sqlite"):
     app.config['AUTH_MODE'] = auth_mode
     print(f' * Auth mode: {auth_mode}')
 
+    # The teacher/student/class/auth schema is PostgreSQL-only (see docker/init-db.sql).
+    # SQLite has no equivalent, so full auth on SQLite would 500 at request time with
+    # "no such table: teachers". Fail fast with an actionable message instead.
+    if database == 'sqlite' and auth_mode == 'full':
+        raise RuntimeError(
+            "Full auth mode requires PostgreSQL (the teacher/student/class schema is "
+            "PostgreSQL-only). Run with database=postgresql, or set AUTH_MODE=guest for "
+            "the SQLite-backed guest-only IDE."
+        )
+
     if database is not None:
         from server.common import api, mqtt
         app.register_blueprint(api.bp)
@@ -447,7 +276,6 @@ def create_app(database="sqlite"):
                 'available_lang': available_lang,
                 'lang': lang,
                 'theme': theme,
-                't': auth_text.get(lang, auth_text[default_lang])
             }
 
         @app.route("/")
@@ -483,8 +311,11 @@ def create_app(database="sqlite"):
 
         @app.route("/register")
         def register():
+            status = auth.registration_status()
             return no_store_response(make_response(render_template(
                 'register.html',
+                registration_open=status['open'],
+                registration_requires_code=status['require_code'],
                 **auth_page_context()
             )))
 
@@ -499,7 +330,10 @@ def create_app(database="sqlite"):
         @app.route("/classes")
         @auth.require_teacher_page()
         def classes_page():
-            return no_store_response(make_response(render_template('classes.html')))
+            return no_store_response(make_response(render_template(
+                'classes.html',
+                **auth_page_context()
+            )))
 
         # Return "compiled" html file. No-cache to prevent stale auth state.
         @app.route("/ide")

@@ -1413,7 +1413,10 @@ function _WebBluetooth (parent){
       throw new Error('Bluetooth device is not writable.')
 
     let value = data instanceof Uint8Array ? data : this.encoder.encode(String(data))
-    await this.rxCharacteristic.writeValue(value)
+    // Respect the ATT MTU: split into 20-byte packets (see this.write).
+    const MTU = 20
+    for (let i = 0; i < value.length; i += MTU)
+      await this.rxCharacteristic.writeValue(value.slice(i, i + MTU))
   }
   /**
    * Runs every 50ms to check if there is code to be sent in the :js:attr:`channel#input` (appended with :js:func:`this.parent.push()`)
@@ -1437,29 +1440,34 @@ function _WebBluetooth (parent){
    * @param {(Uint8Array|string|number)} data - code to be sent via webbluetooth
    */
   this.write = async (data) => {
-    return new Promise((resolve, reject) => {
-      this.streaming = true
-      const value = this.encoder.encode(data)
+    this.streaming = true
+    // A BLE characteristic write is bounded by the negotiated ATT MTU (20 usable
+    // bytes by default). Sending a whole command in a single writeValue() either
+    // truncates it or stalls the GATT operation, so split into MTU-sized packets
+    // and write them sequentially. push() wraps Uint8Array payloads in an array.
+    const MTU = 20
+    let packets = data != undefined && data.constructor.name == 'Array' ? data : [data]
+    try {
+      for (let pack of packets) {
+        let value = pack instanceof Uint8Array ? pack : this.encoder.encode(String(pack))
+        for (let i = 0; i < value.length; i += MTU)
+          await this.rxCharacteristic.writeValue(value.slice(i, i + MTU))
+      }
+      // Release lock after successful write
+      this.parent.lock = false
+      this.parent.input.shift()
 
-      this.rxCharacteristic.writeValue(value).then(() => {
-
-        // Release lock after successful write
-        this.parent.lock = false
-
-        this.parent.input.shift()
-
-        if (this.parent.input.length > 0)
-          this.write (this.parent.input[0])
-        else
-          this.streaming = false
-      }).catch(e => {
-        console.error ('WebBluetooth write error:', e)
-        // Release lock on error so queue doesn't get stuck
-        this.parent.lock = false
+      if (this.parent.input.length > 0)
+        this.write (this.parent.input[0])
+      else
         this.streaming = false
-        this.parent.input.shift()
-      })
-    })
+    } catch (e) {
+      console.error ('WebBluetooth write error:', e)
+      // Release lock on error so queue doesn't get stuck
+      this.parent.lock = false
+      this.streaming = false
+      this.parent.input.shift()
+    }
   }
 
   this.delayPromise = (delay) => {

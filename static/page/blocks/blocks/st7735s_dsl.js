@@ -150,7 +150,7 @@ Blockly.Blocks["color565"] = {
     this.appendValueInput("r").setCheck("Number").appendField("R");
     this.appendValueInput("g").setCheck("Number").appendField("G");
     this.appendValueInput("b").setCheck("Number").appendField("B");
-    this.setOutput(true, "Color565");
+    this.setOutput(true, ["Color565", "Number"]);
     this.setColour(210);
     this.setInputsInline(true);
     this.setTooltip("Convert RGB values (0\u2013255 each) to a 16-bit display color.");

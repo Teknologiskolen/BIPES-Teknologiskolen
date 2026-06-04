@@ -29,10 +29,17 @@ section#prompt .quick-actions > button {
   border-radius: 1rem;
   padding: .25rem .5rem;
   margin: .5rem .25rem .5em .25rem;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color ease .25s;
+}
+section#prompt .quick-actions > button svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
 }
 section#prompt .quick-actions > button:hover,
 section#prompt .quick-actions > button:focus {

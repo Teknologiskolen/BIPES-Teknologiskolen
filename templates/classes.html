@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +7,18 @@
     <link rel="stylesheet" href="/static/auth/style.css">
     <link rel="stylesheet" href="/static/page/classes/style.css">
 </head>
-<body>
+<body class="classes-page {{ theme }}">
     <div id="app">
         <!-- Classes page content will be injected here by JavaScript -->
         <div class="loading-container">
-            <div class="loading">Loading...</div>
+            <div class="loading" data-i18n="loading">Loading...</div>
         </div>
     </div>
+
+    <!-- Theme/language preferences (persisted, shared with the other auth pages) -->
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
+    <script src="/static/auth/preferences.js"></script>
 
     <!-- Session management -->
     <script type="module" src="/static/base/session.js"></script>

@@ -3,61 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ t.register_title }} - BIPES</title>
+    <title>Teacher Registration - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body>
+<body class="login-page {{ theme }}" data-i18n-doctitle="register_title">
     <div class="auth-container">
         <div class="auth-header">
-            <h1>{{ t.register_title }}</h1>
-            <p>{{ t.register_subtitle }}</p>
+            <h1 data-i18n="register_title">Teacher Registration</h1>
+            <p data-i18n="register_subtitle">Create your teacher account to manage classes</p>
         </div>
 
         <div id="alert-container"></div>
 
+        {% if not registration_open %}
+        <div class="alert alert-info" data-i18n="registration_closed">Registration is closed. Please contact your administrator.</div>
+        {% else %}
         <form id="register-form" class="auth-form">
             <div class="form-group">
-                <label for="full-name">{{ t.full_name }}</label>
+                <label for="full-name" data-i18n="full_name">Full Name</label>
                 <input type="text" id="full-name" name="full_name" required placeholder="John Doe">
             </div>
 
             <div class="form-group">
-                <label for="email">{{ t.email }}</label>
+                <label for="email" data-i18n="email">Email</label>
                 <input type="email" id="email" name="email" required placeholder="teacher@school.com">
             </div>
 
             <div class="form-group">
-                <label for="password">{{ t.password }}</label>
+                <label for="password" data-i18n="password">Password</label>
                 <input type="password" id="password" name="password" required placeholder="••••••••" minlength="8">
                 <div id="password-strength" class="password-strength"></div>
-                <small style="color: #666; font-size: 0.85rem;">{{ t.minimum_password }}</small>
+                <small style="color: #666; font-size: 0.85rem;" data-i18n="minimum_password">Minimum 8 characters</small>
             </div>
 
             <div class="form-group">
-                <label for="confirm-password">{{ t.confirm_password }}</label>
+                <label for="confirm-password" data-i18n="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm-password" name="confirm_password" required placeholder="••••••••">
             </div>
 
+            {% if registration_requires_code %}
+            <div class="form-group">
+                <label for="registration-code" data-i18n="registration_code">Registration Code</label>
+                <input type="text" id="registration-code" name="registration_code" required placeholder="Code provided by your administrator" data-i18n-placeholder="registration_code_placeholder">
+            </div>
+            {% endif %}
+
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="terms" name="terms" required>
-                <label for="terms">{{ t.terms }}</label>
+                <label for="terms" data-i18n="terms">I agree to the Terms of Service</label>
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <span class="btn-text">{{ t.create_account }}</span>
+                <span class="btn-text" data-i18n="create_account">Create Account</span>
             </button>
         </form>
+        {% endif %}
 
         <div class="auth-links">
-            <p>{{ t.already_account }} <a href="/login" data-auth-preserve>{{ t.login_here }}</a></p>
+            <p><span data-i18n="already_account">Already have an account?</span> <a href="/login" data-auth-preserve data-i18n="login_here">Login here</a></p>
         </div>
 
         <div class="auth-back">
-            <a href="/" class="btn btn-secondary" data-auth-preserve>{{ t.back_home }}</a>
+            <a href="/" class="btn btn-secondary" data-auth-preserve data-i18n="back_home">Back to Home</a>
         </div>
     </div>
 
-    <script>window.authText = {{ t|tojson }};</script>
+    <div id="status-bar" class="auth-status-bar">
+        <div id="extra">
+            <button id="forum" class="status-icon" type="button" title="Forum" data-i18n="forum" data-i18n-title="forum">Forum</button>
+            <button id="theme" class="status-icon" type="button" title="Change theme" data-i18n="mode" data-i18n-title="change_theme">Mode</button>
+            <span id="language" class="status-icon"><span data-i18n="language">Language</span>
+                <select id="auth-language" title="Language" data-i18n-title="language">
+                    {% for key, value in available_lang.items() -%}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div id="globals"></div>
+    </div>
+
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
     <script src="/static/auth/register.js"></script>
 </body>

@@ -1,9 +1,15 @@
 nav #architecture::before {
-  background-position: left calc(-1.5rem*54) top;
+  background-image: url("/static/media/nav-architecture.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 nav #architecture.on::before {
-  background-position: left calc(-1.5rem*54) bottom;
+  background-image: url("/static/media/nav-architecture-on.svg");
+  background-position: center;
+  background-size: 1.4rem 1.4rem;
+  background-repeat: no-repeat;
 }
 
 section#architecture > .container.data-container {

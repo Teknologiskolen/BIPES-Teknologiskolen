@@ -46,6 +46,18 @@ def teacher_register():
         password = obj.get('password', '')
         full_name = obj.get('full_name', '').strip()
 
+        # Registration gating: open only for the first (bootstrap) teacher unless a
+        # TEACHER_REGISTRATION_CODE is configured, in which case a matching code is required.
+        status = auth.registration_status()
+        if not status['open']:
+            security.log_auth_event('teacher_register_denied', 'teacher', details={'reason': 'closed'})
+            return jsonify({'error': 'Registration is closed'}), 403
+        if status['require_code']:
+            supplied_code = (obj.get('registration_code') or '').strip()
+            if not supplied_code or supplied_code != auth.registration_code():
+                security.log_auth_event('teacher_register_denied', 'teacher', details={'reason': 'bad_code'})
+                return jsonify({'error': 'Invalid registration code'}), 403
+
         # Validate inputs
         if not email or not password or not full_name:
             return jsonify({'error': 'All fields are required'}), 400
@@ -178,37 +190,37 @@ def student_login_class():
             security.log_auth_event('student_login_invalid_request', 'student', details={'class_code': class_code, 'student_name': student_name})
             return jsonify({'error': 'All fields are required'}), 400
 
-        # Query to find student by class code + name + password
+        # Query to find candidate students by class code + name. Names are not globally
+        # unique, so there may be more than one row; authenticate the row whose password
+        # verifies rather than blindly taking the first (avoids logging in as the wrong
+        # account when two students share a name). ORDER BY keeps it deterministic.
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT s.student_id, s.student_name, s.password_hash, s.password_changed, s.is_active
+            SELECT s.student_id, s.student_name, s.password_hash, s.password_changed
             FROM students s
             JOIN enrollments e ON s.student_id = e.student_id
             JOIN classes c ON e.class_id = c.class_id
             WHERE c.class_code = %s
             AND s.student_name = %s
             AND e.is_active = TRUE
-            LIMIT 1
+            AND s.is_active = TRUE
+            ORDER BY s.student_id
         """)
 
-        result = db.execute(sql, (class_code, student_name)).fetchone()
+        rows = db.execute(sql, (class_code, student_name)).fetchall()
         db.close()
 
-        if result is None:
-            security.log_auth_event('student_login_failed', 'student', details={'class_code': class_code, 'student_name': student_name, 'reason': 'unknown_user'})
+        matched = None
+        for row in rows:
+            if auth.verify_password(password, row[2]):
+                matched = row
+                break
+
+        if matched is None:
+            security.log_auth_event('student_login_failed', 'student', details={'class_code': class_code, 'student_name': student_name, 'reason': 'invalid_credentials'})
             return jsonify({'error': 'Invalid class code, name, or password'}), 401
 
-        student_id, name, password_hash, password_changed, is_active = result
-
-        # Check if account is active
-        if not is_active:
-            security.log_auth_event('student_login_denied', 'student', student_id, {'reason': 'inactive'})
-            return jsonify({'error': 'Account is disabled'}), 403
-
-        # Verify password
-        if not auth.verify_password(password, password_hash):
-            security.log_auth_event('student_login_failed', 'student', student_id, {'reason': 'bad_password'})
-            return jsonify({'error': 'Invalid class code, name, or password'}), 401
+        student_id, name, password_hash, password_changed = matched
 
         _rehash_user_password_if_needed('students', 'student_id', student_id, password, password_hash)
 
@@ -529,13 +541,26 @@ def search_students(class_id):
     Returns: {students: [{student_id, student_name, created_at}]} or {error}
     """
     try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        # The teacher must own the class they are searching to add students to. Students
+        # themselves are a school-wide shared directory (the same student account can be
+        # taught by several teachers), so the search below is intentionally not scoped to
+        # the requesting teacher.
+        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
+        if class_data[2] is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if class_data[2][0] != teacher_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
         obj = request.json
         search_query = obj.get('search_query', '').strip()
 
         if not search_query or len(search_query) < 2:
             return jsonify({'students': []}), 200
 
-        # Search students by name (case-insensitive partial match)
+        # Search the shared student directory by name (case-insensitive partial match).
         db = dbase.get_db(_db)
         sql = dbase._s("""
             SELECT student_id, student_name, created_at
@@ -589,6 +614,24 @@ def create_student_and_enroll(class_id):
 
         if not student_name:
             return jsonify({'error': 'Student name is required'}), 400
+
+        # Reject a duplicate active username within the same class so class-code login
+        # (class_code + name + password) stays unambiguous.
+        db = dbase.get_db(_db)
+        dup_sql = dbase._s("""
+            SELECT 1
+            FROM students s
+            JOIN enrollments e ON s.student_id = e.student_id
+            WHERE e.class_id = %s
+            AND e.is_active = TRUE
+            AND s.is_active = TRUE
+            AND LOWER(s.student_name) = LOWER(%s)
+            LIMIT 1
+        """)
+        if db.execute(dup_sql, (class_id, student_name)).fetchone() is not None:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'A student with that name already exists in this class'}), 409
 
         # Generate initial password
         initial_password = auth.generate_initial_password()
@@ -655,12 +698,18 @@ def add_existing_student(class_id):
         if not student_id:
             return jsonify({'error': 'Student ID is required'}), 400
 
-        # Check if student exists
-        student_data = dbase.fetch(_db, 'students', ['student_id'], ['student_id', student_id])
+        # Students are a school-wide shared directory, so any teacher may enroll any
+        # existing (active) student into a class they own. The class-ownership check above
+        # is what gates this endpoint; we only confirm the student exists here.
+        student_data = dbase.fetch(_db, 'students', ['is_active'], ['student_id', student_id])
         if student_data[2] is None:
             return jsonify({'error': 'Student not found'}), 404
+        if not student_data[2][0]:
+            return jsonify({'error': 'Student account is disabled'}), 403
 
-        # Check if already enrolled
+        # Use a single connection for the duplicate-check and the insert (the dbase.insert
+        # helper would close the connection out from under us, leaving a stale handle).
+        timestamp = auth.get_timestamp()
         db = dbase.get_db(_db)
         sql = dbase._s("""
             SELECT enrollment_id FROM enrollments
@@ -670,15 +719,18 @@ def add_existing_student(class_id):
 
         if existing is not None:
             db.close()
+            g.pop('db', None)
             return jsonify({'error': 'Student already enrolled in this class'}), 409
 
         # Enroll student
-        timestamp = auth.get_timestamp()
-        dbase.insert(_db, 'enrollments',
-            ['class_id', 'student_id', 'enrolled_at'],
-            (class_id, student_id, timestamp))
-
+        sql2 = dbase._s("""
+            INSERT INTO enrollments (class_id, student_id, enrolled_at)
+            VALUES (%s, %s, %s)
+        """)
+        db.execute(sql2, (class_id, student_id, timestamp))
+        db.commit()
         db.close()
+        g.pop('db', None)
 
         return jsonify({
             'success': True,

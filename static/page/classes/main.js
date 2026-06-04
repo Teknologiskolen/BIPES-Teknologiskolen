@@ -232,7 +232,7 @@ class ClassesPage {
                 <div class="class-card-body">
                     <p>${cls.description || 'No description'}</p>
                     <div class="class-stats">
-                        <span>👥 ${cls.student_count} students</span>
+                        <span class="class-stat"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="2.5"/><path d="M2.5 16c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5"/><path d="M13 5.2a2.5 2.5 0 0 1 0 4.6M14.5 16c0-1.8-.7-3.4-1.9-4.3"/></svg> ${cls.student_count} students</span>
                     </div>
                 </div>
                 <div class="class-card-footer">
@@ -286,7 +286,7 @@ class ClassesPage {
                 <h2>${this.currentClass.class_name}</h2>
                 <div class="class-code-display">
                     Class Code: <strong>${this.currentClass.class_code}</strong>
-                    <button class="btn-icon" id="copy-class-code" title="Copy class code">📋</button>
+                    <button class="btn-icon" id="copy-class-code" title="Copy class code"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="9" height="10" rx="1.5"/><path d="M4 13H3.5A1.5 1.5 0 0 1 2 11.5v-7A1.5 1.5 0 0 1 3.5 3h7A1.5 1.5 0 0 1 12 4.5V5"/></svg></button>
                 </div>
             </div>
 
@@ -315,7 +315,7 @@ class ClassesPage {
                                 </td>
                                 <td>
                                     <button class="btn-icon remove-student-btn" data-student-id="${student.student_id}" title="Remove from class">
-                                        🗑️
+                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
                                     </button>
                                 </td>
                             </tr>

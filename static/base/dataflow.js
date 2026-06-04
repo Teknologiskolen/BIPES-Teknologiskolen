@@ -7,49 +7,14 @@ const DEFAULT_FLOW = {
   type:'pipeline',
   architecture:{
     pattern:'source-bipes',
-    actors:['bipes', 'source-device'],
     description:'',
     nodes:[
-      {id:'source-device', type:'source-device', label:'Source device', x:72, y:120},
+      {id:'device', type:'device', label:'Device', x:72, y:120},
       {id:'bipes', type:'bipes', label:'BIPES', x:370, y:120}
     ],
     links:[
-      {id:'source-to-bipes', sourceId:'source-device', targetId:'bipes', direction:'forward', communication:'webserial', exchange:'image frame', format:'image/jpeg', mode:'request', envelope:'raw', header:'', footer:''}
+      {id:'device-to-bipes', sourceId:'device', targetId:'bipes', direction:'forward', communication:'auto', exchange:'data', format:'application/json', mode:'request', envelope:'auto', header:'', footer:''}
     ]
-  },
-  input:{
-    enabled:true,
-    sourceType:'device',
-    format:'image/jpeg',
-    mode:'request',
-    transport:'webserial',
-    fps:4,
-    deviceUid:'',
-    url:'',
-    notifyMessage:'NEW_DATA',
-    header:'',
-    footer:''
-  },
-  process:{
-    type:'raw',
-    visionSetupId:'current',
-    mlWorkspaceId:'',
-    steps:[]
-  },
-  output:{
-    useInBipes:['preview'],
-    destination:'none',
-    transport:'auto',
-    targetDevice:'active',
-    format:'json',
-    envelope:'auto',
-    sendPolicy:'onResult',
-    ruleMetric:'confidence',
-    ruleOperator:'>=',
-    ruleValue:'0.65',
-    header:'',
-    footer:'',
-    commandTemplate:''
   }
 }
 
@@ -60,48 +25,15 @@ const DEFAULT_WIDGET_FLOW = {
   locked:true,
   architecture:{
     pattern:'bipes-device',
-    actors:['bipes', 'target-device'],
-    description:'Built-in architecture for simple widgets sending commands to, and receiving values from, the active device.',
+    description:'Built-in architecture for simple widgets sending commands to, and receiving values from, the current device.',
     nodes:[
       {id:'bipes', type:'bipes', label:'BIPES', x:72, y:120},
-      {id:'target-device', type:'target-device', label:'Active device', x:370, y:120}
+      {id:'device', type:'device', label:'Current device', x:370, y:120}
     ],
     links:[
-      {id:'bipes-device-exchange', sourceId:'bipes', targetId:'target-device', direction:'bidirectional', communication:'auto', exchange:'widget commands and values', format:'widget-value', mode:'manual', envelope:'auto', header:'', footer:'\\n'}
+      {id:'bipes-device-exchange', sourceId:'bipes', targetId:'device', direction:'bidirectional', communication:'auto', exchange:'widget commands and values', format:'widget-value', outputFormat:'raw-binary', mode:'manual', envelope:'auto', header:'', footer:'\\n'}
     ]
-  },
-  input:{
-    enabled:true,
-    sourceType:'bipes',
-    format:'widget-value',
-    mode:'manual',
-    transport:'bipes',
-    fps:4,
-    deviceUid:'',
-    url:'',
-    notifyMessage:'',
-    header:'',
-    footer:''
-  },
-  process:{
-    type:'raw'
-  },
-  output:{
-    useInBipes:[],
-    destination:'device',
-    transport:'auto',
-    targetDevice:'active',
-    format:'raw-binary',
-    envelope:'auto',
-    header:'',
-    footer:'\n',
-    commandTemplate:''
   }
-}
-
-const LOCKED_INPUT_FORMATS = {
-  bipes:'widget-value',
-  webcam:'browser-image-frame'
 }
 
 class DataFlowRegistry {
@@ -210,12 +142,11 @@ class DataFlowRegistry {
 
   describe (flow){
     flow = this.normalize(flow)
+    let input = this.flowInput(flow)
+    let output = this.flowOutput(flow)
     return {
-      obtain:`${flow.input.sourceType} (${flow.input.format})`,
-      understand:flow.process.type,
-      use:flow.output.useInBipes.length ? flow.output.useInBipes.join(', ') : 'not used in BIPES',
-      destination:flow.output.destination,
-      output:flow.output.format,
+      obtain:`${input.sourceType} (${input.format})`,
+      output:output.format,
       relation:this.patternLabel(flow.architecture.pattern)
     }
   }
@@ -231,10 +162,7 @@ class DataFlowRegistry {
       ...partial,
       id:partial.id || Tool.UID(),
       name:partial.name || `Data Flow ${index || (this.flows ? this.flows.length + 1 : 1)}`,
-      architecture,
-      input:{...DEFAULT_FLOW.input, ...(partial.input || {})},
-      process:{...DEFAULT_FLOW.process, ...(partial.process || {})},
-      output:{...DEFAULT_FLOW.output, ...(partial.output || {})}
+      architecture
     })
   }
 
@@ -244,26 +172,7 @@ class DataFlowRegistry {
       delete architecture.nodes
     if (!flow.architecture || !(flow.architecture.links instanceof Array))
       delete architecture.links
-    let input = {...DEFAULT_FLOW.input, ...(flow.input || {})}
-    let process = {...DEFAULT_FLOW.process, ...(flow.process || {})}
-    let output = {...DEFAULT_FLOW.output, ...(flow.output || {})}
-    let legacyOutputOnly = flow.type == 'output-only' || (flow.input && flow.input.enabled === false)
-    let legacyInputFormats = {
-      image:'image/jpeg',
-      audio:'audio/*',
-      text:'text/plain',
-      sensor:'application/json'
-    }
-    let inputFormat = String(input.format || legacyInputFormats[input.dataKind] || 'application/octet-stream')
-    let migratedSourceType = input.sourceType == 'url' || input.sourceType == 'upload' ? 'webcam' : input.sourceType
-    let sourceType = legacyOutputOnly ? 'bipes' : this.oneOf(migratedSourceType, ['bipes', 'webcam', 'device'], 'webcam')
-    if (LOCKED_INPUT_FORMATS[sourceType])
-      inputFormat = LOCKED_INPUT_FORMATS[sourceType]
-    let useInBipes = output.useInBipes instanceof Array
-      ? output.useInBipes
-      : output.targets instanceof Array ? output.targets.filter((target) => target != 'device') : []
-    let destination = output.destination || (output.targets instanceof Array && output.targets.includes('device') ? 'device' : 'none')
-    let pattern = this.oneOf(architecture.pattern || this.inferPattern(sourceType, destination), [
+    let pattern = this.oneOf(architecture.pattern, [
       'bipes-device',
       'bipes-target',
       'source-bipes',
@@ -271,8 +180,11 @@ class DataFlowRegistry {
       'webcam-bipes',
       'bipes-only',
       'custom'
-    ], this.inferPattern(sourceType, destination))
+    ], 'source-bipes')
 
+    // The node graph (architecture.nodes/links) is the single source of truth. The dashboard's
+    // input/output/process config is derived from it on demand via flowInput/flowOutput/
+    // flowHasProcessor — there are no separately-stored input/process/output blocks.
     return {
       id:flow.id || Tool.UID(),
       name:String(flow.name || DEFAULT_FLOW.name),
@@ -280,44 +192,9 @@ class DataFlowRegistry {
       locked:Boolean(flow.locked || flow.system || false),
       architecture:{
         pattern,
-        actors:this.deriveActors(pattern, sourceType, destination),
         description:String(architecture.description || ''),
-        nodes:this.normalizeArchitectureNodes(architecture.nodes, pattern, sourceType, destination),
-        links:this.normalizeArchitectureLinks(architecture.links, pattern, sourceType, destination)
-      },
-      input:{
-        enabled:true,
-        sourceType,
-        format:inputFormat,
-        mode:sourceType == 'device' ? this.oneOf(input.mode, ['request', 'stream', 'notify'], 'request') : 'manual',
-        transport:sourceType == 'device' ? this.oneOf(input.transport || input.connection || input.protocol, ['webserial', 'webbluetooth', 'websocket', 'mqtt'], 'webserial') : sourceType,
-        fps:Math.max(1, Math.min(30, Number(input.fps) || 4)),
-        deviceUid:String(input.deviceUid || ''),
-        url:String(input.url || ''),
-        notifyMessage:String(input.notifyMessage || input.triggerMessage || 'NEW_DATA'),
-        header:String(input.header || ''),
-        footer:String(input.footer || '')
-      },
-      process:{
-        type:this.oneOf(process.type, ['raw', 'vision', 'mlTraining', 'mlPrediction'], 'raw'),
-        visionSetupId:String(process.visionSetupId || 'current'),
-        mlWorkspaceId:String(process.mlWorkspaceId || ''),
-        steps:process.steps instanceof Array ? process.steps : []
-      },
-      output:{
-        useInBipes:useInBipes.filter(Boolean),
-        destination:this.oneOf(destination, ['none', 'device', 'mqtt'], 'none'),
-        transport:this.oneOf(output.transport, ['auto', 'webserial', 'webbluetooth', 'websocket'], 'auto'),
-        targetDevice:String(output.targetDevice || 'active'),
-        format:this.oneOf(output.format, ['json', 'csv', 'avro', 'parquet', 'raw-binary', 'command'], 'json'),
-        envelope:this.oneOf(output.envelope, ['auto', 'function-call', 'topic-message-packet', 'raw'], 'auto'),
-        sendPolicy:this.oneOf(output.sendPolicy, ['onResult', 'onChange', 'onRule', 'manual'], 'onResult'),
-        ruleMetric:String(output.ruleMetric || 'confidence'),
-        ruleOperator:this.oneOf(output.ruleOperator, ['>=', '>', '<=', '<', '==', '!='], '>='),
-        ruleValue:String(output.ruleValue || '0.65'),
-        header:String(output.header || ''),
-        footer:String(output.footer || ''),
-        commandTemplate:String(output.commandTemplate || '')
+        nodes:this.normalizeArchitectureNodes(architecture.nodes, pattern),
+        links:this.normalizeArchitectureLinks(architecture.links, pattern)
       }
     }
   }
@@ -326,31 +203,75 @@ class DataFlowRegistry {
     return values.includes(value) ? value : fallback
   }
 
-  inferPattern (sourceType, destination){
-    if (sourceType == 'bipes' && destination != 'none')
-      return 'bipes-target'
-    if (sourceType == 'bipes')
-      return 'bipes-only'
-    if (sourceType == 'webcam' && destination == 'none')
-      return 'webcam-bipes'
-    if (destination != 'none')
-      return 'source-bipes-target'
-    return 'source-bipes'
+  //--------------------------------------------------------------------------
+  // Node-graph derivation. These project the node graph into the input/output/process
+  // shape the dashboard consumes, so the graph stays the single source of truth.
+  //--------------------------------------------------------------------------
+
+  bipesNodeId (flow){
+    let node = (flow.architecture.nodes || []).find((n) => n.type == 'bipes')
+    return node ? node.id : null
   }
 
-  deriveActors (pattern, sourceType, destination){
-    let actors = new Set(['bipes'])
+  flowHasProcessor (flow){
+    return (flow.architecture.nodes || []).some((n) => n.type == 'ml' || n.type == 'vision')
+  }
 
-    if (sourceType == 'webcam' || pattern == 'webcam-bipes')
-      actors.add('webcam')
-    if (sourceType == 'device' || pattern == 'source-bipes' || pattern == 'source-bipes-target')
-      actors.add('source-device')
-    if (destination == 'device' || pattern == 'bipes-device' || pattern == 'bipes-target' || pattern == 'source-bipes-target')
-      actors.add('target-device')
-    if (destination == 'mqtt')
-      actors.add('mqtt')
+  // The source relation is a non-return link feeding BIPES from a device/webcam node.
+  // A bidirectional device<->BIPES exchange (a widget flow) has no such forward source,
+  // so it reports sourceType 'bipes'.
+  flowInput (flow){
+    let nodes = flow.architecture.nodes || []
+    let links = flow.architecture.links || []
+    let bipes = this.bipesNodeId(flow)
+    let byId = (id) => nodes.find((n) => n.id == id)
+    let inLink = links.find((l) => l.targetId == bipes
+      && !String(l.id).endsWith('-return')
+      && ['webcam', 'device'].includes((byId(l.sourceId) || {}).type))
+    let src = inLink ? byId(inLink.sourceId) : null
 
-    return Array.from(actors)
+    if (!src)
+      return {sourceType:'bipes', format:'widget-value', mode:'manual', transport:'bipes', fps:4, deviceUid:'', url:'', notifyMessage:''}
+
+    let sourceType = src.type
+    return {
+      sourceType,
+      format:sourceType == 'webcam' ? 'browser-image-frame' : 'image/jpeg',
+      mode:this.oneOf(inLink.mode, ['request', 'stream', 'notify'], 'request'),
+      transport:sourceType == 'device' ? (src.url ? 'websocket' : 'webserial') : sourceType,
+      fps:Math.max(1, Math.min(30, Number(inLink.fps) || 4)),
+      deviceUid:String(src.deviceUid || ''),
+      url:String(src.url || ''),
+      notifyMessage:String(inLink.notifyMessage || 'NEW_DATA')
+    }
+  }
+
+  // The output relation is a forward link from BIPES to a device node.
+  flowOutput (flow){
+    let nodes = flow.architecture.nodes || []
+    let links = flow.architecture.links || []
+    let bipes = this.bipesNodeId(flow)
+    let byId = (id) => nodes.find((n) => n.id == id)
+    let outLink = links.find((l) => l.sourceId == bipes && (byId(l.targetId) || {}).type == 'device')
+    let target = outLink ? byId(outLink.targetId) : null
+
+    if (!outLink)
+      return {destination:'none', transport:'auto', targetDevice:'active', format:'json', envelope:'auto', sendPolicy:'onResult', ruleMetric:'confidence', ruleOperator:'>=', ruleValue:'0.65', header:'', footer:'', commandTemplate:''}
+
+    return {
+      destination:outLink.transport == 'mqtt' ? 'mqtt' : 'device',
+      transport:'auto',
+      targetDevice:(target && target.deviceUid) ? target.deviceUid : 'active',
+      format:outLink.outputFormat || 'json',
+      envelope:outLink.envelope || 'auto',
+      sendPolicy:outLink.sendPolicy || 'onResult',
+      ruleMetric:outLink.ruleMetric || 'confidence',
+      ruleOperator:outLink.ruleOperator || '>=',
+      ruleValue:String(outLink.ruleValue == null ? '0.65' : outLink.ruleValue),
+      header:outLink.header || '',
+      footer:outLink.footer || '',
+      commandTemplate:outLink.commandTemplate || ''
+    }
   }
 
   patternLabel (pattern){
@@ -376,11 +297,14 @@ class DataFlowRegistry {
       used[id] = true
       return {
         id,
-        type:this.oneOf(node.type, ['bipes', 'source-device', 'target-device', 'webcam', 'ml', 'vision', 'transform', 'rule', 'mqtt', 'service', 'widget', 'custom'], 'custom'),
+        type:this.oneOf(node.type, ['bipes', 'device', 'webcam', 'ml', 'vision'], 'device'),
         label:String(node.label || this.actorLabel(node.type || id)),
         x:Number.isFinite(node.x) ? node.x : 72 + index * 260,
         y:Number.isFinite(node.y) ? node.y : 120,
-        deviceUid:String(node.deviceUid || '')
+        deviceUid:String(node.deviceUid || ''),
+        url:String(node.url || ''),
+        mlWorkspaceId:String(node.mlWorkspaceId || ''),
+        visionSetupId:String(node.visionSetupId || '')
       }
     })
   }
@@ -402,12 +326,29 @@ class DataFlowRegistry {
         targetPort:this.migratePort(link.targetPort, 'left'),
         direction:'forward',
         communication:this.oneOf(link.communication, ['auto', 'webserial', 'webbluetooth', 'websocket', 'mqtt', 'browser', 'internal'], 'auto'),
+        // User-selected transport for the relation: 'auto' derives it from how the device
+        // is connected; 'mqtt' overrides it and exposes the publish/subscribe topics below.
+        transport:this.oneOf(link.transport, ['auto', 'mqtt'], 'auto'),
+        mqttPublishTopic:String(link.mqttPublishTopic || ''),
+        mqttSubscribeTopic:String(link.mqttSubscribeTopic || ''),
+        qos:this.oneOf(Number(link.qos), [0, 1, 2], 0),
+        retain:this.oneOf(String(link.retain), ['true', 'false'], 'false'),
         exchange:String(link.exchange || 'data'),
         format:String(link.format || 'application/json'),
         mode:this.oneOf(link.mode, ['manual', 'request', 'stream', 'notify', 'onResult', 'onRule'], 'manual'),
         envelope:this.oneOf(link.envelope, ['auto', 'raw', 'json', 'topic-message-packet', 'function-call'], 'auto'),
         header:String(link.header || ''),
-        footer:String(link.footer || '')
+        footer:String(link.footer || ''),
+        // Trigger timing (input relations: source -> BIPES)
+        fps:Math.max(1, Math.min(30, Number(link.fps) || 4)),
+        notifyMessage:String(link.notifyMessage || ''),
+        // Output payload + gating (output relations: BIPES -> device)
+        outputFormat:this.oneOf(link.outputFormat, ['json', 'csv', 'avro', 'parquet', 'raw-binary', 'command'], 'json'),
+        commandTemplate:String(link.commandTemplate || ''),
+        sendPolicy:this.oneOf(link.sendPolicy, ['onResult', 'onChange', 'onRule', 'manual'], 'onResult'),
+        ruleMetric:String(link.ruleMetric || 'confidence'),
+        ruleOperator:this.oneOf(link.ruleOperator, ['>=', '>', '<=', '<', '==', '!='], '>='),
+        ruleValue:String(link.ruleValue == null ? '0.65' : link.ruleValue)
       }
       if (link.direction == 'reverse')
         return [{
@@ -477,18 +418,11 @@ class DataFlowRegistry {
   actorLabel (type){
     return {
       bipes:'BIPES',
-      'source-device':'Source device',
-      'target-device':'Target device',
+      device:'Device',
       webcam:'Webcam',
-      ml:'ML inference',
-      vision:'Vision',
-      transform:'Transform',
-      rule:'Rule / filter',
-      mqtt:'MQTT',
-      service:'Service',
-      widget:'Widget',
-      custom:'Actor'
-    }[type] || 'Actor'
+      ml:'ML',
+      vision:'Vision'
+    }[type] || 'Device'
   }
 
   migratePort (portId, fallback){
@@ -509,7 +443,7 @@ class DataFlowRegistry {
         return false
       if (flow.id == systemFlow.id)
         return false
-      if (flow.name == 'BIPES Default Output' && flow.input && flow.input.sourceType == 'bipes')
+      if (flow.name == 'BIPES Default Output' && this.flowInput(flow).sourceType == 'bipes')
         return false
       return true
     })

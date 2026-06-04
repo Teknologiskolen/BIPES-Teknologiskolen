@@ -1167,6 +1167,7 @@ class MLPage {
         <p>${text}</p>
       </div>
       <div class="ml-empty-panel">
+        <svg class="ml-empty-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="2"/><circle cx="3" cy="5" r="1.5"/><circle cx="3" cy="15" r="1.5"/><circle cx="17" cy="5" r="1.5"/><circle cx="17" cy="15" r="1.5"/><line x1="4.5" y1="5.5" x2="8.5" y2="9.2"/><line x1="4.5" y1="14.5" x2="8.5" y2="10.8"/><line x1="15.5" y1="5.5" x2="11.5" y2="9.2"/><line x1="15.5" y1="14.5" x2="11.5" y2="10.8"/></svg>
         <strong>${Msg['MLModelNotSelected']}</strong>
         <span>${text}</span>
       </div>
@@ -2408,6 +2409,15 @@ class MLPage {
     if (!this.sessionState[key])
       this.sessionState[key] = {workspaces:{}}
     return this.sessionState[key]
+  }
+
+  // Public: list saved ML workspaces (id + name). Used by the Architecture page to bind
+  // an ML node to a specific workspace. Mirrors the Vision page's getSetups().
+  getWorkspaces (){
+    return Object.keys(this.tree || {}).map((id) => ({
+      id,
+      name:(this.tree[id] && this.tree[id].name) || id
+    }))
   }
 
   getWorkspaceSession (workspaceId){

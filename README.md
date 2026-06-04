@@ -75,7 +75,7 @@ Language variants: `ide-da` (Danish), `ide-de` (German), `ide-en` (English), etc
 make run
 ```
 
-Flask serves everything directly — no nginx, no Gunicorn, SQLite database.
+Flask serves everything directly — no nginx, no Gunicorn. Uses PostgreSQL by default (required for teacher/student/class auth); pass `database=sqlite AUTH_MODE=guest` for the guest-only IDE without a database server.
 
 ---
 
@@ -114,7 +114,11 @@ Checks for `.env`, generates self-signed SSL certificates if absent, builds all 
 
 ### 3. First-time setup
 
-Navigate to `https://localhost`. The app detects an empty database and redirects to `/setup` to create the first teacher account.
+Navigate to `https://localhost` and open `/register`. While the database has **no teacher yet**, registration is open so you can create the first teacher account (bootstrap). As soon as one teacher exists, `/register` closes automatically.
+
+To allow additional teachers to self-register afterwards, set `TEACHER_REGISTRATION_CODE` in `.env` to a shared secret — `/register` then stays open but requires that code. Leave it empty to keep registration closed after the first teacher.
+
+> Note: `/setup` is **not** the first-teacher flow. It is the forced password-change page shown to students logging in for the first time with a teacher-provided password.
 
 ### Management commands
 
@@ -143,10 +147,12 @@ make deploy-restart
 | Feature | `make run` | `make deploy-prod` |
 |---|---|---|
 | Web server | Flask dev server | Gunicorn |
-| Database | SQLite | PostgreSQL |
+| Database | PostgreSQL (default) | PostgreSQL |
 | HTTPS | No | Yes (nginx) |
 | Static files | Flask | nginx (fast path) |
 | Auto-reload | Yes | No |
+
+> **Database:** the teacher/student/class/auth schema is PostgreSQL-only (`docker/init-db.sql`), so full auth mode requires PostgreSQL — this is now the default for `make run`. SQLite has no auth schema and is only supported for the guest-only IDE: `make run database=sqlite AUTH_MODE=guest`. Starting full auth mode on SQLite fails fast with a clear error.
 
 ---
 

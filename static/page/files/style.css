@@ -1,8 +1,14 @@
 nav #files::before {
-	background-position: left calc(-1.5rem*13) top;
+	background-image: url("/static/media/nav-files.svg");
+	background-position: center;
+	background-size: 1.4rem 1.4rem;
+	background-repeat: no-repeat;
 }
 nav #files.on::before {
-	background-position: left calc(-1.5rem*13) bottom;
+	background-image: url("/static/media/nav-files-on.svg");
+	background-position: center;
+	background-size: 1.4rem 1.4rem;
+	background-repeat: no-repeat;
 }
 section#files details {
   overflow: hidden;

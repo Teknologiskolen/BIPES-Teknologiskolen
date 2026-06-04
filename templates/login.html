@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ t.login }} - BIPES</title>
+    <title>Login - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body class="login-page {{ theme }}">
+<body class="login-page {{ theme }}" data-i18n-doctitle="login">
     <div class="auth-container">
         <div class="auth-header">
             <img class="auth-logo" src="/static/media/icon/icon-192x192.png" alt="BIPES logo">
-            <h1 id="login-title">{{ t.login }}</h1>
-            <p id="login-subtitle">{{ t.login_subtitle }}</p>
+            <h1 id="login-title" data-i18n="login">Login</h1>
+            <p id="login-subtitle" data-i18n="login_subtitle">Access your BIPES account</p>
         </div>
 
         <div id="alert-container"></div>
@@ -20,23 +20,23 @@
         <div id="teacher-login" style="display: none;">
             <form id="teacher-login-form" class="auth-form">
                 <div class="form-group">
-                    <label for="teacher-email">{{ t.email }}</label>
+                    <label for="teacher-email" data-i18n="email">Email</label>
                     <input type="email" id="teacher-email" name="email" required placeholder="teacher@school.com">
                 </div>
 
                 <div class="form-group">
-                    <label for="teacher-password">{{ t.password }}</label>
+                    <label for="teacher-password" data-i18n="password">Password</label>
                     <input type="password" id="teacher-password" name="password" required placeholder="••••••••">
                 </div>
 
                 <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">{{ t.login_as_teacher }}</span>
+                    <span class="btn-text" data-i18n="login_as_teacher">Login as Teacher</span>
                 </button>
             </form>
 
             <div class="auth-links">
-                <p>{{ t.register_prompt }} <a href="/register" data-auth-preserve>{{ t.register_here }}</a></p>
-                <p><a href="/ide" data-auth-ide>{{ t.guest_login }}</a></p>
+                <p><span data-i18n="register_prompt">Don't have an account?</span> <a href="/register" data-auth-preserve data-i18n="register_here">Register here</a></p>
+                <p><a href="/ide" data-auth-ide data-i18n="guest_login">Continue as Guest</a></p>
             </div>
         </div>
 
@@ -44,7 +44,7 @@
         <div id="student-login" style="display: none;">
             <form id="student-class-form" class="auth-form">
                 <div class="form-group">
-                    <label for="class-code">{{ t.class_code }}</label>
+                    <label for="class-code" data-i18n="class_code">Class Code</label>
                     <input
                         type="text"
                         id="class-code"
@@ -56,36 +56,36 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="student-name">{{ t.username }}</label>
-                    <input type="text" id="student-name" name="student_name" required placeholder="{{ t.username }}">
+                    <label for="student-name" data-i18n="username">Username</label>
+                    <input type="text" id="student-name" name="student_name" required placeholder="Username" data-i18n-placeholder="username">
                 </div>
 
                 <div class="form-group">
-                    <label for="student-password-class">{{ t.password }}</label>
+                    <label for="student-password-class" data-i18n="password">Password</label>
                     <input type="password" id="student-password-class" name="password" required placeholder="••••••••">
                 </div>
 
                 <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">{{ t.login }}</span>
+                    <span class="btn-text" data-i18n="login">Login</span>
                 </button>
             </form>
 
             <div class="auth-links">
-                <p><a href="/ide" data-auth-ide>{{ t.guest_login }}</a></p>
+                <p><a href="/ide" data-auth-ide data-i18n="guest_login">Continue as Guest</a></p>
             </div>
         </div>
 
         <div class="auth-back">
-            <a href="/" class="btn btn-secondary" data-auth-preserve>{{ t.back_home }}</a>
+            <a href="/" class="btn btn-secondary" data-auth-preserve data-i18n="back_home">Back to Home</a>
         </div>
     </div>
 
     <div id="status-bar" class="auth-status-bar">
         <div id="extra">
-            <button id="forum" class="status-icon" type="button" title="{{ t.forum }}">{{ t.forum }}</button>
-            <button id="theme" class="status-icon" type="button" title="{{ t.change_theme }}">{{ t.mode }}</button>
-            <span id="language" class="status-icon">{{ t.language }}
-                <select id="auth-language" title="{{ t.language }}">
+            <button id="forum" class="status-icon" type="button" title="Forum" data-i18n="forum" data-i18n-title="forum">Forum</button>
+            <button id="theme" class="status-icon" type="button" title="Change theme" data-i18n="mode" data-i18n-title="change_theme">Mode</button>
+            <span id="language" class="status-icon"><span data-i18n="language">Language</span>
+                <select id="auth-language" title="Language" data-i18n-title="language">
                     {% for key, value in available_lang.items() -%}
                     <option value="{{ key }}">{{ value }}</option>
                     {% endfor %}
@@ -94,7 +94,8 @@
         </div>
         <div id="globals"></div>
     </div>
-    <script>window.authText = {{ t|tojson }};</script>
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
     <script src="/static/auth/login.js"></script>
 </body>

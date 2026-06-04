@@ -3,7 +3,9 @@ PROJECT=bipes
 lang ?= "en"
 path ?= "/var/www/bipes3"
 chown ?= "www-data:www-data"
-database ?= "sqlite"
+# PostgreSQL is the default: it carries the full teacher/student/class/auth schema.
+# SQLite only supports guest-only mode (run with database=sqlite AUTH_MODE=guest).
+database ?= "postgresql"
 
 DEPS = python pip npm mosquitto
 UBUNTU_DEPS = python3 python3-pip python3-venv npm mosquitto
@@ -321,7 +323,8 @@ help:
     chown=USER:GROUP        The user and group of the WSGI server, \n\
                             if not provided, defaults to $(BLUE)www-data:www-data$(NC).\n\
     database=DB             The $(PURPLE)database$(NC) program to use: $(BLUE)sqlite$(NC) or $(BLUE)postgresql$(NC),\n\
-                            if not provided, defaults to $(BLUE)sqlite$(NC).\n\
+                            if not provided, defaults to $(BLUE)postgresql$(NC).\n\
+                            $(BLUE)sqlite$(NC) only supports guest mode (AUTH_MODE=guest).\n\
     lang=LANG               The $(PURPLE)lang$(NC)uage to set the release start page,\n\
                             if not provided, defaults to $(BLUE)en$(NC).\n"
 

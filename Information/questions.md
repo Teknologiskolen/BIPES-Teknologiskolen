@@ -60,12 +60,20 @@ Important concepts to mention:
 * `ValueParamDef`
 
   * Normal value input, optionally type checked.
+  * Has a `keyword` flag: when true, the generated argument uses named syntax such as `sck=Pin(18)` instead of a positional argument. Required for MicroPython bus protocols like SPI and I2C.
 * `PinParamDef`
 
-  * Hardware-specific pin input, useful for MicroPython GPIO behavior.
+  * Hardware-specific pin input with `pin_mode: input | output | any`.
+  * Generates `Pin(n, Pin.OUT)` or `Pin(n, Pin.IN)` — wraps the integer in a MicroPython `Pin` object.
+  * Also has a `keyword` flag.
+* `LegacyPinParamDef`
+
+  * Like `PinParamDef` but passes the raw integer directly without any `Pin()` wrapping.
+  * Exists for older library interfaces that accept a plain pin number.
 * `DropdownParamDef`
 
   * Fixed-choice input rendered as a Blockly dropdown.
+  * Contains `DropdownOption*` (label/value pairs).
 * `BlockKind`
 
   * Describes whether a block is a statement, value, or hat block.
@@ -82,6 +90,10 @@ Answer idea:
 * Explain that the goal is not to model all of MicroPython, but only the concepts needed to generate Blockly artefacts.
 * Emphasize that the parameter concept is central because it appears in all generated artefacts.
 * Mention that the metamodel was shaped by representative examples such as DS1302, DFPlayer, PicoRobotics, ST7735S, and the sand table robot.
+
+Strong quote from `blockdef_ast.py` docstring (use this in the exam):
+
+> "Mutually exclusive alternatives (singleton vs multiple, value vs pin vs dropdown) are encoded as separate classes rather than mode flags on a shared struct — following the MDSD principle that alternatives in a rule generate subclasses in the metamodel."
 
 ### Possible question: Explain M2, M1, and M0 in your project.
 
@@ -188,27 +200,42 @@ Example answer:
 * The parsed `BlockdefFile` object graph is M1 abstract syntax.
 * Both represent the same model.
 
-### Possible question: Why did you choose YAML?
+### Possible question: Why did you choose YAML? / Why did you switch to YAML and JSON Schema?
 
-Answer ideas:
+This is an important design decision with two parts: technical fit and the live-feedback motivation.
 
-* YAML is readable and compact.
-* YAML is declarative and works well as a configuration/model format.
-* JSON Schema can validate YAML once parsed as structured data.
-* JSON Schema enables live feedback:
+**The earlier approach and why we moved away from it:**
 
-  * missing required fields
-  * wrong property names
-  * invalid block kinds
-  * invalid parameter modes
-  * incompatible default values
-* YAML separates block description from MicroPython implementation.
-* The MicroPython file can still be uploaded to the microcontroller.
-* The YAML file only says which functions/classes should become Blockly blocks.
+Before the YAML DSL, the system had an annotation-based pipeline (`DefaultPipeline`) that scanned Python source files directly using `CommentAnnotationScanner` and `PythonAstSourceExtractor`. Block definitions were embedded as comments or metadata inside the MicroPython library files.
+
+This approach had several problems:
+
+* Block interface descriptions were mixed with MicroPython implementation code.
+* There was no schema — structural errors were only discovered when the pipeline ran, not while writing.
+* No live feedback in the editor: typos in annotation keys, wrong block kinds, or missing fields were invisible until runtime.
+* The Python source file became harder to read and upload as a standalone library.
+
+**Why YAML + JSON Schema was the right switch:**
+
+* YAML is readable and declarative. It describes what should exist, not how to create it step by step.
+* JSON Schema can validate the YAML file's structure. Editors such as VSCode with the YAML extension can show inline red underlines, completion suggestions, and error messages in real time as the developer types the block-definition model.
+* This is the live-feedback argument: by connecting JSON Schema to the `.blockdef.yaml` file, errors are caught as early as possible — before the pipeline even runs.
+* Examples of errors caught at authoring time: missing required `fn` field, invalid `kind` value, wrong parameter structure, default value that doesn't match the declared type.
+
+**The separation of concerns argument:**
+
+* The `.blockdef.yaml` file is separate from the MicroPython library file.
+* The MicroPython file remains a clean, standalone library that can be uploaded to the microcontroller.
+* The YAML file only describes which parts of that library should appear as Blockly blocks and how they should look.
+* The DSL does not replace MicroPython — it describes the interface between MicroPython libraries and Blockly.
 
 Strong sentence:
 
-* The YAML model describes the Blockly interface to the MicroPython library, while the MicroPython file remains the executable implementation.
+* The YAML model describes the Blockly interface to the MicroPython library, while the MicroPython file remains the executable implementation used on the microcontroller.
+
+Strong exam argument:
+
+* The switch from annotation scanning to YAML + JSON Schema was driven by the desire for early error detection and live authoring feedback. This directly improved the programming experience for developers who add new block libraries.
 
 ### Possible question: What is the AST for a concrete example?
 
@@ -314,18 +341,22 @@ Answer:
 
 From one M1 `.blockdef.yaml` model, the implementation generates:
 
-* Blockly block definition JavaScript
+* Blockly block definition JavaScript (`emit_blockly_blocks_js`)
 
   * visual shape of each block
   * labels, inputs, colors, tooltips
   * statement/value/hat behavior
-* Python generator JavaScript
+  * for value blocks with `supertype`: emits `setOutput(true, ["Color565", "Number"])` — this means the block satisfies both types in Blockly, implementing a simple subtype relationship
+* Python generator JavaScript (`emit_python_generators_js`)
 
   * how placed Blockly blocks become Python/MicroPython code
-* Toolbox definition Markdown/XML
+  * imports, pin setup, and instance registries are hoisted to `Blockly.Python.definitions_[key]` so they appear exactly once at the top of the generated file, regardless of how many blocks use them
+  * pin parameters generate `Pin(n, Pin.OUT)` or `Pin(n, Pin.IN)` automatically
+  * keyword parameters generate `name=value` syntax, required for bus protocols like SPI/I2C
+* Toolbox definition (Markdown file with embedded XML) (`emit_definition_markdown`)
 
-  * where blocks appear in Blockly
-  * default shadow blocks
+  * a `.md` file containing XML entries for each block
+  * pre-filled shadow blocks are generated automatically from the declared parameter types: `Number` → `math_number` shadow, `Boolean` → `logic_boolean`, `SPI`/`I2C` → complex hardware shadow blocks
   * install-library buttons if needed
 
 Answer idea:
@@ -335,7 +366,7 @@ Answer idea:
 * A parameter is modeled once but appears in:
 
   * Blockly input
-  * toolbox shadow block
+  * toolbox shadow block (pre-filled default value)
   * generated Python argument
 
 ### Possible question: Explain the transformation from model to output.
@@ -344,31 +375,36 @@ Answer structure:
 
 * Input:
 
-  * M1 model, either YAML or parsed object graph.
-* Step 1:
+  * M1 model: the raw `.blockdef.yaml` file.
+* Step 1 — JSON Schema validation:
 
-  * Validate schema/structure.
-* Step 2:
+  * Validates structure: required fields, allowed values, `oneOf` alternatives, compatible defaults.
+  * Catches errors before any AST is built.
+* Step 2 — Parse to typed AST:
 
-  * Build typed AST objects such as `BlockdefFile`, `CategoryDef`, `FunctionBlockDef`, and `ParamDef`.
-* Step 3:
+  * Builds `BlockdefFile`, `CategoryDef`, `SingletonClassDef`/`MultipleClassDef`, `FunctionBlockDef`, and `ParamDef` variants.
+  * This is still M1 — the AST is the abstract syntax of the same model.
+* Step 3 — Semantic validation:
 
-  * Semantic validation.
-* Step 4:
+  * Checks rules that require understanding the model, not just its structure.
+  * Examples: duplicate names, `__init__` only inside a class, valid type references, circular shadow recursion (a block's `output_type` must not appear as a param type on the same block), supertype only valid on value blocks.
+* Step 4 — Model-to-model transformation (AST → generation model):
 
-  * Transform AST into generation model:
+  * `FunctionBlockDef` + class context → `BlockSpec`
+  * `ParamDef` variants → `InputSpec`
+  * Class instance mode → `InstanceReferenceSpec`
+  * Function + template → `GeneratorSpec`
+  * Categories → `ToolboxCategory`
+* Step 5 — Model-to-text emission:
 
-    * `BlockSpec`
-    * `InputSpec`
-    * `ToolboxCategory`
-    * `GeneratorSpec`
-* Step 5:
+  * `BlockSpec` → Blockly block definition JS
+  * `GeneratorSpec` + `BlockSpec` → Python generator JS
+  * `BlockSpec` + `ToolboxCategory` → toolbox Markdown/XML
 
-  * Emit textual artefacts:
+The key difference between steps 4 and 5:
 
-    * Blockly JS
-    * Python generator JS
-    * toolbox Markdown/XML
+* Step 4 is model-to-model: one typed object graph becomes another typed object graph.
+* Step 5 is model-to-text: the generation model becomes string output.
 
 ### Possible question: Template-based or transformation-based generation?
 
@@ -439,21 +475,84 @@ Answer ideas:
 
 ### Question 0: Which topic do you choose to answer this part?
 
-**The Topic:** Implementation of converting Python/MicroPython library descriptions into Blockly blocks
+**The Topic:** Live feedback for DSL authors — giving the developer immediate error information while writing block-definition models
 
-For Part 4, I will focus on the implementation of my DSL pipeline for converting Python/MicroPython library descriptions into Blockly blocks. This is my individual extension.
+For Part 4, I will focus on the live feedback extension of my DSL pipeline. The goal of this individual extension is to give developers writing `.blockdef.yaml` files immediate, actionable feedback rather than waiting until the full pipeline runs.
 
-The implementation takes a block-definition model and transforms it into the artefacts needed by the existing Blockly system. The pipeline parses the DSL model, validates it, transforms it into an internal semantic generation model, and then emits Blockly block definitions, Python generator JavaScript, and toolbox definitions.
+The original motivation was that the previous annotation-based approach had no feedback at authoring time. Errors in block structure, wrong field names, or invalid values were only discovered when the pipeline ran. The switch to YAML + JSON Schema changed this: by connecting a JSON Schema to the `.blockdef.yaml` format, editors such as VSCode (with the YAML extension) can show inline red underlines, required-field warnings, and completion suggestions in real time as the developer types.
 
-This topic allows me to discuss several concepts from the second half of the semester. First, I can discuss validation, because not every rule should be encoded directly in the grammar or schema. Some rules are semantic and should be checked after parsing. For example, a multiple-instance class should have a valid instance identifier, label placeholders should refer to existing parameters, default values should match declared types, output types should only be used where they make sense, and `__init__` should only be used as a constructor inside classes.
+This extension connects to several course topics. First, it raises the question of what can and cannot be validated through a schema alone, which connects to the distinction between well-formedness (context-free, checkable by grammar/schema) and validity (context-sensitive, requires semantic analysis). Second, it involves scope and reference resolution, because the live feedback layer is limited by what the schema can see without running the full semantic pass. Third, it connects to programming experience (PX), because catching errors earlier and in context reduces friction and cognitive load for the developer adding new libraries.
 
-Second, I can discuss scope and reference handling. My DSL does not have complex lexical scope like a general-purpose programming language, but it still has reference problems. A method block must know which object instance it should call. For singleton classes, this can be resolved to a fixed instance name. For multiple-instance classes, the method block needs an instance selector such as an ID, so the generated code can call the correct object.
+The live feedback works in two layers:
 
-Third, I can discuss type-like checking. The DSL supports input types such as `Number`, `String`, `Boolean`, and `Any`, and it also supports custom output types. This is not a full type system, but it uses type-system ideas to restrict which Blockly blocks can connect and to prevent invalid generated code.
+1. **JSON Schema layer** — structural rules checked instantly in the editor while typing
+2. **Semantic validation layer** — context-sensitive rules checked when the pipeline runs
 
-Fourth, I can discuss testing. The implementation can be tested at several levels: valid DSL models should parse successfully, invalid models should be rejected by validation, generated artefacts can be compared with expected output, and generated Blockly/Python behavior can be tested using representative examples.
+### Possible Part 4 question: Describe the live feedback extension. What can be validated live and what cannot?
 
-Finally, I can discuss programming experience. The implementation improves the developer experience for adding new Blockly libraries. Instead of manually editing several connected files, a developer can describe the library once in a compact DSL model and generate the required artefacts automatically. It also improves the end-user experience because generated blocks can have consistent categories, labels, tooltips, default values, and type restrictions.
+This is the central question for Part 4.
+
+**What live feedback means:**
+
+When a developer opens a `.blockdef.yaml` file in VSCode with the YAML extension and a JSON Schema linked, the editor validates the file structure in real time. Errors appear as red underlines while the developer is still typing, before any pipeline code runs.
+
+**Layer 1 — What JSON Schema CAN validate (live, in the editor):**
+
+These are context-free structural rules. They can be checked by looking at one field in isolation or within its immediate container:
+
+* Missing required fields — e.g. a block definition without `fn`
+* Invalid field names — typos such as `catagory` instead of `category`
+* Invalid enum values — e.g. `kind: diagonal` is rejected because only `value`, `statement`, and `hat` are valid
+* Invalid `instance_mode` values — only `singleton` and `multiple`
+* Invalid `pin_mode` values — only `input`, `output`, and `any`
+* Type of `color` — must be an integer, not a string
+* `oneOf` alternatives for parameter kinds — exactly one of value/pin/legacy-pin/dropdown must match; having both `pin_mode` and `options` on the same parameter is rejected immediately
+* Default value type compatibility — if `type: Number` and `default: "hello"`, JSON Schema can flag the mismatch
+* `output_type` and `kind` relationship — the schema uses `if/then` to enforce that `output_type` is only valid on `kind: value` blocks
+* `supertype` requires `output_type` — expressed as an `if/then` constraint in the schema
+
+**Layer 2 — What CANNOT be validated live (requires the full semantic pass):**
+
+These are context-sensitive rules. They require understanding the whole model, or multiple parts of it at once:
+
+* **Duplicate names** — JSON Schema cannot check whether two category names, class names, function names, or parameter names are identical within their container. This requires comparing siblings, which is beyond JSON Schema's reach.
+* **Cross-block type references** — if a parameter declares `type: Color565`, JSON Schema cannot check whether any other block in the same file or any other file defines `output_type: Color565`. This requires knowing the full set of defined output types.
+* **`__init__` placement** — JSON Schema cannot tell whether a function named `__init__` is inside a class or at the top level of a category. The schema allows it syntactically anywhere; the semantic pass rejects it at category level.
+* **Circular shadow recursion** — a block's `output_type` must not appear as a param type on the same block, because this would create infinitely nested shadow blocks. This requires comparing the block's output type against its own parameter types — cross-property within one block, not expressible in JSON Schema.
+* **Orphaned output types** — a block declares `output_type` but no other parameter in the file references that type. JSON Schema cannot detect this unused declaration.
+* **Instance reference correctness** — whether a singleton class has a meaningful `instance_name`, or whether a multiple-instance class method correctly resolves to a real object, requires running the semantic model.
+* **Cross-file type resolution** — whether a referenced type (e.g. `SPI`) is actually provided by the Blockly platform or by another `.blockdef.yaml` file requires runtime knowledge of registered types.
+
+**Scope of the live feedback:**
+
+The JSON Schema layer operates on one file at a time and only sees the structure of that file. It cannot:
+
+* See other `.blockdef.yaml` files
+* Know which MicroPython modules are installed on the device
+* Know which Blockly blocks already exist in the system
+* Validate that the generated code will actually run correctly on the microcontroller
+
+**Summary table — what is checked where:**
+
+| Rule | JSON Schema (live) | Semantic pass (pipeline) |
+|---|---|---|
+| Missing required field | Yes | Yes |
+| Invalid enum value | Yes | Yes |
+| `oneOf` param alternative | Yes | Yes |
+| Default type mismatch | Yes | Yes |
+| `output_type` needs `kind: value` | Yes (if/then) | Yes |
+| Duplicate names | No | Yes |
+| Cross-block type references | No | Yes |
+| `__init__` at wrong level | No | Yes |
+| Circular shadow recursion | No | Yes |
+| Cross-file type references | No | Yes (partially) |
+| Generated code correctness | No | No (runtime only) |
+
+**Strong exam answer:**
+
+The live feedback extension shows that not all validation can be done at the grammar or schema level. Well-formedness rules (structure, required fields, allowed values) can be checked live by JSON Schema. Validity rules (semantic correctness, cross-references, context-sensitive constraints) require a semantic pass over the full parsed model. This two-level split is a fundamental idea in DSL design: the grammar defines what can be parsed, but validation defines what makes sense.
+
+---
 
 ### Possible Part 4 question: How do you use validation?
 
@@ -464,18 +563,20 @@ Answer ideas:
 * Examples:
 
   * duplicate category names
-  * duplicate class names
-  * duplicate function names
-  * duplicate parameter names
-  * invalid `__init__` placement
-  * default values incompatible with declared type
-  * unknown custom types
-  * invalid output type/supertype combinations
-  * invalid placeholder references
+  * duplicate class names within a category
+  * duplicate function names within a class
+  * duplicate parameter names within a block
+  * `__init__` used outside a class (only valid as a constructor inside a class)
+  * default values incompatible with the declared type (e.g. `default: "hello"` on `type: Number`)
+  * unknown custom types (a param declares `type: Color565` but no value block with `output_type: Color565` exists)
+  * `supertype` used on a non-value block or without `output_type`
+  * circular shadow recursion: a block's own `output_type` must not appear as a param type on the same block, because that would create an infinitely nested shadow block
+  * orphaned output types: a block declares `output_type` but nothing ever uses it as a param type (warned, not error)
 * Explain:
 
-  * grammar/schema defines what can be parsed
-  * validation defines what makes sense
+  * JSON Schema/grammar defines what can be parsed (well-formedness)
+  * Semantic validation defines what makes sense in context (validity)
+  * This two-level split is a key architectural decision: some rules are context-free (schema can check them), others are context-sensitive (require understanding the whole model)
 
 ### Possible Part 4 question: How do scope and references appear?
 
@@ -483,18 +584,25 @@ Answer ideas:
 
 * Singleton classes:
 
-  * fixed instance name
-  * generated code calls `robot.method(...)` or `ds1302.method(...)`
+  * The `SingletonClassDef.instance_name` is a fixed identifier in the model.
+  * Generated code calls `robot.method(...)` or `ds1302.method(...)` using that fixed name.
+  * Resolved via `InstanceReferenceSpec` with `mode=FIXED_NAME`.
 * Multiple classes:
 
-  * ID input selects instance
-  * generated code can use a registry/dictionary
-* Custom types:
+  * The user provides an ID input at runtime to select which instance to call.
+  * Generated code uses a dictionary/registry: `instances[id].method(...)`.
+  * The dictionary is hoisted to `Blockly.Python.definitions_` so it is initialized once.
+  * Resolved via `InstanceReferenceSpec` with `mode=KEY_INPUT`.
+* Type references:
 
-  * input type must match a block output type
-* Strong phrase:
+  * An input parameter declares `type: SPI`.
+  * A value block must declare `output_type: SPI` to match.
+  * The semantic validation phase checks that every referenced type has a corresponding output block, or is a known platform type (SPI, I2C, UART) or built-in type (Number, String, Boolean).
+* `InstanceReferenceSpec` is the key model class that captures how method calls resolve their instance. It is built from the class context during the AST→BlockSpec transformation.
 
-  * In my DSL, scope is mostly about resolving model references, not lexical variable lookup.
+Strong phrase:
+
+* In my DSL, scope is mostly about resolving model references — which method belongs to which instance, which ID selects a multiple instance, which output type is valid for a given input — not about lexical variable lookup.
 
 ### Possible Part 4 question: How do type-system ideas appear?
 

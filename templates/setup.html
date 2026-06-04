@@ -3,51 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ t.setup_title }} - BIPES</title>
+    <title>Welcome - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
 </head>
-<body>
+<body class="login-page {{ theme }}" data-i18n-doctitle="setup_title">
     <div class="auth-container">
         <div class="auth-header">
-            <h1>{{ t.setup_title }}</h1>
-            <p>{{ t.setup_subtitle }}</p>
+            <h1 data-i18n="setup_title">Welcome!</h1>
+            <p data-i18n="setup_subtitle">Please set up your account</p>
         </div>
 
         <div id="alert-container"></div>
 
         <div class="alert alert-info">
-            <strong>{{ t.setup_info_label }}</strong> {{ t.setup_info }}
+            <strong data-i18n="setup_info_label">First-time setup required:</strong> <span data-i18n="setup_info">Please change your password to secure your account.</span>
         </div>
 
         <form id="setup-form" class="auth-form">
             <div class="form-group">
-                <label for="current-password">{{ t.current_password }}</label>
-                <input type="password" id="current-password" name="current_password" required placeholder="{{ t.current_password_placeholder }}">
+                <label for="current-password" data-i18n="current_password">Current Password</label>
+                <input type="password" id="current-password" name="current_password" required placeholder="Your teacher-provided password" data-i18n-placeholder="current_password_placeholder">
             </div>
 
             <div class="form-group">
-                <label for="new-password">{{ t.new_password }} <span style="color: red;">*</span></label>
-                <input type="password" id="new-password" name="new_password" required placeholder="{{ t.new_password_placeholder }}" minlength="8">
+                <label for="new-password"><span data-i18n="new_password">New Password</span> <span style="color: red;">*</span></label>
+                <input type="password" id="new-password" name="new_password" required placeholder="Choose a new password" data-i18n-placeholder="new_password_placeholder" minlength="8">
                 <div id="password-strength" class="password-strength"></div>
-                <small style="color: #666; font-size: 0.85rem;">{{ t.minimum_password }}</small>
+                <small style="color: #666; font-size: 0.85rem;" data-i18n="minimum_password">Minimum 8 characters</small>
             </div>
 
             <div class="form-group">
-                <label for="confirm-password">{{ t.confirm_new_password }} <span style="color: red;">*</span></label>
-                <input type="password" id="confirm-password" name="confirm_password" required placeholder="{{ t.confirm_new_password_placeholder }}">
+                <label for="confirm-password"><span data-i18n="confirm_new_password">Confirm New Password</span> <span style="color: red;">*</span></label>
+                <input type="password" id="confirm-password" name="confirm_password" required placeholder="Confirm your new password" data-i18n-placeholder="confirm_new_password_placeholder">
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <span class="btn-text">{{ t.complete_setup }}</span>
+                <span class="btn-text" data-i18n="complete_setup">Complete Setup</span>
             </button>
         </form>
 
         <div class="auth-links">
-            <p><small>{{ t.required_fields }}</small></p>
+            <p><small data-i18n="required_fields">* Required fields</small></p>
         </div>
     </div>
 
-    <script>window.authText = {{ t|tojson }};</script>
+    <div id="status-bar" class="auth-status-bar">
+        <div id="extra">
+            <button id="forum" class="status-icon" type="button" title="Forum" data-i18n="forum" data-i18n-title="forum">Forum</button>
+            <button id="theme" class="status-icon" type="button" title="Change theme" data-i18n="mode" data-i18n-title="change_theme">Mode</button>
+            <span id="language" class="status-icon"><span data-i18n="language">Language</span>
+                <select id="auth-language" title="Language" data-i18n-title="language">
+                    {% for key, value in available_lang.items() -%}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div id="globals"></div>
+    </div>
+
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
     <script src="/static/auth/setup.js"></script>
 </body>

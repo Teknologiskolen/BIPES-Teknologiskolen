@@ -6,6 +6,7 @@ Provides password hashing, database-backed session management, and helpers.
 from __future__ import annotations
 
 import hashlib
+import os
 import secrets
 import string
 import time
@@ -544,3 +545,35 @@ def validate_email(email: str) -> bool:
 
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(pattern, email) is not None
+
+
+#------------------------------------------------------------------------
+# Teacher registration gating
+#------------------------------------------------------------------------
+
+def registration_code() -> str:
+    """Shared secret required to register a teacher, from TEACHER_REGISTRATION_CODE."""
+    return (os.environ.get("TEACHER_REGISTRATION_CODE") or "").strip()
+
+
+def teacher_count() -> int:
+    db = dbase.get_db('API')
+    try:
+        row = db.execute("SELECT COUNT(*) FROM teachers").fetchone()
+        return int(row[0]) if row else 0
+    finally:
+        db.close()
+        g.pop('db', None)
+
+
+def registration_status() -> dict:
+    """Whether teacher self-registration is currently allowed.
+
+    - A registration code (TEACHER_REGISTRATION_CODE) configured -> always open, code required.
+    - No code, and no teachers yet -> open for the first (bootstrap) teacher, no code.
+    - No code, teachers already exist -> closed.
+    """
+    code = registration_code()
+    if code:
+        return {'open': True, 'require_code': True}
+    return {'open': teacher_count() == 0, 'require_code': False}
