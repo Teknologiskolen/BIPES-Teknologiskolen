@@ -8,7 +8,13 @@ package.json
 package-lock.json
 node_modules/
 
+# App-generated bundles stay ignored (Flask regenerates them via concat routes).
 *.umd.js
+# ...but the third-party vendored libraries (fetched by `make umd-deps/unpkg/blockly`)
+# MUST be committed: the Docker build does `COPY . .` and does NOT fetch them, so a
+# fresh clone otherwise ships without Blockly etc. ("Blockly is not defined").
+!static/libs/*.umd.js
+!static/page/blocks/blocks/logic.umd.js
 *.temp.js
 *.zip
 *.db
@@ -16,7 +22,7 @@ node_modules/
 *.ini
 
 static/page/blocks/msg
-static/page/blocks/media
+# blockly media (icons) — vendored by `make blockly`; commit it (build doesn't fetch).
 
 /ide.html
 BIPES
