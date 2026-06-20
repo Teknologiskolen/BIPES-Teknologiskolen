@@ -754,53 +754,15 @@ class Project {
            args:[uid]
          })
 
+         // All sharing/embedding lives in a single focused dialog (one menu entry)
+         // instead of half a dozen toggle items.
          if (this.serverMode && session.isTeacher()) {
-           const shared = {
-             uid: obj.project.shared?.uid || '',
-             token: obj.project.shared?.token || '',
-             public: !!obj.project.shared?.public,
-             classId: obj.project.shared?.classId || null
-           }
            actions.unshift({
-             id:'share-public',
-             innerText: shared.public ? Msg['StopPublicSharing'] : Msg['SharePublicly'],
-             fun:this.togglePublicShare,
+             id:'share',
+             innerText:Msg['ShareAndEmbed'] || 'Share & embed…',
+             fun:this.openShareDialog,
              args:[uid]
            })
-           actions.unshift({
-             id:'share-class',
-             innerText: shared.classId ? Msg['ChangeSharedClass'] : Msg['ShareWithClass'],
-             fun:this.openClassShareMenu,
-             args:[uid, ev]
-           })
-           if (shared.classId) {
-             actions.unshift({
-               id:'stop-class-share',
-               innerText:Msg['StopClassSharing'],
-               fun:this.clearClassShare,
-               args:[uid]
-             })
-           }
-           if (shared.uid) {
-             actions.unshift({
-               id:'unshare',
-               innerText:Msg['Unshare'],
-               fun:this.unshare,
-               args:[uid]
-             })
-             actions.unshift({
-               id:'copy-embed',
-               innerText:Msg['CopyEmbedLink'] || 'Copy embed code',
-               fun:this.copyEmbedLink,
-               args:[shared.uid]
-             })
-             actions.unshift({
-               id:'copy-uid',
-               innerText:Msg['CopyShareId'] || 'Copy share id',
-               fun:this.copyShareId,
-               args:[shared.uid]
-             })
-           }
          }
          }
          this.contextMenu.open(actions, ev)
@@ -833,6 +795,146 @@ class Project {
       document.execCommand('copy')
       document.body.removeChild(ta)
     } catch (e) {}
+  }
+  // ---- Share & Embed dialog (teacher) -------------------------------------
+  // One focused surface for public sharing, class sharing, and embedding, replacing
+  // the long flat context menu. Reuses updateShareSettings()/unshare() for the API.
+  openShareDialog (uid){
+    this.contextMenu.close()
+    if (!this.projects[uid] || !this.projects[uid].project) return
+    this._shareUid = uid
+    this._buildShareDialog()
+    this._renderShareDialog()
+    this.$.shareDialog.$.hidden = false
+    // Load classes then refresh the dropdown selection.
+    this._loadShareClasses().then(() => this._renderShareDialog())
+  }
+  closeShareDialog (){
+    if (this.$.shareDialog) this.$.shareDialog.$.hidden = true
+    this._shareUid = null
+  }
+  async _loadShareClasses (){
+    try {
+      const r = await fetch('/api/classes/my-classes', {credentials:'include'})
+      const d = await r.json()
+      this._shareClasses = (r.ok && Array.isArray(d.classes)) ? d.classes : []
+    } catch (e) { this._shareClasses = [] }
+    const sel = this.$.shareClass
+    if (!sel) return
+    sel.$.innerHTML = ''
+    sel.$.appendChild(new DOM('option', {value:'', innerText:Msg['ShareClassNone'] || 'No class'}).$)
+    this._shareClasses.forEach(c =>
+      sel.$.appendChild(new DOM('option', {value:String(c.class_id), innerText:c.class_name}).$))
+  }
+  _buildShareDialog (){
+    if (this.$.shareDialog) return   // built once, reused
+    const $ = this.$
+    const closeBtn = new DOM('button', {className:'share-x', innerText:'×', title:Msg['Close']||'Close'})
+      .onclick(this, this.closeShareDialog)
+    $.shareName = new DOM('span', {className:'share-name'})
+
+    // Public toggle + link
+    $.sharePublic = new DOM('input', {type:'checkbox'}).onevent('change', this, this._onTogglePublic)
+    $.shareLink = new DOM('input', {className:'share-field'}); $.shareLink.$.readOnly = true
+    const copyLink = new DOM('button', {className:'share-btn', innerText:Msg['Copy']||'Copy'})
+      .onclick(this, () => this._copyText($.shareLink.value, Msg['Copied']||'Copied'))
+    $.shareLinkRow = new DOM('div', {className:'share-link-row'}).append([$.shareLink, copyLink])
+
+    // Share with class
+    $.shareClass = new DOM('select').onevent('change', this, this._onChangeClass)
+
+    // Embed
+    $.embedW = new DOM('input', {className:'embed-num', value:'100%'}).onevent('input', this, this._refreshEmbed)
+    $.embedH = new DOM('input', {className:'embed-num', value:'360'}).onevent('input', this, this._refreshEmbed)
+    $.embedLock = new DOM('input', {type:'checkbox'}).onevent('change', this, this._refreshEmbed)
+    $.embedCode = new DOM('textarea', {className:'embed-code'}); $.embedCode.$.readOnly = true; $.embedCode.$.rows = 2
+    const copyEmbed = new DOM('button', {className:'share-btn', innerText:Msg['CopyEmbedLink']||'Copy embed code'})
+      .onclick(this, () => this._copyText($.embedCode.value, Msg['CopiedEmbed']||'Embed code copied'))
+    $.embedPreview = new DOM('a', {className:'share-link', innerText:Msg['OpenPreview']||'Open preview'})
+    $.embedPreview.$.target = '_blank'; $.embedPreview.$.rel = 'noopener'
+    $.embedFrame = new DOM('iframe', {className:'embed-frame'})
+    $.embedSection = new DOM('fieldset', {className:'embed-section'}).append([
+      new DOM('legend', {innerText:Msg['EmbedTitle']||'Embed'}),
+      new DOM('div', {className:'embed-opts'}).append([
+        new DOM('label', {innerText:(Msg['EmbedWidth']||'Width')+' '}).append([$.embedW]),
+        new DOM('label', {innerText:(Msg['EmbedHeight']||'Height')+' '}).append([$.embedH]),
+        new DOM('label', {className:'embed-lock'}).append([$.embedLock, new DOM('span', {innerText:' '+(Msg['EmbedLock']||'Lock (no pan/zoom)')})])
+      ]),
+      $.embedCode,
+      new DOM('div', {className:'embed-actions'}).append([copyEmbed, $.embedPreview]),
+      $.embedFrame
+    ])
+
+    // Unshare
+    $.shareUnshare = new DOM('button', {className:'share-btn danger', innerText:Msg['StopAllSharing']||'Stop sharing'})
+      .onclick(this, this._onUnshare)
+
+    const body = new DOM('div', {className:'share-body'}).append([
+      new DOM('label', {className:'share-row'}).append([
+        $.sharePublic, new DOM('span', {innerText:' '+(Msg['SharePubliclyLabel']||'Anyone with the link can view')})
+      ]),
+      $.shareLinkRow,
+      new DOM('div', {className:'share-row'}).append([
+        new DOM('label', {innerText:(Msg['ShareWithClass']||'Share with class')+' '}), $.shareClass
+      ]),
+      $.embedSection,
+      $.shareUnshare
+    ])
+    const dialog = new DOM('div', {className:'share-dialog'}).append([
+      new DOM('div', {className:'share-head'}).append([
+        new DOM('h2', {innerText:Msg['ShareAndEmbed']||'Share & embed'}), $.shareName, closeBtn
+      ]),
+      body
+    ])
+    $.shareDialog = new DOM('div', {className:'share-overlay'}).append([dialog])
+    $.shareDialog.$.hidden = true
+    $.shareDialog.onclick(this, (e) => { if (e.target === $.shareDialog.$) this.closeShareDialog() })
+    ;($.section || $.container).append([$.shareDialog])
+  }
+  _renderShareDialog (){
+    const item = this.projects[this._shareUid]
+    if (!item || !this.$.shareDialog) return
+    const shared = {
+      uid: item.project.shared?.uid || '',
+      public: !!item.project.shared?.public,
+      classId: item.project.shared?.classId || null
+    }
+    const isShared = !!shared.uid
+    this.$.shareName.$.textContent = item.project.name || ''
+    this.$.sharePublic.$.checked = shared.public
+    this.$.shareClass.$.value = shared.classId ? String(shared.classId) : ''
+    this.$.shareLink.$.value = isShared ? this._embedSrc(shared.uid, false) : ''
+    this.$.shareLinkRow.$.hidden = !isShared
+    this.$.embedSection.$.hidden = !isShared
+    this.$.shareUnshare.$.hidden = !isShared
+    if (isShared) this._refreshEmbed()
+  }
+  _embedSrc (shareUid, lock){
+    return window.location.origin + '/embed?uid=' + encodeURIComponent(shareUid) + (lock ? '&lock=1' : '')
+  }
+  _refreshEmbed (){
+    const shared = this.projects[this._shareUid]?.project?.shared
+    if (!shared?.uid) return
+    const w = (this.$.embedW.value || '100%').trim()
+    const h = (this.$.embedH.value || '360').trim()
+    const src = this._embedSrc(shared.uid, this.$.embedLock.$.checked)
+    this.$.embedCode.$.value = '<iframe src="' + src + '" width="' + w + '" height="' + h + '" style="border:1px solid #ccc"></iframe>'
+    this.$.embedPreview.$.href = src
+    if (this.$.embedFrame.$.getAttribute('src') !== src) this.$.embedFrame.$.src = src
+    this.$.embedFrame.$.style.height = (/^\d+$/.test(h) ? h+'px' : '220px')
+  }
+  async _onTogglePublic (){
+    await this.updateShareSettings(this._shareUid, {public: this.$.sharePublic.$.checked})
+    this._renderShareDialog()
+  }
+  async _onChangeClass (){
+    const val = this.$.shareClass.value
+    await this.updateShareSettings(this._shareUid, {classId: val ? parseInt(val, 10) : null})
+    this._renderShareDialog()
+  }
+  async _onUnshare (){
+    await this.unshare(this._shareUid)
+    this._renderShareDialog()
   }
   /*
    * Write project from current scope to localStorage.

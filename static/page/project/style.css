@@ -94,3 +94,56 @@ section#project .username input {
 section#project > .container > .header {
     margin: 0.5rem 0.5rem 0.25rem 1rem;
 }
+
+/* ---- Share & Embed dialog ---- */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.45);
+}
+.share-overlay[hidden] { display: none; }
+.share-dialog {
+  width: min(92vw, 30rem);
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: .6rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+}
+body.light .share-dialog { background: #fff; color: #000; }
+body.dark  .share-dialog { background: #2b2b2b; color: #fff; }
+.share-head { display: flex; align-items: center; gap: .5rem; }
+.share-head h2 { margin: 0; font-size: 1.1rem; }
+.share-name { flex: 1; opacity: .65; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.share-x { margin-left: auto; border: none; background: none; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.share-body { display: flex; flex-direction: column; gap: .8rem; margin-top: .9rem; }
+.share-row { display: flex; align-items: center; gap: .5rem; }
+.share-link-row { display: flex; gap: .4rem; }
+.share-link-row[hidden], .embed-section[hidden], .share-btn[hidden] { display: none; }
+.share-field, .embed-code, .embed-num, .share-dialog select {
+  border: 1px solid #888; border-radius: .3rem; padding: .3rem; font: inherit;
+  background: transparent; color: inherit;
+}
+.share-field { flex: 1; }
+.embed-num { width: 4.5rem; }
+.embed-code { width: 100%; resize: vertical; font-family: monospace; font-size: .8rem; }
+.embed-section { border: 1px solid rgba(128,128,128,.4); border-radius: .4rem; padding: .5rem .75rem; }
+.embed-section legend { padding: 0 .35rem; font-size: .85rem; opacity: .8; }
+.embed-opts { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+.embed-opts label { display: inline-flex; align-items: center; gap: .25rem; }
+.embed-actions { display: flex; align-items: center; gap: .6rem; margin: .45rem 0; }
+.embed-frame { width: 100%; height: 220px; border: 1px solid #ccc; border-radius: .3rem; background: #fff; }
+.share-btn {
+  cursor: pointer; border: 1px solid #4499cc; color: #4499cc; background: transparent;
+  border-radius: .3rem; padding: .25rem .6rem; font: inherit;
+}
+.share-btn:hover { background: rgba(68,153,204,.15); }
+.share-btn.danger { border-color: #cc4444; color: #cc4444; align-self: flex-start; }
+.share-btn.danger:hover { background: rgba(204,68,68,.15); }
+.share-link { color: #4499cc; }
+body.dark .embed-section legend { opacity: .7; }
+body.dark .share-dialog select option { background: #2b2b2b; color: #fff; }
