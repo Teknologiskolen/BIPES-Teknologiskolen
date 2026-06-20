@@ -10,7 +10,7 @@ Blockly.Blocks['delay_old'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setColour(60);
     this.setTooltip("Delay for given number, should be positive or 0.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.sleep");
 
@@ -24,7 +24,8 @@ Blockly.Blocks['delay_ms'] = {
         .appendField("delay milliseconds");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Delay processing in milliseconds");
  this.setHelpUrl("http://www.bipes.net.br/");
   }
@@ -37,7 +38,8 @@ Blockly.Blocks['delay_us'] = {
         .appendField("delay microseconds");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Delay processing in microseconds");
  this.setHelpUrl("http://www.bipes.net.br/");
   }
@@ -51,7 +53,8 @@ Blockly.Blocks['utime.vars'] = {
         .appendField(new Blockly.FieldDropdown([["seconds","time"], ["milliseconds","ticks_ms"], ["microseconds","ticks_us"], ["nanoseconds","time_ns"], ["cpu ticks","ticks_cpu"]]), "VARS")
         .appendField("counter");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
     this.setTooltip("Returns a counter in the defined scale, only integer values.");
    this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.ticks_ms");
   }
@@ -67,7 +70,7 @@ Blockly.Blocks['utime.ticks_add_old'] = {
         .appendField("by");
     this.setInputsInline(true);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(60);
     this.setTooltip("Offset ticks value by a given number, which can be either positive or negative. Must be same scale in milliseconds, microseconds or cpu ticks.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.ticks_add");
   }
@@ -81,9 +84,9 @@ Blockly.Blocks['utime.ticks_diff_old'] = {
         .setCheck(null)
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("by");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setColour(60);
     this.setTooltip("Measure ticks difference between values Must be same scale in milliseconds, microseconds or cpu ticks.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.ticks_diff");
   }
@@ -103,7 +106,7 @@ Blockly.Blocks['utime.deadline'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(135);
+    this.setColour(60);
     this.setTooltip("Creates a loop with deadline.");
     this.setHelpUrl("https://docs.micropython.org/en/latest/library/utime.html#utime.ticks_add");
   }
@@ -145,7 +148,8 @@ Blockly.Blocks['set_rtc_esp32'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(false);
+    this.setColour(45);
    this.setTooltip("Set RTC value");
    this.setHelpUrl("bipes.net.br");
   }
@@ -187,7 +191,8 @@ Blockly.Blocks['set_rtc_esp8266'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(false);
+    this.setColour(45);
    this.setTooltip("Set RTC value");
    this.setHelpUrl("bipes.net.br");
   }
@@ -198,7 +203,8 @@ Blockly.Blocks['get_rtc_esp32'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable(Msg["get_rtc"]), "Msg_GET_RTC");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(45);
  this.setTooltip("Get RTC value");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -210,7 +216,8 @@ Blockly.Blocks['get_rtc_esp8266'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable(Msg["get_rtc"]), "Msg_GET_RTC");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(45);
  this.setTooltip("Get RTC value");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -222,7 +229,8 @@ Blockly.Blocks['ticks_ms'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable("Get milliseconds counter"), "Msg_GET_MS");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Get millisecond counter");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -242,7 +250,8 @@ Blockly.Blocks['ticks_diff'] = {
         .appendField("start");
     //this.setPreviousStatement(true, null);
     //this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Compute time difference");
  this.setHelpUrl("bipes.net.br");
   }
@@ -252,7 +261,7 @@ Blockly.Blocks['ticks_diff'] = {
 
 Blockly.Blocks['timer'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(190);
     this.appendDummyInput()
         .appendField("Timer #")
         .appendField(new Blockly.FieldNumber(2, 0, 9, 1), "timerNumber")
@@ -264,8 +273,36 @@ Blockly.Blocks['timer'] = {
         .setCheck("image");
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('Set a Timer to execute periodically or one after a time given in milliseconds.');
     this.setHelpUrl("https://docs.micropython.org/en/latest/esp32/quickref.html#timers")
+  }
+};
+
+Blockly.Blocks['second_core'] = {
+  init: function() {
+    this.setColour(190);
+    this.appendDummyInput()
+        .appendField("Repeat on second core");
+    this.appendStatementInput("statements");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setInputsInline(true);
+    this.setTooltip('Start (or resume) running the blocks inside on the second core (RP2040), so the main core / REPL stays free. The block already loops — do NOT put a forever loop inside. Pause it with "Stop second core" and run this again to resume. Only one second-core task at a time.');
+    this.setHelpUrl("https://docs.micropython.org/en/latest/library/_thread.html");
+  }
+};
+
+Blockly.Blocks['stop_second_core'] = {
+  init: function() {
+    this.setColour(190);
+    this.appendDummyInput()
+        .appendField("Stop second core");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setInputsInline(true);
+    this.setTooltip('Pause the second-core task (it keeps idling in the background, ready to resume). Run "Repeat on second core" again to resume. Stop Execution also pauses it; a full stop needs a device reset.');
+    this.setHelpUrl("https://docs.micropython.org/en/latest/library/_thread.html");
   }
 };
 
@@ -278,7 +315,8 @@ Blockly.Blocks['stop_timer'] = {
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(190);
  this.setTooltip("Stop Timer");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -291,7 +329,8 @@ Blockly.Blocks['deep_sleep8266'] = {
 	.appendField("deep sleep");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Deep sleep process in milliseconds");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -311,9 +350,10 @@ snek_gpio_get
 Blockly.Blocks['snek_uptime'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable("Sneck: time counter"), "Msg_GET_MS");
+        .appendField(new Blockly.FieldLabelSerializable("Snek: time counter"), "Msg_GET_MS");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Get monotonic time counter");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -328,9 +368,9 @@ Blockly.Blocks['snek_delay'] = {
         .appendField("Snek: delay seconds");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(60);
  this.setTooltip("Delay processing in seconds");
  this.setHelpUrl("http://www.bipes.net.br/");
   }
 };
-

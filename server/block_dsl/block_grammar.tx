@@ -1,0 +1,121 @@
+/*
+ * textX grammar for .blockdef files.
+ *
+ * A .blockdef file describes how functions/classes in any source language
+ * (MicroPython, C, JS, …) map to Blockly blocks, without touching the
+ * source files at all.
+ *
+ * Example:
+ *
+ *   module ds1302
+ *   import "ds1302"
+ *   url "https://github.com/micropython/micropython"
+ *
+ *   category "DS1302" color=35 {
+ *       class DS1302 as singleton named "ds1302" {
+ *           block __init__ tooltip="Create a DS1302 RTC instance." {
+ *               param clk_pin type=Number pin
+ *               param dat_pin type=Number pin
+ *               param rst_pin type=Number pin
+ *           }
+ *           block get_time kind=value tooltip="Read the current time tuple."
+ *       }
+ *   }
+ */
+
+BlockdefFile:
+    'module' name=/[_a-zA-Z]\w*/
+    imports*=ImportDecl
+    ('url' url=STRING)?
+    categories*=CategoryDef
+;
+
+ImportDecl:
+    'import' name=STRING
+;
+
+CategoryDef:
+    'category' name=STRING ('color' '=' color=INT)?
+    '{' entries*=CategoryEntry '}'
+;
+
+CategoryEntry: ClassDef | FunctionBlock;
+
+ClassDef:
+    'class' class_name=/[_a-zA-Z]\w*/
+    'as' instance_mode=/singleton|multiple/
+    ('named' instance_name=STRING)?
+    ('ref' method_ref=/key_input|object_input/)?
+    '{' blocks*=FunctionBlock '}'
+;
+
+/*
+ * Attributes must appear in the order: label, kind, inline, tooltip.
+ * Any subset is valid; unlisted attributes are omitted.
+ *
+ * Examples:
+ *   block get_time kind=value tooltip="Read time."
+ *   block set_time tooltip="Set time." { param year type=Number }
+ */
+FunctionBlock:
+    'block' fn_name=/[_a-zA-Z]\w*/
+    ('label'   '=' label=STRING)?
+    ('kind'    '=' kind=/value|statement|hat/)?
+    ('inline'  '=' inline=InlineFlag)?
+    ('tooltip' '=' tooltip=STRING)?
+    ('{' params*=ParamDef '}')?
+;
+
+/* Wrap the inline bool in a rule so an omitted `inline` is None (default to inline)
+ * rather than False — textX gives a bare optional BOOL the value False when absent,
+ * which can't be told apart from an explicit `inline = false`. */
+InlineFlag:
+    value=BOOL
+;
+
+/*
+ * Attributes must appear in the order: type, default, pin, options.
+ *
+ * Examples:
+ *   param clk_pin type=Number pin
+ *   param show_seconds type=Boolean default=true
+ *   param mode options[("Fast","fast"),("Slow","slow")]
+ */
+ParamDef:
+    'param' name=/[_a-zA-Z]\w*/
+    ('type'    '=' type_name=/Number|String|Boolean|Any/)?
+    ('default' '=' default=ParamDefault)?
+    (is_pin?='pin')?
+    ('options' '[' options+=DropdownOpt[','] ']')?
+;
+
+ParamDefault:
+    SeqDefault | BoolDefault | FloatDefault | IntDefault | StrDefault
+;
+
+SeqDefault:
+    '[' items*=ScalarDefault[','] ']'
+;
+
+ScalarDefault:
+    BoolDefault | FloatDefault | IntDefault | StrDefault
+;
+
+// NB: explicit regexes, NOT the textX BOOL/FLOAT base types. BOOL matches 0/1 (so
+// `default=0` would parse as False) and FLOAT matches plain integers (so `default=8`
+// would parse as 8.0 -> emitted "8.0" into a pin dropdown -> broken). Here a bool is
+// ONLY true/false, a float REQUIRES a decimal point, and a plain integer stays an int.
+// The matched value is a string; blockdef_parser._scalar_to_python casts it by rule.
+BoolDefault:  val=/true|false/;
+FloatDefault: val=/[-+]?\d+\.\d+([eE][-+]?\d+)?/;
+IntDefault:   val=/[-+]?\d+/;
+StrDefault:   val=STRING;
+
+DropdownOpt:
+    '(' label=STRING ',' val=STRING ')'
+;
+
+// textX skips any rule named "Comment" automatically during parsing.
+Comment:
+    /\/\/.*/
+;

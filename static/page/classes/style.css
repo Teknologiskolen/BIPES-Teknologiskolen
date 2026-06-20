@@ -1,8 +1,9 @@
+/* Classroom nav icon (icons.svg column 55: top = normal, bottom = active). */
 nav #classes::before {
-	background-position: left calc(-1.5rem*10) top;
+	background-position: left calc(-1.5rem*55) top;
 }
 nav #classes.on::before {
-	background-position: left calc(-1.5rem*10) bottom;
+	background-position: left calc(-1.5rem*55) bottom;
 }
 
 /* Classes Page Styles */
@@ -127,13 +128,15 @@ nav #classes.on::before {
 }
 
 .class-code {
+    display: inline-block;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.25rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 1px;
+    white-space: nowrap;
 }
 
 .class-info {
@@ -192,21 +195,23 @@ nav #classes.on::before {
 /* Tabs */
 .tabs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-bottom: 1.25rem;
     border-bottom: 2px solid #e0e0e0;
 }
 
 .tab {
     background: none;
     border: none;
-    padding: 12px 24px;
-    font-size: 16px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #666;
     cursor: pointer;
     border-bottom: 3px solid transparent;
     transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
 }
 
 .tab:hover {
@@ -268,13 +273,30 @@ nav #classes.on::before {
     background: #f8f9fa;
 }
 
+/* Inline stroke icons (replace legacy emoji) */
+.class-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.class-stat svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+.btn-icon svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    display: block;
+}
+
 /* Status Badges */
 .status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.25rem;
+    font-size: 0.75rem;
     font-weight: 600;
     display: inline-block;
+    white-space: nowrap;
 }
 
 .status-active {
@@ -349,6 +371,30 @@ nav #classes.on::before {
 .empty-state p {
     font-size: 16px;
     margin: 0;
+}
+
+.add-class-ghost {
+    display: block;
+    width: min(100%, 420px);
+    min-height: 110px;
+    margin: 40px auto;
+    border: 2px dashed rgba(102, 126, 234, 0.45);
+    border-radius: 12px;
+    background: transparent;
+    color: #667eea;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.add-class-ghost:hover,
+.add-class-ghost:focus {
+    background: rgba(102, 126, 234, 0.08);
+}
+
+body.dark section#classes .add-class-ghost {
+    color: #a5b4fc;
+    border-color: rgba(165, 180, 252, 0.45);
 }
 
 /* Modal Styles */
@@ -727,4 +773,63 @@ nav #classes.on::before {
         width: 95%;
         padding: 20px;
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark mode. Scoped to body.dark section#classes (set from the persisted */
+/* theme preference). Targets the primary light surfaces; the gradient */
+/* accent elements stay as-is.                                         */
+/* ------------------------------------------------------------------ */
+body.dark section#classes {
+    background: #1e1f22;
+    color: #e3e3e3;
+}
+
+body.dark section#classes .class-card,
+body.dark section#classes .class-detail,
+body.dark section#classes .students-table,
+body.dark section#classes .modal-content {
+    background: #2b2d31;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+body.dark section#classes .students-table thead,
+body.dark section#classes .project-item {
+    background: #232428;
+}
+
+body.dark section#classes .project-item:hover,
+body.dark section#classes .students-table tbody tr:hover {
+    background: #34363c;
+}
+
+body.dark section#classes .classes-header h1,
+body.dark section#classes .class-card h3,
+body.dark section#classes .class-detail h2,
+body.dark section#classes .class-info strong,
+body.dark section#classes .students-table th,
+body.dark section#classes .project-item-header,
+body.dark section#classes h1,
+body.dark section#classes h2,
+body.dark section#classes h3 {
+    color: #f0f0f0;
+}
+
+body.dark section#classes .class-info,
+body.dark section#classes .students-table td,
+body.dark section#classes .empty-state {
+    color: #b5b5b5;
+}
+
+body.dark section#classes input,
+body.dark section#classes select,
+body.dark section#classes textarea {
+    background: #1e1f22;
+    color: #e3e3e3;
+    border-color: #44464d;
+}
+
+body.dark section#classes .students-table td,
+body.dark section#classes .students-table th {
+    border-color: #3a3c42;
 }

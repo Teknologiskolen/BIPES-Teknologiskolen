@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCARA-arm (forlæns kinematik)</title>
+  <style>html,body{margin:0;height:100%;background:#fff}#ggb{width:100%;height:100%}</style>
+  <!-- GeoGebra applet loader -->
+  <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+</head>
+<body>
+  <div id="ggb"></div>
+  <script>
+    // A 2-led SCARA-arm: skuldervinkel + albuevinkel -> pennens position.
+    // Træk i de to vinkel-skydere og se hvordan pennen (rød) flytter sig.
+    var params = {
+      appName: "classic", width: 760, height: 540,
+      showToolBar: false, showAlgebraInput: false, showMenuBar: false,
+      showResetIcon: true, enableShiftDragZoom: true, enableLabelDrags: false,
+      appletOnLoad: function (api) {
+        var cmds = [
+          "L1=8", "L2=8",
+          "SetVisibleInView(L1,1,false)", "SetVisibleInView(L2,1,false)",
+          // de to motorvinkler som skydere (i grader)
+          "skulder=Slider(0°,360°,1°)", "SetValue(skulder,55°)", "SetCaption(skulder,\"skuldervinkel\")",
+          "albue=Slider(-150°,150°,1°)", "SetValue(albue,75°)", "SetCaption(albue,\"albuevinkel\")",
+          // led-punkter
+          "O=(0,0)", "SetCaption(O,\"motorer\")",
+          "E=(L1 cos(skulder), L1 sin(skulder))", "SetCaption(E,\"albue\")",
+          "P=(x(E)+L2 cos(skulder+albue), y(E)+L2 sin(skulder+albue))", "SetCaption(P,\"pen\")",
+          // arme
+          "arm1=Segment(O,E)", "SetLineThickness(arm1,7)", "SetColor(arm1,\"#1565C0\")",
+          "arm2=Segment(E,P)", "SetLineThickness(arm2,7)", "SetColor(arm2,\"#2E7D32\")",
+          "SetColor(E,\"#1565C0\")", "SetPointSize(E,5)",
+          "SetColor(P,\"#C62828\")", "SetPointSize(P,7)",
+          // rækkevidde (alt pennen kan nå) + spor
+          "raekkevidde=Circle(O,L1+L2)", "SetColor(raekkevidde,\"#BDBDBD\")", "SetLineStyle(raekkevidde,1)",
+          "SetTrace(P,true)",
+          "SetCoordSystem(-18,18,-6,20)"
+        ];
+        for (var i = 0; i < cmds.length; i++) { try { api.evalCommand(cmds[i]); } catch (e) {} }
+      }
+    };
+    var applet = new GGBApplet(params, true);
+    window.addEventListener("load", function () { applet.inject("ggb"); });
+  </script>
+</body>
+</html>

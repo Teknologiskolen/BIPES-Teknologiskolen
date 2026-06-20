@@ -1,5 +1,5 @@
 # %{SENSORS}
-  <category name="%{SENSORS}">
+  <category name="%{SENSORS}" colour="330">
   
 # %{TEMP_HUMI}
 <category name="%{TEMP_HUMI}">
@@ -50,7 +50,7 @@
 <block type="sht20_humidity"></block>
 
 # Ultrasound
-<category name="Ultrasound">
+<category name="%{CAT_ULTRASOUND}" colour="330">
 
 # HCSR04 ultrasound distance sensor
 <label text="HCSR04 ultrasound distance sensor"></label>
@@ -135,7 +135,7 @@
 <block type="gps_get_time"> </block>
 
 # Oximeter
-<category name="Oximeter">
+<category name="%{CAT_OXIMETER}">
 
 # MAX30100 pulse oximeter sensor
 <label text="MAX30100 pulse oximeter sensor"></label>
@@ -143,7 +143,18 @@
 <button text="%{INSTALL_LIBRARY}: MAX30100" callbackKey="installPyLib"></button>
 
 # max30100_init
-<block type="max30100_init"></block>
+<block type="max30100_init">
+  <value name="scl">
+    <shadow type="math_number">
+      <field name="NUM">22</field>
+    </shadow>
+  </value>
+  <value name="sda">
+    <shadow type="math_number">
+      <field name="NUM">21</field>
+    </shadow>
+  </value>
+</block>
 
 # max30100_read
 <block type="max30100_read"></block>
@@ -352,7 +363,7 @@
 </block>
 
 # RFID Reader
-<category name="RFID Reader">
+<category name="%{CAT_RFID_READER}">
 <label text="RC522 13.56MHz RFID Reader"></label>
 <label text="Library: https://github.com/wendlers/micropython-mfrc522"></label>
 <button text="%{INSTALL_LIBRARY}: MFRC522" callbackKey="installPyLib"></button>
@@ -389,10 +400,32 @@
 </block>
 
 # rfid_rc522_detect_card
-<block type="rfid_rc522_detect_card"></block>
+<block type="rfid_rc522_detect_card">
+  <value name="stat">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="tag">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # rfid_rc522_anticoll
-<block type="rfid_rc522_anticoll"></block>
+<block type="rfid_rc522_anticoll">
+  <value name="stat">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="tag">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # rfid_rc522_read_card
 <block type="rfid_rc522_read_card"></block>
@@ -400,9 +433,9 @@
 # rfid_rc522_write_card
 <block type="rfid_rc522_write_card"></block>
 
-# Rotatory Encoder
-<category name="Rotatory Encoder">
-<label text="Rotatory Incremental Encoder"></label>
+# Rotary Encoder
+<category name="%{CAT_ROTARY_ENCODER}">
+<label text="Rotary Incremental Encoder"></label>
 <button text="%{LOAD_EXAMPLE}: encoder" callbackKey="loadExample"></button>
 <button text="%{DOCUMENTATION_HOW}: encoder" callbackKey="loadDoc"></button>
 
@@ -427,7 +460,7 @@
 <block type="encoder_read"></block>
 
 # Camera (ESP32CAM)
-<category name="Camera (ESP32CAM)">
+<category name="%{CAT_CAMERA_ESP32CAM}">
 <label text="OV2640 Camera on ESP32-CAM Board"></label>
 <button text="%{LOAD_EXAMPLE}: esp32cam" callbackKey="loadExample"></button>
 <label text="More info: https://rafaelaroca.wordpress.com/2021/07/15/esp32-camera-micropython-and-no-esptool/"></label>
@@ -439,9 +472,21 @@
 <block type="esp32_cam_capture"></block>
 
 # esp32_cam_red_led
-<block type="esp32_cam_red_led"></block>
+<block type="esp32_cam_red_led">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_cam_white_led
-<block type="esp32_cam_white_led"></block>
+<block type="esp32_cam_white_led">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # -

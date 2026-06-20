@@ -1,8 +1,10 @@
 import time
 import math
 from machine import Pin
+import stepper
 
 
+# Sand table robot blocks generated from the Python library.
 class SandTableRobot:
     """
     Encapsulates all robot control.
@@ -19,7 +21,7 @@ class SandTableRobot:
     """
 
     # -----------------------------
-    # Internal Stepper class
+    # Internal Stepper class (your original)
     # -----------------------------
     class Stepper:
         def __init__(self, in1, in2, in3, in4, backlash_steps=0):
@@ -43,6 +45,8 @@ class SandTableRobot:
                 pin.value(0)
 
         def step(self, direction):
+            # IMPORTANT: this Stepper.step() takes +/-1 direction, not N steps.
+            # We will provide a helper to step N times.
             if self.last_direction != 0 and direction != self.last_direction:
                 for _ in range(self.backlash_steps):
                     self.current_step = (self.current_step + direction) % self.step_count
@@ -56,17 +60,16 @@ class SandTableRobot:
     # -----------------------------
     # Constructor / configuration
     # -----------------------------
+    # Create a sand table robot instance.
     def __init__(
         self,
-        motor1_pins,  # (in1,in2,in3,in4) shoulder
-        motor2_pins,  # (in1,in2,in3,in4) elbow
+        motor1_pins,  # shoulder motor pins
+        motor2_pins,  # elbow motor pins
         sensor_shoulder_pin,
         sensor_elbow_pin,
         L1=31.0,
         L2=31.0,
         steps_per_rev=4096.0,
-        motor1_dir=1,
-        motor2_dir=1,
         backlash_deg_m1=3.2,
         backlash_deg_m2=3.0,
         homing_dir_shoulder=1,
@@ -76,34 +79,36 @@ class SandTableRobot:
     ):
         self.L1 = float(L1)
         self.L2 = float(L2)
-
         self.STEPS_PER_REV = float(steps_per_rev)
-        self.MOTOR1_DIR = int(motor1_dir)
-        self.MOTOR2_DIR = int(motor2_dir)
 
         self.HOMING_DIR_SKULDER = int(homing_dir_shoulder)
         self.HOMING_DIR_ALBUE = int(homing_dir_elbow)
         self.HOMING_CLEAR_STEPS = int(homing_clear_steps)
-
         self.default_speed_ms = int(default_speed_ms)
 
         self.BACKLASH_STEPS_1 = int((float(backlash_deg_m1) / 360.0) * self.STEPS_PER_REV)
         self.BACKLASH_STEPS_2 = int((float(backlash_deg_m2) / 360.0) * self.STEPS_PER_REV)
 
-        self.current_motor_steps_1 = 0
-        self.current_motor_steps_2 = 0
+        # Cartesian state (global XY)
         self.last_x = self.L1 + self.L2
         self.last_y = 0.0
+
+        # "IK step target" state (your lastShoulderSteps/lastElbowSteps)
+        self.lastShoulderSteps = 0
+        self.lastElbowSteps = 0
+        
+        self.prev_theta1 = 0
+        self.prev_theta2 = 0
 
         self.sensor_skulder = Pin(int(sensor_shoulder_pin), Pin.IN, Pin.PULL_UP)
         self.sensor_albue = Pin(int(sensor_elbow_pin), Pin.IN, Pin.PULL_UP)
 
         m1 = motor1_pins
         m2 = motor2_pins
-        self.skulder = SandTableRobot.Stepper(m1[0], m1[1], m1[2], m1[3], backlash_steps=self.BACKLASH_STEPS_1)
-        self.albue   = SandTableRobot.Stepper(m2[0], m2[1], m2[2], m2[3], backlash_steps=self.BACKLASH_STEPS_2)
+        self.skulder =  stepper.HalfStepMotor.frompins(m1[0], m1[1], m1[2], m1[3])
+        self.albue   =  stepper.HalfStepMotor.frompins(m2[0], m2[1], m2[2], m2[3])
 
-        # Optional: remember last modal state for G-code runs
+        # G-code modal state
         self._g_abs = True
         self._g_units_mm = True
         self._g_last_motion = None  # 0 or 1
@@ -111,62 +116,63 @@ class SandTableRobot:
     # -----------------------------
     # Internal helpers
     # -----------------------------
+    # Turn off both motors
     def off(self):
-        self.skulder.off()
-        self.albue.off()
+        self.skulder.reset()
+        self.albue.reset()
 
     def _rad_to_steps(self, radians):
+        # Keep it identical to your code (int trunc). You can switch to round() later if desired.
         return int((radians / (2 * math.pi)) * self.STEPS_PER_REV)
 
-    def _inverse_kinematics_geometry(self, x, y):
-        r_sq = x*x + y*y
-        r = math.sqrt(r_sq)
-        if r > (self.L1 + self.L2) or r == 0:
-            return None, None
+    def _step_n(self, stepper_obj, steps, speed_ms):
+        """
+        Since Stepper.step() is +/-1 only, expand N steps here.
+        Positive steps => direction +1 repeated.
+        Negative steps => direction -1 repeated.
+        """
+        if steps == 0:
+            return
+        direction = 1 if steps > 0 else -1
+        for _ in range(abs(steps)):
+            stepper_obj.step(direction)
+            if speed_ms > 0:
+                time.sleep_ms(speed_ms)
 
-        cos_theta2 = (r_sq - self.L1**2 - self.L2**2) / (2 * self.L1 * self.L2)
-        cos_theta2 = max(-1.0, min(1.0, cos_theta2))
-        theta2_geom = math.acos(cos_theta2)
+    def _unwrap(self, a, prev):
+        # shift a by ±2π until it is closest to prev
+        while a - prev > math.pi:
+            a -= 2 * math.pi
+        while a - prev < -math.pi:
+            a += 2 * math.pi
+        return a
+    
+    def _InverseKinematics(self, x, y):
+        r2 = x*x + y*y
+        r = math.sqrt(r2)
 
-        k1 = self.L1 + self.L2 * math.cos(theta2_geom)
-        k2 = self.L2 * math.sin(theta2_geom)
-        theta1_geom = math.atan2(y, x) - math.atan2(k2, k1)
-        return theta1_geom, theta2_geom
+        # Reachability (match your logic)
+        if r > (self.L1 + self.L2) or r < 1e-6:
+            return None
 
-    def _geometry_to_motor_angles(self, theta1_geom, theta2_geom):
-        motor1_rad = theta1_geom * self.MOTOR1_DIR
-        motor2_rad = (theta2_geom - theta1_geom) * self.MOTOR2_DIR
-        return motor1_rad, motor2_rad
+        c2 = (r2 - self.L1*self.L1 - self.L2*self.L2) / (2 * self.L1 * self.L2)
+        c2 = max(-1.0, min(1.0, c2))
+        theta2 = math.acos(c2)
 
-    def _low_level_move(self, dx, dy, speed_ms=2):
-        dir_x = 1 if dx > 0 else -1
-        dir_y = 1 if dy > 0 else -1
-        abs_dx = abs(dx)
-        abs_dy = abs(dy)
+        k1 = self.L1 + self.L2 * math.cos(theta2)
+        k2 = self.L2 * math.sin(theta2)
+        theta1 = math.atan2(y, x) - math.atan2(k2, k1)
+        #print(theta1, theta2)
 
-        if abs_dx > abs_dy:
-            err = abs_dx // 2
-            for _ in range(abs_dx):
-                self.skulder.step(dir_x)
-                err -= abs_dy
-                if err < 0:
-                    self.albue.step(dir_y)
-                    err += abs_dx
-                if speed_ms > 0:
-                    time.sleep_ms(speed_ms)
-        else:
-            err = abs_dy // 2
-            for _ in range(abs_dy):
-                self.albue.step(dir_y)
-                err -= abs_dx
-                if err < 0:
-                    self.skulder.step(dir_x)
-                    err += abs_dy
-                if speed_ms > 0:
-                    time.sleep_ms(speed_ms)
+        return (theta1, theta2)
+
+    def _moveSteppersCount(self, shoulder, elbow):
+        shoulderSteps = self._rad_to_steps(shoulder)
+        elbowSteps = self._rad_to_steps(elbow)
+        return shoulderSteps, elbowSteps
 
     # -----------------------------
-    # Internal G-code parsing helpers
+    # Internal G-code parsing helpers (unchanged)
     # -----------------------------
     def _strip_comment(self, line):
         i = line.find(';')
@@ -175,7 +181,6 @@ class SandTableRobot:
         return line.strip()
 
     def _parse_tokens(self, line):
-        # Tiny tokenizer: returns dict like {'G':1.0,'X':10.0,'Y':-2.5,'F':1200.0}
         out = {}
         i = 0
         n = len(line)
@@ -227,11 +232,6 @@ class SandTableRobot:
         self._g_last_motion = None
 
     def _gcode_process_line(self, raw_line, segments=40, draw_speed_ms=None, travel_speed_ms=None):
-        """
-        Process ONE line of G-code. Keeps modal state in self._g_abs/_g_units_mm/_g_last_motion.
-        Supports: G0/G1, G90/G91, G20/G21, X/Y, F (ignored).
-        Returns True if a move was executed, else False.
-        """
         if draw_speed_ms is None:
             draw_speed_ms = self.default_speed_ms
         if travel_speed_ms is None:
@@ -243,10 +243,8 @@ class SandTableRobot:
 
         t = self._parse_tokens(line)
 
-        # Modal updates
         if 'G' in t:
             g = int(t['G'])
-
             if g == 90:
                 self._g_abs = True
                 return False
@@ -259,22 +257,18 @@ class SandTableRobot:
             if g == 20:
                 self._g_units_mm = False
                 return False
-
-            if g == 0 or g == 1:
+            if g in (0, 1):
                 self._g_last_motion = g
 
-        # Need a motion mode
         if self._g_last_motion not in (0, 1):
             return False
 
-        # Need XY words
         if ('X' not in t) and ('Y' not in t):
             return False
 
         rapid = (self._g_last_motion == 0)
         speed = travel_speed_ms if rapid else draw_speed_ms
 
-        # Unit conversion
         def to_mm(v):
             return v if self._g_units_mm else (v * 25.4)
 
@@ -295,6 +289,7 @@ class SandTableRobot:
     # -----------------------------
     # Public: Homing
     # -----------------------------
+    # Move the robot to its home position.
     def home(self):
         print("Starter Homing...")
 
@@ -307,8 +302,7 @@ class SandTableRobot:
             self.skulder.step(self.HOMING_DIR_SKULDER)
             time.sleep_ms(3)
 
-        self.current_motor_steps_1 = 0
-        self.skulder.off()
+        self.skulder.reset()
         print(">> Skulder Nulstillet!")
 
         print("Homing Albue (M2)...")
@@ -320,52 +314,84 @@ class SandTableRobot:
             self.albue.step(self.HOMING_DIR_ALBUE)
             time.sleep_ms(3)
 
-        self.current_motor_steps_2 = 0
-        self.albue.off()
+        self.albue.reset()
         print(">> Albue Nulstillet!")
         print("HOMING COMPLETE")
 
+        # After homing, you choose what Cartesian pose corresponds to this physical pose.
+        # Keep your previous assumption (fully extended along +X):
         self.last_x = self.L1 + self.L2
         self.last_y = 0.0
 
-        # Reset modal state for safety
+        # Initialize lastShoulderSteps/lastElbowSteps from that pose (so first move delta is correct)
+        ik0 = self._InverseKinematics(self.last_x, self.last_y)
+        if ik0 is None:
+            self.lastShoulderSteps = 0
+            self.lastElbowSteps = 0
+        else:
+            sh, el = ik0
+            self.lastShoulderSteps, self.lastElbowSteps = self._moveSteppersCount(sh, el)
+
         self._gcode_reset_modal()
 
     # ==========================================================
-    # --- PUBLIC DRAWING API (requested)
+    # --- PUBLIC DRAWING API (now uses your IK + step deltas)
     # ==========================================================
-    def move_line(self, target_x, target_y, segments=40, speed=None):
+    # Move the robot in a straight line to the target point.
+    def move_line(self, target_x, target_y, segments=500, speed=None):
         if speed is None:
             speed = self.default_speed_ms
 
         start_x = self.last_x
         start_y = self.last_y
 
+        deltaX = (target_x - start_x) / segments
+        deltaY = (target_y - start_y) / segments
+
+        reached_x = start_x
+        reached_y = start_y
+
         for i in range(1, segments + 1):
-            fraction = i / segments
-            next_x = start_x + (target_x - start_x) * fraction
-            next_y = start_y + (target_y - start_y) * fraction
+            px = start_x + deltaX * i
+            py = start_y + deltaY * i
 
-            t1_geo, t2_geo = self._inverse_kinematics_geometry(next_x, next_y)
-            if t1_geo is None:
-                print("Fejl: Punkt uden for rækkevidde!", next_x, next_y)
+            ik = self._InverseKinematics(px, py)
+            if ik is None:
+                print("Fejl: Punkt uden for rækkevidde!", px, py)
                 break
+            theta1, theta2 = ik
 
-            m1_rad, m2_rad = self._geometry_to_motor_angles(t1_geo, t2_geo)
-            target_steps_1 = self._rad_to_steps(m1_rad)
-            target_steps_2 = self._rad_to_steps(m2_rad)
+            if self.prev_theta1 is None:
+                self.prev_theta1, self.prev_theta2 = theta1, theta2
+            else:
+                theta1 = self._unwrap(theta1, self.prev_theta1)
+                theta2 = self._unwrap(theta2, self.prev_theta2)  # optional, usually less critical
+                self.prev_theta1, self.prev_theta2 = theta1, theta2
 
-            d_steps_1 = target_steps_1 - self.current_motor_steps_1
-            d_steps_2 = target_steps_2 - self.current_motor_steps_2
+            shoulder, elbow = theta1, theta2
+            shoulderSteps, elbowSteps = self._moveSteppersCount(shoulder, (elbow - shoulder))
 
-            self._low_level_move(d_steps_1, d_steps_2, speed_ms=int(speed))
+            totalShoulderSteps = shoulderSteps - self.lastShoulderSteps
+            totalElbowSteps = elbowSteps - self.lastElbowSteps
 
-            self.current_motor_steps_1 += d_steps_1
-            self.current_motor_steps_2 += d_steps_2
+            # Your mapping exactly:
+            # skulder motor gets totalShoulderSteps
+            # albue motor gets (totalShoulderSteps - totalElbowSteps)
+            self.skulder.step(totalShoulderSteps)
+            self.albue.step(totalElbowSteps)
+            #self._step_n(self.skulder, totalShoulderSteps, speed_ms=int(speed))
+            #self._step_n(self.albue,   totalShoulderSteps - totalElbowSteps, speed_ms=int(speed))
 
-        self.last_x = float(target_x)
-        self.last_y = float(target_y)
+            self.lastShoulderSteps = shoulderSteps
+            self.lastElbowSteps = elbowSteps
 
+            reached_x = px
+            reached_y = py
+
+        self.last_x = float(reached_x)
+        self.last_y = float(reached_y)
+
+    # Draw an arc on the sand table.
     def move_arc(self, center_x, center_y, radius, start_angle, end_angle, segments=50, speed=None):
         if speed is None:
             speed = self.default_speed_ms
@@ -373,13 +399,9 @@ class SandTableRobot:
         start_rad = math.radians(start_angle)
         end_rad = math.radians(end_angle)
 
-        print("Arc: Center({},{}) R={} Vinkel {}->{}".format(
-            center_x, center_y, radius, start_angle, end_angle
-        ))
-
         start_point_x = center_x + radius * math.cos(start_rad)
         start_point_y = center_y + radius * math.sin(start_rad)
-        self.move_line(start_point_x, start_point_y, segments=20, speed=speed)
+        self.move_line(start_point_x, start_point_y, segments=200, speed=speed)
 
         for i in range(1, segments + 1):
             fraction = i / segments
@@ -388,34 +410,30 @@ class SandTableRobot:
             target_y = center_y + radius * math.sin(current_angle)
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
+    # Draw a spiral pattern.
     def draw_spiral(self, max_radius, vindinger=10, segments_pr_omgang=60, speed=None):
         if speed is None:
             speed = self.default_speed_ms
 
-        print("Tegner spiral: R={}, omgange={}".format(max_radius, vindinger))
-
         total_angle = vindinger * 360
         total_segments = vindinger * segments_pr_omgang
 
-        self.move_line(0, 0, speed=speed)
+        self.move_line(0, 0, segments=500, speed=speed)
 
         for i in range(1, total_segments + 1):
             fraction = i / total_segments
             angle_rad = math.radians(total_angle * fraction)
             current_radius = max_radius * fraction
-
             target_x = current_radius * math.cos(angle_rad)
             target_y = current_radius * math.sin(angle_rad)
-
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
+    # Draw a flower pattern.
     def draw_flower(self, max_radius, petals=5, speed=None):
         if speed is None:
             speed = self.default_speed_ms
 
-        print("Tegner blomst med {} blade".format(petals))
-
-        self.move_line(0, 0, speed=speed)
+        self.move_line(0, 0, segments=500, speed=speed)
 
         steps = 360
         for i in range(steps + 1):
@@ -426,35 +444,19 @@ class SandTableRobot:
             self.move_line(target_x, target_y, segments=1, speed=speed)
 
     # ==========================================================
-    # --- PUBLIC: Run G-code (NEW)
+    # --- PUBLIC: Run G-code (unchanged)
     # ==========================================================
+    # Run G-code from a text string.
     def run_gcode_text(self, gcode_text, segments=40, draw_speed_ms=None, travel_speed_ms=None, reset_modal=True):
-        """
-        Run G-code from a string, line-by-line (low RAM).
-        """
         if reset_modal:
             self._gcode_reset_modal()
-
         for raw in gcode_text.split('\n'):
-            self._gcode_process_line(
-                raw,
-                segments=segments,
-                draw_speed_ms=draw_speed_ms,
-                travel_speed_ms=travel_speed_ms
-            )
+            self._gcode_process_line(raw, segments=segments, draw_speed_ms=draw_speed_ms, travel_speed_ms=travel_speed_ms)
 
+    # Run G-code from a file path.
     def run_gcode_file(self, path, segments=40, draw_speed_ms=None, travel_speed_ms=None, reset_modal=True):
-        """
-        Run G-code from a file, streaming one line at a time (best for Pico).
-        """
         if reset_modal:
             self._gcode_reset_modal()
-
         with open(path, "r") as f:
             for raw in f:
-                self._gcode_process_line(
-                    raw,
-                    segments=segments,
-                    draw_speed_ms=draw_speed_ms,
-                    travel_speed_ms=travel_speed_ms
-                )
+                self._gcode_process_line(raw, segments=segments, draw_speed_ms=draw_speed_ms, travel_speed_ms=travel_speed_ms)

@@ -1,8 +1,8 @@
 # %{TIME}
-  <category name="%{TIME}">
+  <category name="%{TIME}" colour="70">
 
 # utime
-<category name="utime">
+<category name="utime" colour="70">
 <label text="Delay Library"></label>
 
 # utime_localtime

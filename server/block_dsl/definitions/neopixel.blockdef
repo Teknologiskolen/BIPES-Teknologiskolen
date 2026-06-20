@@ -1,0 +1,50 @@
+// Block definitions for NeoPixel / WS2812 LED strips (neopixel.py, Neopixel class).
+// Multiple-instance: give each strip an ID. NOTE: unlike the old blocks, drawing does
+// NOT auto-refresh — call "show" after setting pixels (one refresh per frame is much
+// faster in a loop). Colour value blocks (RGB / colour picker / HSL) stay separate.
+// The library .py is untouched; this .blockdef is the single source of truth.
+
+module neopixel
+import "neopixel"
+url "https://github.com/blaz-r/pi_pico_neopixel"
+
+category "NeoPixel Strip" color=45 {
+
+    class Neopixel as multiple ref key_input {
+
+        block __init__ tooltip="Create a NeoPixel strip (number of LEDs, PIO state machine 0-7, data pin)." {
+            param number type=Number default=8
+            param state_machine type=Number default=0
+            param pin type=Number default=0 pin
+        }
+
+        block brightness tooltip="Set the overall strip brightness (1-255)." {
+            param brightness type=Number default=128
+        }
+        block set_pixel tooltip="Set one LED to a colour (connect a colour block)." {
+            param pixel_num type=Number default=0
+            param rgb_w type=Any
+            param how_bright type=Number default=255
+        }
+        block set_pixel_line tooltip="Set a range of LEDs to a colour." {
+            param pixel1 type=Number default=0
+            param pixel2 type=Number default=1
+            param rgb_w type=Any
+            param how_bright type=Number default=255
+        }
+        block set_pixel_line_gradient tooltip="Fade a range of LEDs from one colour to another." {
+            param pixel1 type=Number default=0
+            param pixel2 type=Number default=1
+            param left_rgb_w type=Any
+            param right_rgb_w type=Any
+            param how_bright type=Number default=255
+        }
+        block rotate_left tooltip="Shift all LEDs left by a number of steps." {
+            param num_of_pixels type=Number default=1
+        }
+        block rotate_right tooltip="Shift all LEDs right by a number of steps." {
+            param num_of_pixels type=Number default=1
+        }
+        block show tooltip="Send the pixel buffer to the strip (refresh). Call after setting pixels."
+    }
+}

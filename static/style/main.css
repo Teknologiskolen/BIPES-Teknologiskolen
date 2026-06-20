@@ -54,9 +54,22 @@ hr {
 }
 body.dark select {
   border: 1px solid #fff;
+  /* `select { background: none }` leaves the closed control transparent AND makes the
+     dropdown options render white-on-white in dark mode. Give both an explicit dark
+     background so the language list (English/Dansk/Deutsch) is legible. */
+  background-color: #333;
+  color: #fff;
+}
+body.dark select option {
+  background-color: #333;
+  color: #fff;
 }
 body.light select {
   border: 1px solid #000;
+}
+body.light select option {
+  background-color: #fff;
+  color: #000;
 }
 select {
   border-radius: 2rem;
@@ -443,6 +456,93 @@ nav #user-info #logout-link::before {
 nav #user-info #logout-link:hover {
   background: rgba(68,153,204,.2);
 }
+
+/* Guest sign-in block — mirrors #user-info (fades in only when the nav is expanded). */
+nav #guest-info {
+  text-align: center;
+  font-weight: normal;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: .125s ease opacity;
+  transition-delay: .25s;
+  border-top: 1px solid rgba(125,125,125,.3);
+  margin-top: auto;
+}
+nav.on #guest-info {
+  opacity: 1;
+}
+nav #guest-info #guest-label {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  padding-bottom: 0.15rem;
+}
+nav #guest-info #login-link {
+  display: inline-block;
+  margin-top: 0.3rem;
+  color: #4499cc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: none;
+  border: 1px solid #4499cc;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  text-align: center;
+}
+nav #guest-info #login-link:hover {
+  background: rgba(68,153,204,.2);
+}
+
+/* The nav's bottom cluster is a flex column so we can pin the login/logout action to
+   the very bottom-left corner regardless of the (invisible-when-collapsed) guest-info
+   and version lines above it. Desktop-only: below 40rem the nav is a bottom bar and
+   #extra is display:none (don't override that). */
+@media only screen and (min-width: 40rem) {
+  nav #extra {
+    display: flex;
+    flex-flow: column;
+  }
+}
+
+/* Compact login/logout shown ONLY while the nav is collapsed; the full versions live
+   in #guest-info / #user-info and fade in when the nav expands. This prevents the
+   collapsed quick-action and the expanded block from both showing at once. `order`
+   keeps it as the last (bottom-most) item in #extra. */
+nav #login-quick,
+nav #logout-quick {
+  order: 10;
+  display: block;
+  /* Match the collapsed nav width (3.5rem) so the centered text is visible in the
+     column. #extra is 13.5em wide (nav div rule), so width:100% would push the
+     centered label out of the clipped collapsed column and hide it. */
+  width: 3.5rem;
+  height: auto;
+  padding: 0.5rem 0;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  text-align: center;
+  color: #4499cc;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+body.dark nav #login-quick,
+body.dark nav #logout-quick { color: #6cb6e0; }
+nav #login-quick::before,
+nav #logout-quick::before {
+  display: none;
+}
+nav.on #login-quick,
+nav.on #logout-quick {
+  display: none;
+}
+
 nav #app-version {
   text-align: center;
   font-weight: normal;
@@ -959,6 +1059,17 @@ div#status-bar {
   box-shadow: 0 0 .25em rgba(0,0,0,.25);
   display: flex;
   justify-content: space-between;
+}
+/* Give the status bar a distinct background per theme so it doesn't blend into the
+   (otherwise same-coloured) body — the Forum / Mode / Language controls were hard to
+   read in dark mode. */
+body.dark div#status-bar {
+  background-color: #2b2b2b;
+  color: #fff;
+}
+body.light div#status-bar {
+  background-color: #fff;
+  color: #000;
 }
 div#status-bar #globals {
   display: inline-block;

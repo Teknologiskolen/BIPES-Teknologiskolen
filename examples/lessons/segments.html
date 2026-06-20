@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fra drejning til streg</title>
+  <style>
+    body { margin: 0; font: 15px/1.45 system-ui, sans-serif; color: #222; background: #fafafa; text-align: center; }
+    canvas { background: #fff; border: 1px solid #ddd; border-radius: 8px; max-width: 100%; }
+    .ctl { margin: 12px auto 4px; max-width: 540px; }
+    input[type=range] { width: 60%; vertical-align: middle; }
+    .legend { margin-top: 6px; color: #555; font-size: 13px; }
+    .legend i { display: inline-block; width: 16px; height: 4px; vertical-align: middle; margin: 0 4px 0 12px; border-radius: 2px; }
+    b { color: #111; }
+  </style>
+</head>
+<body>
+  <div class="ctl">
+    <b>Antal segmenter:</b> <span id="nval">4</span>
+    <br>
+    <input id="n" type="range" min="1" max="60" value="4">
+    <div class="legend">
+      <i style="background:#9e9e9e"></i>den streg vi ønsker
+      <i style="background:#e53935"></i>den vej robotten faktisk tegner
+    </div>
+  </div>
+  <canvas id="c" width="540" height="380"></canvas>
+  <script>
+    // To roterende arme (L1, L2). For at tegne en RET streg deler vi stregen op i
+    // N stykker, regner motorvinklerne ud i hvert delepunkt (invers kinematik) og
+    // drejer jævnt mellem dem. Mellem delepunkterne buer pennen lidt — jo flere
+    // segmenter, jo mindre bue, og stregen bliver ret.
+    var cv = document.getElementById('c'), ctx = cv.getContext('2d');
+    var L1 = 130, L2 = 130, cx = cv.width / 2, cy = cv.height - 55;
+    var A = { x: -120, y: 150 }, B = { x: 120, y: 150 };   // stregens endepunkter (verden)
+    var N = 4, t = 0;
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function ik(x, y) {                                      // invers kinematik (albue op)
+      var r2 = x * x + y * y;
+      var c2 = clamp((r2 - L1 * L1 - L2 * L2) / (2 * L1 * L2), -1, 1);
+      var a2 = Math.acos(c2);
+      var a1 = Math.atan2(y, x) - Math.atan2(L2 * Math.sin(a2), L1 + L2 * Math.cos(a2));
+      return [a1, a2];
+    }
+    function fk(a1, a2) {                                    // forlæns kinematik
+      var ex = L1 * Math.cos(a1), ey = L1 * Math.sin(a1);
+      return { ex: ex, ey: ey, px: ex + L2 * Math.cos(a1 + a2), py: ey + L2 * Math.sin(a1 + a2) };
+    }
+    function S(wx, wy) { return { x: cx + wx, y: cy - wy }; } // verden -> skærm (y opad)
+    function lerp(a, b, u) { return a + (b - a) * u; }
+
+    document.getElementById('n').addEventListener('input', function (e) {
+      N = +e.target.value; document.getElementById('nval').textContent = N;
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      // rækkevidde
+      ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, L1 + L2, 0, Math.PI * 2); ctx.stroke();
+      // ønsket streg (stiplet)
+      var a = S(A.x, A.y), b = S(B.x, B.y);
+      ctx.setLineDash([6, 5]); ctx.strokeStyle = '#9e9e9e'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+
+      // vinkler i hvert delepunkt
+      var wp = [];
+      for (var i = 0; i <= N; i++) wp.push(ik(lerp(A.x, B.x, i / N), lerp(A.y, B.y, i / N)));
+
+      // robottens faktiske vej (jævn drejning mellem delepunkter -> buer)
+      var sub = 16;
+      ctx.strokeStyle = '#e53935'; ctx.lineWidth = 2.5; ctx.beginPath();
+      var first = true;
+      for (var i = 0; i < N; i++) {
+        for (var k = 0; k <= sub; k++) {
+          var u = k / sub, f = fk(lerp(wp[i][0], wp[i + 1][0], u), lerp(wp[i][1], wp[i + 1][1], u));
+          var p = S(f.px, f.py);
+          if (first) { ctx.moveTo(p.x, p.y); first = false; } else ctx.lineTo(p.x, p.y);
+        }
+      }
+      ctx.stroke();
+
+      // delepunkter
+      ctx.fillStyle = '#616161';
+      for (var i = 0; i <= N; i++) { var w = S(lerp(A.x, B.x, i / N), lerp(A.y, B.y, i / N)); ctx.beginPath(); ctx.arc(w.x, w.y, 2.5, 0, 7); ctx.fill(); }
+
+      // animeret arm der kører hen ad vejen
+      t += 0.006; if (t > 1) t = 0;
+      var seg = clamp(Math.floor(t * N), 0, N - 1), u = t * N - seg;
+      var f = fk(lerp(wp[seg][0], wp[seg + 1][0], u), lerp(wp[seg][1], wp[seg + 1][1], u));
+      var O = S(0, 0), E = S(f.ex, f.ey), P = S(f.px, f.py);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.lineTo(E.x, E.y); ctx.stroke();
+      ctx.strokeStyle = '#2e7d32'; ctx.beginPath(); ctx.moveTo(E.x, E.y); ctx.lineTo(P.x, P.y); ctx.stroke();
+      ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(O.x, O.y, 5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#1565c0'; ctx.beginPath(); ctx.arc(E.x, E.y, 4, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c62828'; ctx.beginPath(); ctx.arc(P.x, P.y, 5, 0, 7); ctx.fill();
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

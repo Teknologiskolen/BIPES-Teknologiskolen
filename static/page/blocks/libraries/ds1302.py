@@ -88,4 +88,3 @@ class DS1302:
         self._write_byte(self.REG_MONTH, self.dec_to_bcd(month))
         self._write_byte(self.REG_YEAR, self.dec_to_bcd(year - 2000))
         self._write_byte(self.REG_WP, 0x80)
-

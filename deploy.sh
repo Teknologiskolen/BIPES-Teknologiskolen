@@ -1,198 +1,283 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ============================================================================
-# BIPES Deployment Script
-# Usage: sudo ./deploy.sh [--domain YOUR_DOMAIN] [--email YOUR_EMAIL]
+# Provision or update BIPES on an Ubuntu VM.
 #
-# If --domain is provided, sets up Let's Encrypt SSL.
-# Otherwise, generates self-signed certificates for testing.
-# ============================================================================
+# Production:
+#   sudo ./deploy.sh --domain bipes.example.com
+#
+# Temporary IP-only test:
+#   sudo ./deploy.sh --self-signed
 
 DOMAIN=""
-EMAIL=""
+SELF_SIGNED=false
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE=(docker compose
+  -f "$INSTALL_DIR/docker-compose.yml"
+  -f "$INSTALL_DIR/docker-compose.prod.yml")
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --domain) DOMAIN="$2"; shift 2 ;;
-    --email)  EMAIL="$2"; shift 2 ;;
-    --help)
-      echo "Usage: sudo ./deploy.sh [--domain YOUR_DOMAIN] [--email YOUR_EMAIL]"
-      echo ""
-      echo "Options:"
-      echo "  --domain   Domain name for Let's Encrypt SSL (e.g., bipes.example.com)"
-      echo "  --email    Email for Let's Encrypt notifications"
-      echo ""
-      echo "Without --domain, self-signed certificates are used."
+usage() {
+  cat <<'EOF'
+Usage:
+  sudo ./deploy.sh --domain DOMAIN
+  sudo ./deploy.sh --self-signed
+
+Options:
+  --domain DOMAIN   Public DNS name pointing at this VM
+  --self-signed     Explicitly use a browser-warning certificate for testing
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --domain)
+      DOMAIN="${2:-}"
+      shift 2
+      ;;
+    --self-signed)
+      SELF_SIGNED=true
+      shift
+      ;;
+    --help|-h)
+      usage
       exit 0
       ;;
-    *) echo "Unknown option: $1. Use --help for usage."; exit 1 ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
   esac
 done
 
-# Check root
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run with sudo: sudo ./deploy.sh"
+  echo "Run this script with sudo." >&2
   exit 1
 fi
 
-echo "============================================"
-echo "  BIPES Deployment"
-echo "============================================"
-echo ""
-
-# -----------------------------------------------------------
-# Step 1: Install Docker if not present
-# -----------------------------------------------------------
-if ! command -v docker &> /dev/null; then
-  echo "[1/7] Installing Docker..."
-  apt-get update -qq
-  apt-get install -y -qq ca-certificates curl gnupg
-  install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-    https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-    > /etc/apt/sources.list.d/docker.list
-  apt-get update -qq
-  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
-  systemctl enable docker
-  systemctl start docker
-  echo "  Docker installed."
-else
-  echo "[1/7] Docker already installed, skipping."
+if [ "$SELF_SIGNED" = false ] && [ -z "$DOMAIN" ]; then
+  echo "Production deployment requires --domain." >&2
+  echo "Use --self-signed only for temporary IP testing." >&2
+  exit 1
 fi
 
-# -----------------------------------------------------------
-# Step 2: Generate .env with secure random values
-# -----------------------------------------------------------
-generate_secret() {
-  openssl rand -base64 32 | tr -d '=/+' | head -c 48
+if [ "$SELF_SIGNED" = true ] && [ -n "$DOMAIN" ]; then
+  echo "Do not combine --self-signed with --domain." >&2
+  exit 1
+fi
+
+if [ ! -f /etc/os-release ] || ! grep -qi 'ubuntu' /etc/os-release; then
+  echo "This installer currently supports Ubuntu VMs." >&2
+  exit 1
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+
+install_docker() {
+  if docker compose version >/dev/null 2>&1; then
+    return
+  fi
+
+  apt-get update
+  apt-get install -y ca-certificates curl gnupg
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+    gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+
+  . /etc/os-release
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
+    > /etc/apt/sources.list.d/docker.list
+
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  systemctl enable --now docker
 }
 
-if [ ! -f "$INSTALL_DIR/.env" ]; then
-  echo "[2/7] Generating .env with secure secrets..."
-  cat > "$INSTALL_DIR/.env" << EOF
+ensure_swap() {
+  if swapon --show --noheadings | grep -q .; then
+    return
+  fi
+
+  # One gigabyte is enough to keep image builds from being killed on the 2 GB VM
+  # without consuming too much of the 15 GB SSD.
+  fallocate -l 1G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile >/dev/null
+  swapon /swapfile
+  grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  sysctl -w vm.swappiness=10 >/dev/null
+  printf 'vm.swappiness=10\n' > /etc/sysctl.d/99-bipes.conf
+}
+
+generate_secret() {
+  # 256 random bits encoded as unpadded RFC 4648 Base32. The output contains
+  # only A-Z and 2-7, so it is safe in an unquoted dotenv assignment.
+  openssl rand 32 | base32 | tr -d '=\n'
+}
+
+prepare_env() {
+  if [ ! -f "$INSTALL_DIR/.env" ]; then
+    umask 077
+    cat > "$INSTALL_DIR/.env" <<EOF
+COMPOSE_PROJECT_NAME=bipes
+AUTH_MODE=full
 FLASK_SECRET_KEY=$(generate_secret)
+PASSWORD_PEPPER=$(generate_secret)
 POSTGRES_DB=bipes
 POSTGRES_USER=bipes_user
 POSTGRES_PASSWORD=$(generate_secret)
+MOSQUITTO_USERNAME=bipes-server
 MOSQUITTO_PASSWORD=$(generate_secret)
+MOSQUITTO_DYNSEC_ENABLED=true
+MOSQUITTO_DYNSEC_ADMIN_USERNAME=admin
+MOSQUITTO_DYNSEC_ADMIN_PASSWORD=$(generate_secret)
+GUNICORN_WORKERS=1
+GUNICORN_THREADS=4
+BACKUP_RETENTION_DAYS=7
 EOF
+  fi
+
   chmod 600 "$INSTALL_DIR/.env"
-  echo "  .env created."
-else
-  echo "[2/7] .env already exists, skipping."
-fi
 
-# -----------------------------------------------------------
-# Step 3: SSL setup
-# -----------------------------------------------------------
-mkdir -p "$INSTALL_DIR/docker/ssl"
-
-if [ -n "$DOMAIN" ] && [ -n "$EMAIL" ]; then
-  echo "[3/7] Setting up Let's Encrypt SSL for $DOMAIN..."
-
-  # Install certbot if needed
-  if ! command -v certbot &> /dev/null; then
-    apt-get install -y -qq certbot
+  if grep -Eq '(^|=)(changeme|change-this|change-this-password|change-this-dynsec-admin-password)' "$INSTALL_DIR/.env"; then
+    echo ".env still contains placeholder secrets. Replace them before deployment." >&2
+    exit 1
   fi
 
-  # Stop anything on port 80 temporarily
-  docker compose -f "$INSTALL_DIR/docker-compose.yml" down 2>/dev/null || true
-
-  certbot certonly --standalone -d "$DOMAIN" -m "$EMAIL" --agree-tos --non-interactive
-
-  cp "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$INSTALL_DIR/docker/ssl/cert.pem"
-  cp "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$INSTALL_DIR/docker/ssl/key.pem"
-
-  # Auto-renewal cron
-  cat > /etc/cron.d/bipes-certbot << CRON
-0 3 * * * root certbot renew --quiet --deploy-hook "cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem $INSTALL_DIR/docker/ssl/cert.pem && cp /etc/letsencrypt/live/$DOMAIN/privkey.pem $INSTALL_DIR/docker/ssl/key.pem && docker restart bipes_nginx" 2>&1 | logger -t bipes-certbot
-CRON
-  echo "  Let's Encrypt configured with auto-renewal."
-else
-  if [ ! -f "$INSTALL_DIR/docker/ssl/cert.pem" ]; then
-    echo "[3/7] Generating self-signed SSL certificates..."
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-      -keyout "$INSTALL_DIR/docker/ssl/key.pem" \
-      -out "$INSTALL_DIR/docker/ssl/cert.pem" \
-      -subj "/CN=localhost" 2>/dev/null
-    echo "  Self-signed certificates created."
-  else
-    echo "[3/7] SSL certificates already exist, skipping."
-  fi
-fi
-
-# -----------------------------------------------------------
-# Step 4: Configure Mosquitto authentication
-# -----------------------------------------------------------
-if [ ! -f "$INSTALL_DIR/docker/mosquitto_passwd" ]; then
-  echo "[4/7] Configuring Mosquitto authentication..."
+  set -a
+  # shellcheck disable=SC1091
   source "$INSTALL_DIR/.env"
-  # Generate password file using the mosquitto container
-  docker run --rm \
-    -v "$INSTALL_DIR/docker:/mosquitto/config" \
-    eclipse-mosquitto:2.0 \
-    mosquitto_passwd -b -c /mosquitto/config/mosquitto_passwd bipes "$MOSQUITTO_PASSWORD"
-  echo "  Mosquitto password file created."
-else
-  echo "[4/7] Mosquitto password file exists, skipping."
-fi
+  set +a
 
-# -----------------------------------------------------------
-# Step 5: Firewall
-# -----------------------------------------------------------
-echo "[5/7] Configuring firewall..."
-if command -v ufw &> /dev/null; then
-  ufw allow OpenSSH >/dev/null 2>&1
-  ufw allow 80/tcp >/dev/null 2>&1
-  ufw allow 443/tcp >/dev/null 2>&1
-  ufw --force enable >/dev/null 2>&1
-  echo "  Firewall configured (SSH, HTTP, HTTPS)."
-else
-  echo "  UFW not found, skipping firewall config."
-fi
+  for name in FLASK_SECRET_KEY PASSWORD_PEPPER POSTGRES_PASSWORD MOSQUITTO_PASSWORD MOSQUITTO_DYNSEC_ADMIN_PASSWORD; do
+    if [ -z "${!name:-}" ]; then
+      echo "Required variable $name is missing from .env." >&2
+      exit 1
+    fi
+  done
+}
 
-# -----------------------------------------------------------
-# Step 6: Database backup cron
-# -----------------------------------------------------------
-echo "[6/7] Setting up daily database backups..."
-mkdir -p "$INSTALL_DIR/backups"
-cat > /etc/cron.d/bipes-backup << CRON
-0 2 * * * root $INSTALL_DIR/docker/backup-db.sh 2>&1 | logger -t bipes-backup
-CRON
-echo "  Daily backup cron configured."
+install_certificate() {
+  install -d -m 0750 "$INSTALL_DIR/docker/ssl"
+  install -m 0644 "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$INSTALL_DIR/docker/ssl/cert.pem"
+  install -m 0600 "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$INSTALL_DIR/docker/ssl/key.pem"
+}
 
-# -----------------------------------------------------------
-# Step 7: Build and start
-# -----------------------------------------------------------
-echo "[7/7] Building and starting BIPES..."
+prepare_tls() {
+  if [ "$SELF_SIGNED" = true ]; then
+    if [ ! -s "$INSTALL_DIR/docker/ssl/cert.pem" ] || [ ! -s "$INSTALL_DIR/docker/ssl/key.pem" ]; then
+      "$INSTALL_DIR/docker/generate-ssl.sh"
+    fi
+    return
+  fi
+
+  apt-get update
+  apt-get install -y certbot
+
+  if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    "${COMPOSE[@]}" down >/dev/null 2>&1 || true
+    certbot certonly --standalone \
+      --domain "$DOMAIN" \
+      --register-unsafely-without-email \
+      --agree-tos \
+      --non-interactive
+  fi
+
+  install_certificate
+
+  # Certbot's systemd timer performs renewal. This hook copies renewed files
+  # into the bind-mounted directory and reloads both TLS consumers.
+  install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+  cat > /etc/letsencrypt/renewal-hooks/deploy/bipes <<EOF
+#!/bin/sh
+set -eu
+install -m 0644 /etc/letsencrypt/live/$DOMAIN/fullchain.pem "$INSTALL_DIR/docker/ssl/cert.pem"
+install -m 0600 /etc/letsencrypt/live/$DOMAIN/privkey.pem "$INSTALL_DIR/docker/ssl/key.pem"
 cd "$INSTALL_DIR"
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx mosquitto
+EOF
+  chmod 700 /etc/letsencrypt/renewal-hooks/deploy/bipes
+}
 
-echo ""
-echo "Waiting for services to start..."
-sleep 10
-docker compose ps
+configure_firewall() {
+  apt-get install -y ufw
+  ufw allow OpenSSH
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw allow 8883/tcp
+  ufw --force enable
+}
 
-echo ""
-echo "============================================"
-echo "  BIPES is running!"
-echo "============================================"
-if [ -n "$DOMAIN" ]; then
-  echo "  Access at: https://$DOMAIN"
+configure_maintenance() {
+  chmod 700 "$INSTALL_DIR/docker/backup-db.sh"
+  chmod 700 "$INSTALL_DIR/docker/cleanup-db.sh"
+  install -d -m 0700 "$INSTALL_DIR/backups"
+
+  cat > /etc/cron.d/bipes-backup <<EOF
+17 2 * * * root "$INSTALL_DIR/docker/backup-db.sh" 2>&1 | logger -t bipes-backup
+EOF
+  chmod 644 /etc/cron.d/bipes-backup
+
+  # Nightly purge of revoked/expired sessions and aged-out audit events so the auth
+  # tables can't grow unbounded on the 15 GB disk (and PII isn't retained forever).
+  cat > /etc/cron.d/bipes-db-cleanup <<EOF
+37 3 * * * root "$INSTALL_DIR/docker/cleanup-db.sh" 2>&1 | logger -t bipes-db-cleanup
+EOF
+  chmod 644 /etc/cron.d/bipes-db-cleanup
+
+  # Reclaim stale build cache and unused images weekly. Volumes are deliberately
+  # excluded because they contain PostgreSQL and Mosquitto state.
+  cat > /etc/cron.d/bipes-docker-prune <<'EOF'
+43 3 * * 0 root docker image prune -af --filter "until=168h" 2>&1 | logger -t bipes-docker-prune
+53 3 * * 0 root docker builder prune -af --filter "until=168h" 2>&1 | logger -t bipes-docker-prune
+EOF
+  chmod 644 /etc/cron.d/bipes-docker-prune
+}
+
+start_stack() {
+  cd "$INSTALL_DIR"
+  "${COMPOSE[@]}" config --quiet
+  "${COMPOSE[@]}" up -d --build --remove-orphans
+
+  for _ in $(seq 1 60); do
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' bipes_web 2>/dev/null || true)"
+    if [ "$status" = "healthy" ]; then
+      break
+    fi
+    if [ "$status" = "unhealthy" ] || [ "$status" = "exited" ]; then
+      "${COMPOSE[@]}" logs --tail=100 web
+      exit 1
+    fi
+    sleep 2
+  done
+
+  if [ "${status:-}" != "healthy" ]; then
+    "${COMPOSE[@]}" logs --tail=100 web
+    echo "Web container did not become healthy in time." >&2
+    exit 1
+  fi
+
+  curl --fail --silent --show-error --insecure https://localhost/ >/dev/null
+  "${COMPOSE[@]}" ps
+}
+
+echo "Preparing BIPES production deployment in $INSTALL_DIR"
+install_docker
+ensure_swap
+prepare_env
+configure_firewall
+prepare_tls
+configure_maintenance
+start_stack
+
+echo
+if [ "$SELF_SIGNED" = true ]; then
+  echo "BIPES is available at https://SERVER_IP (temporary self-signed certificate)."
 else
-  PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "YOUR_SERVER_IP")
-  echo "  Access at: https://$PUBLIC_IP"
-  echo "  (Browser will show certificate warning with self-signed certs)"
+  echo "BIPES is available at https://$DOMAIN"
 fi
-echo ""
-echo "  Useful commands:"
-echo "    docker compose logs -f       # View logs"
-echo "    docker compose restart       # Restart services"
-echo "    docker compose down          # Stop everything"
-echo "    $INSTALL_DIR/docker/backup-db.sh  # Manual backup"
-echo ""
+echo "Create the first teacher account (server-side):"
+echo "  sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web \\"
+echo "    python scripts/add_teacher.py \"teacher@school.dk\" \"Full Name\""
+echo "Then verify a database backup."

@@ -5,10 +5,6 @@ import {Tool} from '../../base/tool.js'
 
 import {DOM, Animate} from '../../base/dom.js'
 
-/* For EasyMQTT bridge */
-import {databaseMQTT} from './easymqtt.js'
-import {easyMQTT} from './easymqtt.js'
-
 /** Store incoming data in localStorage */
 class DataStorage {
   constructor (){
@@ -30,9 +26,8 @@ class DataStorage {
    * Checks the income data for useful chuncks, like ``$BIPES-DATA:`` for plotting
    * comma divided data (chart) or single number value (gauge).
    * @param {string} chunck - Incoming line.
-   * @param {bool} bridgeEasyMQTT - Bridge coordinates to EasyMQTT.
    */
-  write (chunk, bridgeEasyMQTT){
+  write (chunk){
     this.buffer += chunk
     let re = /\r\n(?:>>> )?\$(.*):(.*)\r\n/
     let match_
@@ -40,54 +35,75 @@ class DataStorage {
     if (re.test(this.buffer)) {
       match_ = this.buffer.match(re)
       if (match_.length == 3) {
-        if (bridgeEasyMQTT === true){
-          databaseMQTT.client.send(`${easyMQTT.session}/${match_[1]}`, match_[2], 0, false)
+        let coordinates = match_[2].split(',').map((item)=>item = parseFloat(item))
+        if (coordinates.every((item) => !isNaN(item)) && coordinates.length > 1){
+          this.push(match_[1],coordinates, 'chart')
         } else {
-          let coordinates = match_[2].split(',').map((item)=>item = parseFloat(item))
-          if (coordinates.every((item) => !isNaN(item)) && coordinates.length > 1){
-            this.push(match_[1],coordinates, 'chart')
-          } else {
-            let value = parseFloat(match_[2])
-            if (!isNaN(match_[2]))
-              this.push(match_[1], value, 'gauge')
-          }
+          let value = parseFloat(match_[2])
+          if (!isNaN(match_[2]))
+            this.push(match_[1], value, 'gauge')
         }
       }
     }
     this.buffer = this.buffer.replace(re, '\r\n') //purge received string out
+
+    // Runtime telemetry "T,name=value" lines from bipes_runtime — the SAME message
+    // protocol over serial UART and Bluetooth. Parse complete lines (followed by a
+    // newline) into gauge/chart pushes, like the legacy "$TOPIC:DATA" format above.
+    // Tolerate any run of CR/LF after the value — the device sends "\r\n" but the
+    // serial layer can add another CR, so lines arrive as "T,alive=0\r\r\n".
+    let tre = /(?:^|[\r\n])T,([^=\r\n]+)=([^\r\n]*)(?=[\r\n])/g, tm
+    while ((tm = tre.exec(this.buffer)) !== null) {
+      let topic = tm[1].trim(), raw = tm[2].trim()
+      let coordinates = raw.split(',').map((item) => parseFloat(item))
+      if (coordinates.length > 1 && coordinates.every((item) => !isNaN(item)))
+        this.push(topic, coordinates, 'chart')
+      else {
+        let value = parseFloat(raw)
+        if (!isNaN(value))
+          this.push(topic, value, 'gauge')
+      }
+    }
+    // Drop the complete T, lines we consumed; leave any trailing partial line.
+    this.buffer = this.buffer.replace(/(?:^|[\r\n])T,[^\r\n]*[\r\n]+/g, '\n')
   }
   /**
-   * Push identified topic and data to localStorage.
+   * Push identified topic and data to localStorage AND the live widgets.
+   *
+   * Every reading — scalar (gauge) or multi-value (chart) — is persisted as a
+   * timestamped row ``[epochMs, ...values]`` keyed by topic, so the Console
+   * (localStorage) export is a real time-series usable for statistics. Gauges read
+   * the scalar value; charts read the full row (column 0 = time on the x-axis).
    * @param {string} topic - Identified topic.
    * @param {Number|Number[]} data - Identified data.
-   * @param {string|string[]} plugin - Type of plugin to push the data to.
+   * @param {string} plugin - Hint of the originating widget type ('gauge'/'chart').
    */
   push (topic, data, plugin){
-    if (plugin == 'gauge' && this.ref !== undefined){
-      this.ref.gaugesPush(topic, data, 'Console')
-      return
-    }
+    let isArray = data != undefined && data.constructor.name === 'Array'
+    let values = isArray ? data : [data]
+    let row = [Date.now(), ...values]
 
-    if (data.constructor.name != 'Array')
-      return
-
-    if (!this._keys.includes(topic))
-      this._keys.push (topic),
+    // Persist the timestamped row for EVERY topic (scalars included).
+    if (!this._keys.includes(topic)){
+      this._keys.push(topic)
       this._data[topic] = []
-
-    this._data[topic].push(data)
-
-    storage.set(`datastorage:${topic}`, JSON.stringify(this._data[topic]))
-    // Push to charts
-    if (this.ref !== undefined){
-      let refresh = this._data[topic].length == 5 ? true : false
-
-      if (parseInt(this._coorLength[topic]) < parseInt(data.length) || this._coorLength[topic] === -Infinity) {
-        this._coorLength[topic] = data.length
-        refresh = true
-      }
-      this.ref.chartsPush(topic, data, refresh, 'Console')
     }
+    this._data[topic].push(row)
+    storage.set(`datastorage:${topic}`, JSON.stringify(this._data[topic]))
+
+    if (this.ref === undefined)
+      return
+
+    // Live widgets: a gauge takes the scalar value, a chart takes the [time, ...]
+    // row. Both filter by matching topic, so calling each is harmless for the other.
+    this.ref.gaugesPush(topic, data, 'Console')
+
+    let refresh = this._data[topic].length == 5 ? true : false
+    if (parseInt(this._coorLength[topic]) < parseInt(row.length) || this._coorLength[topic] === -Infinity) {
+      this._coorLength[topic] = row.length
+      refresh = true
+    }
+    this.ref.chartsPush(topic, row, refresh, 'Console')
   }
   /**
    * Remove topic from localStorage
@@ -149,4 +165,3 @@ class DataStorage {
 }
 
 export let dataStorage = new DataStorage()
-

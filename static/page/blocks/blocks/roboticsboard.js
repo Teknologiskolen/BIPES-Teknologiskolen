@@ -11,7 +11,8 @@ Blockly.Blocks["robotics_board_init"] = {
 	this.appendValueInput("scl")
         .setCheck("Number")
         .appendField(`${Msg["set"]} SCL ${Msg["to"]}`) 
-	this.setColour(45);
+	this.setInputsInline(true);
+	this.setColour(110);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -35,7 +36,8 @@ Blockly.Blocks["robotics_board_Motor_On"] = {
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(new Blockly.FieldLabelSerializable(Msg["speed"]), "speed");
-    this.setColour(45);
+    this.setInputsInline(true);
+    this.setColour(110);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -51,7 +53,8 @@ Blockly.Blocks["robotics_board_Motor_Off"] = {
       .setCheck("Number")
       .setAlign(Blockly.ALIGN_RIGHT)
       .appendField(new Blockly.FieldLabelSerializable(`${Msg["number"]}`), "motor");
-        this.setColour(45);
+        this.setInputsInline(true);
+        this.setColour(110);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -71,7 +74,8 @@ Blockly.Blocks["robotics_board_Servo_Turn"] = {
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(new Blockly.FieldLabelSerializable(Msg["degrees"]), "degrees");
-    this.setColour(45);
+    this.setInputsInline(true);
+    this.setColour(110);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");

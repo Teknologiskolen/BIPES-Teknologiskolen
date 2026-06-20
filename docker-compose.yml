@@ -1,11 +1,31 @@
+# Cap container log files so they can't fill the small (15 GB) disk. Applied to each
+# long-running service via the *default-logging alias below.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
-  # PostgreSQL Database (only needed in full auth mode)
-  # Start with: docker compose --profile auth up -d
+  # PostgreSQL Database — always on (the system only runs in full auth mode).
+  # On the production VM, start via ./deploy.sh or `make deploy-prod` (both add
+  # docker-compose.prod.yml for the mem/cpu limits). A bare `docker compose up -d`
+  # loads docker-compose.override.yml (dev watch, NO resource limits) — do NOT use
+  # it on the 2 GB VM.
   postgres:
     image: postgres:15-alpine
     container_name: postgres
     restart: always
-    profiles: ["auth"]
+    logging: *default-logging
+    # Sized for a small all-in-one VM (2 GB shared with web + broker + nginx). The web
+    # tier only opens a handful of connections (2 gthread workers x ~8 threads + the
+    # MQTT subscriber), so 50 is ample, and a low cap protects RAM (each connection
+    # can cost several MB). shared_buffers kept modest so Postgres doesn't crowd out
+    # the web workers. Raise these if Postgres moves to its own box.
+    command:
+      ["postgres",
+       "-c", "max_connections=50",
+       "-c", "shared_buffers=128MB"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-bipes}
       POSTGRES_USER: ${POSTGRES_USER:-bipes_user}
@@ -22,18 +42,42 @@ services:
       retries: 5
 
   # Mosquitto MQTT Broker
+  mosquitto-dynsec-init:
+    image: eclipse-mosquitto:2.0
+    container_name: broker_dynsec_init
+    restart: "no"
+    environment:
+      - MOSQUITTO_DYNSEC_ADMIN_USERNAME=${MOSQUITTO_DYNSEC_ADMIN_USERNAME:-admin}
+      - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}
+    volumes:
+      - mosquitto_data:/mosquitto/data
+    command: >
+      sh -c 'if [ ! -f /mosquitto/data/dynamic-security.json ]; then
+        printf "%s\n%s\n" "$$MOSQUITTO_DYNSEC_ADMIN_PASSWORD" "$$MOSQUITTO_DYNSEC_ADMIN_PASSWORD" |
+          mosquitto_ctrl dynsec init /mosquitto/data/dynamic-security.json "$$MOSQUITTO_DYNSEC_ADMIN_USERNAME";
+      fi'
+    networks:
+      - bipes_network
+
   mosquitto:
     image: eclipse-mosquitto:2.0
     container_name: broker
     restart: always
+    logging: *default-logging
+    # Publish ONLY the TLS listener to the host. The plaintext 1883 + websockets 9001
+    # listeners stay on the internal docker network (Flask subscriber + nginx wss), so
+    # the only internet-reachable MQTT port is encrypted. (Was "1884:1883" — that put
+    # plaintext device credentials on a host port; removed.)
     ports:
-      - "1884:1883"
-      - "9002:9001"
+      - "8883:8883"
     volumes:
       - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./docker/mosquitto_passwd:/mosquitto/config/mosquitto_passwd:ro
+      - ./docker/ssl:/mosquitto/certs:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
+    depends_on:
+      mosquitto-dynsec-init:
+        condition: service_completed_successfully
     networks:
       - bipes_network
 
@@ -44,21 +88,31 @@ services:
       dockerfile: docker/Dockerfile.prod
     container_name: bipes_web
     restart: always
+    logging: *default-logging
     environment:
       - FLASK_ENV=production
-      - AUTH_MODE=${AUTH_MODE:-full}
+      # Always full auth + Postgres — there is no guest/sqlite startup path.
+      - AUTH_MODE=full
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=${POSTGRES_DB:-bipes}
       - POSTGRES_USER=${POSTGRES_USER:-bipes_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - MOSQUITTO_HOST=broker
+      - MOSQUITTO_PORT=1883
+      - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME:-bipes-server}
       - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD:-changeme}
+      - MOSQUITTO_DYNSEC_ENABLED=${MOSQUITTO_DYNSEC_ENABLED:-true}
+      - MOSQUITTO_DYNSEC_ADMIN_USERNAME=${MOSQUITTO_DYNSEC_ADMIN_USERNAME:-admin}
+      - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:?Set PASSWORD_PEPPER in .env}
     volumes:
       - web_logs:/app/logs
     depends_on:
       mosquitto:
         condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - bipes_network
     expose:
@@ -75,6 +129,7 @@ services:
     image: nginx:alpine
     container_name: bipes_nginx
     restart: always
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"

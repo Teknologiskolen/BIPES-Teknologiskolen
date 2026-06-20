@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BIPES blocks</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+    #blocks { position: absolute; inset: 0; }
+    #embed-error { font: 13px/1.4 sans-serif; color: #b00; padding: 12px; white-space: pre-wrap; }
+    #copy-btn {
+      position: absolute; top: 8px; right: 8px; z-index: 10;
+      font: 13px sans-serif; padding: 6px 10px; border: 1px solid #bbb;
+      border-radius: 6px; background: #fff; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    }
+    #copy-btn:hover { background: #f4f4f4; }
+  </style>
+  <!-- Blockly + BIPES block definitions + message tables (read-only render only). -->
+  <script src="/static/libs/blockly.umd.js"></script>
+  <script src="/static/msg/en.js"></script>
+  <script src="/static/page/blocks/msg/en.js"></script>
+  <script src="/static/page/blocks/blocks.umd.js"></script>
+</head>
+<body>
+  <div id="blocks"></div>
+  <button id="copy-btn" type="button" style="display:none">Copy blocks</button>
+  <script type="module" src="/static/page/embed/embed.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Production-only limits for the Webdock 1 vCPU / 2 GB RAM / 15 GB SSD VM.
+#
+# Always combine this file explicitly with the base file so the development
+# docker-compose.override.yml is never loaded on the server:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+  postgres:
+    mem_limit: 384m
+    cpus: 0.45
+    pids_limit: 100
+    stop_grace_period: 30s
+
+  mosquitto-dynsec-init:
+    mem_limit: 96m
+    cpus: 0.20
+    pids_limit: 50
+
+  mosquitto:
+    mem_limit: 192m
+    cpus: 0.30
+    pids_limit: 100
+    stop_grace_period: 20s
+
+  web:
+    mem_limit: 768m
+    cpus: 0.85
+    pids_limit: 200
+    stop_grace_period: 30s
+    environment:
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
+
+  nginx:
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 100
+    stop_grace_period: 15s

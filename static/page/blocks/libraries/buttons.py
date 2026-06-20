@@ -84,3 +84,136 @@ def check_auto_repeat(events, btn2, hold_ms=HOLD_THRESHOLD_MS, repeat_ms=REPEAT_
             events['button2_held'] = False
     return False
 
+
+# ---------------------------------------------------------------------------
+# ButtonHub: object-driven buttons (any number, by pin), polled (no IRQ).
+# Each query method advances every button's state machine from time.ticks_ms()
+# before reading it, so no separate poll()/update() call is needed — calling a
+# query twice in one loop is harmless (state advances on time + pin, not on the
+# call). Edge events (pressed/released/clicked/double/repeat) are latched and
+# consumed by their matching query; level queries (is_down/is_held) don't clear.
+# ---------------------------------------------------------------------------
+
+class _Btn:
+    def __init__(self, pin, pull, debounce_ms, hold_ms, repeat_ms, double_ms):
+        if pull == "up":
+            self.pin = Pin(pin, Pin.IN, Pin.PULL_UP)
+            self._active = 0            # pressed = wired to GND
+        elif pull == "none":
+            self.pin = Pin(pin, Pin.IN)
+            self._active = 1
+        else:                           # "down" (default): pressed = wired to 3V3
+            self.pin = Pin(pin, Pin.IN, Pin.PULL_DOWN)
+            self._active = 1
+
+        self.debounce_ms = debounce_ms
+        self.hold_ms = hold_ms
+        self.repeat_ms = repeat_ms
+        self.double_ms = double_ms
+
+        self.down = False               # debounced, stable state
+        self._raw = False               # last raw sample
+        self._raw_at = 0                # when the raw sample last changed
+        self._press_at = 0              # when the current press began
+        self._last_repeat = 0
+        self._held_fired = False
+
+        # latched one-shot events (cleared on consume)
+        self._f_pressed = False
+        self._f_released = False
+        self._f_repeat = False
+        self._f_clicked = False
+        self._f_double = False
+
+        # single-vs-double click tracking
+        self._pending_single = False
+        self._pending_at = 0
+        self._last_press_at = 0
+
+    def poll(self, now):
+        raw = (self.pin.value() == self._active)
+        if raw != self._raw:
+            self._raw = raw
+            self._raw_at = now
+        # accept a debounced change of state
+        if raw != self.down and time.ticks_diff(now, self._raw_at) >= self.debounce_ms:
+            self.down = raw
+            if raw:                                     # ----- press edge -----
+                self._f_pressed = True
+                self._press_at = now
+                self._last_repeat = now
+                self._held_fired = False
+                if self._pending_single and \
+                        time.ticks_diff(now, self._last_press_at) <= self.double_ms:
+                    self._f_double = True               # confirmed double click
+                    self._pending_single = False
+                else:
+                    self._pending_single = True         # maybe a single click
+                    self._pending_at = now
+                self._last_press_at = now
+            else:                                       # ----- release edge -----
+                self._f_released = True
+
+        if self.down:                                   # hold + auto-repeat
+            if not self._held_fired and time.ticks_diff(now, self._press_at) >= self.hold_ms:
+                self._held_fired = True
+            if self._held_fired and time.ticks_diff(now, self._last_repeat) >= self.repeat_ms:
+                self._last_repeat = now
+                self._f_repeat = True
+
+        # a lone press, with no 2nd press inside the double-click window -> single click
+        if self._pending_single and time.ticks_diff(now, self._pending_at) > self.double_ms:
+            self._pending_single = False
+            self._f_clicked = True
+
+    def take(self, name):
+        v = getattr(self, name)
+        if v:
+            setattr(self, name, False)
+        return v
+
+
+class ButtonHub:
+    """Manage any number of buttons by pin. Create once, add() each button, then
+    query was_pressed/was_released/was_clicked/was_double_clicked/repeated (one-shot)
+    and is_down/is_held (level) — each with the button's pin number."""
+
+    def __init__(self):
+        self._btns = {}
+
+    def add(self, pin, pull="down", debounce_ms=DEBOUNCE_MS,
+            hold_ms=HOLD_THRESHOLD_MS, repeat_ms=REPEAT_INTERVAL_MS, double_ms=400):
+        self._btns[pin] = _Btn(pin, pull, debounce_ms, hold_ms, repeat_ms, double_ms)
+
+    def _tick(self):
+        now = time.ticks_ms()
+        for b in self._btns.values():
+            b.poll(now)
+
+    def was_pressed(self, pin):
+        self._tick()
+        return self._btns[pin].take("_f_pressed")
+
+    def was_released(self, pin):
+        self._tick()
+        return self._btns[pin].take("_f_released")
+
+    def was_clicked(self, pin):
+        self._tick()
+        return self._btns[pin].take("_f_clicked")
+
+    def was_double_clicked(self, pin):
+        self._tick()
+        return self._btns[pin].take("_f_double")
+
+    def repeated(self, pin):
+        self._tick()
+        return self._btns[pin].take("_f_repeat")
+
+    def is_down(self, pin):
+        self._tick()
+        return self._btns[pin].down
+
+    def is_held(self, pin):
+        self._tick()
+        return self._btns[pin]._held_fired

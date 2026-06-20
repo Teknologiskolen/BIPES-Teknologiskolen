@@ -79,18 +79,6 @@ export const knownLibs = {
     hostname:'https://bipes.net.br/ide/pylibs/',
     file:'mfrc522.py'
   },
-  ble_advertising:{
-    hostname:'https://bipes.net.br/ide/pylibs/',
-    file:'ble_advertising.py',
-  },
-  ble_uart_repl:{
-    hostname:'https://bipes.net.br/ide/pylibs/',
-    file:'ble_uart_repl.py',
-  },
-  ble_uart_peripheral:{
-    hostname:'https://bipes.net.br/ide/pylibs/',
-    file:'ble_uart_peripheral.py',
-  },
   rtttl:{
     hostname:'https://bipes.net.br/ide/pylibs/',
     file:'rtttl.py',
@@ -117,7 +105,27 @@ export const knownLibs = {
   },
   ble_advertising:{
     hostname:'./static/page/blocks/libraries',
-    file:'BLEPeripheral.py'
+    file:'ble_advertising.py'
+  },
+  ble_uart_peripheral:{
+    hostname:'./static/page/blocks/libraries',
+    file:'ble_uart_peripheral.py'
+  },
+  ble_uart_repl:{
+    hostname:'./static/page/blocks/libraries',
+    file:'ble_uart_repl.py'
+  },
+  bipes_runtime:{
+    hostname:'./static/page/blocks/libraries',
+    file:'bipes_runtime.py'
+  },
+  umqtt_simple:{
+    hostname:'./static/page/blocks/libraries',
+    file:'umqtt_simple.py'
+  },
+  runtime_launcher:{
+    hostname:'./static/page/blocks/libraries',
+    file:'main.py'        // boot launcher — installed AS main.py on the device
   },
   stepper:{
     hostname:'./static/page/blocks/libraries',
@@ -127,11 +135,11 @@ export const knownLibs = {
     hostname:'./static/page/blocks/libraries',
     file:'ZerroStepper.py'
   },
-  sand_table_robot:{
+  sandRobot:{
     hostname:'./static/page/blocks/libraries',
     file:'sand_table_robot.py'
   },
-  Buttons:{
+  buttons:{
     hostname:'./static/page/blocks/libraries',
     file:'buttons.py'
   },
@@ -146,6 +154,22 @@ export const knownLibs = {
   st7735s:{
     hostname:'./static/page/blocks/libraries',
     file:'st7735s.py'
+  },
+  dfplayer:{
+    hostname:'./static/page/blocks/libraries',
+    file:'dfplayer.py'
+  },
+  buzzer_music:{
+    hostname:'./static/page/blocks/libraries',
+    file:'buzzer_music.py'
+  },
+  alarm_clock:{
+    hostname:'./static/page/blocks/libraries',
+    file: 'alarm_clock.py'
+  },
+  app_core:{
+    hostname:'./static/page/blocks/libraries',
+    file: 'app_core.py'
   }
 
 }

@@ -1,0 +1,240 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  
+
+  <block x="40" y="40" type="sand_table_robot__create">
+    <value name="motor1_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0">
+          <block type="math_number">
+            <field name="NUM">2</field>
+          </block>
+        </value>
+        <value name="ADD1">
+          <block type="math_number">
+            <field name="NUM">3</field>
+          </block>
+        </value>
+        <value name="ADD2">
+          <block type="math_number">
+            <field name="NUM">4</field>
+          </block>
+        </value>
+        <value name="ADD3">
+          <block type="math_number">
+            <field name="NUM">5</field>
+          </block>
+        </value>
+      </block>
+    </value>
+    <value name="motor2_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0">
+          <block type="math_number">
+            <field name="NUM">6</field>
+          </block>
+        </value>
+        <value name="ADD1">
+          <block type="math_number">
+            <field name="NUM">7</field>
+          </block>
+        </value>
+        <value name="ADD2">
+          <block type="math_number">
+            <field name="NUM">8</field>
+          </block>
+        </value>
+        <value name="ADD3">
+          <block type="math_number">
+            <field name="NUM">9</field>
+          </block>
+        </value>
+      </block>
+    </value>
+    <value name="sensor_shoulder_pin">
+      <shadow type="pinout">
+        <field name="PIN">10</field>
+      </shadow>
+    </value>
+    <value name="sensor_elbow_pin">
+      <shadow type="pinout">
+        <field name="PIN">11</field>
+      </shadow>
+    </value>
+    <value name="L1">
+      <shadow type="math_number">
+        <field name="NUM">31</field>
+      </shadow>
+    </value>
+    <value name="L2">
+      <shadow type="math_number">
+        <field name="NUM">31</field>
+      </shadow>
+    </value>
+    <value name="steps_per_rev">
+      <shadow type="math_number">
+        <field name="NUM">4096</field>
+      </shadow>
+    </value>
+    <value name="backlash_deg_m1">
+      <shadow type="math_number">
+        <field name="NUM">3.2</field>
+      </shadow>
+    </value>
+    <value name="backlash_deg_m2">
+      <shadow type="math_number">
+        <field name="NUM">3.0</field>
+      </shadow>
+    </value>
+    <value name="homing_dir_shoulder">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
+      </shadow>
+    </value>
+    <value name="homing_dir_elbow">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
+      </shadow>
+    </value>
+    <value name="homing_clear_steps">
+      <shadow type="math_number">
+        <field name="NUM">500</field>
+      </shadow>
+    </value>
+    <value name="default_speed_ms">
+      <shadow type="math_number">
+        <field name="NUM">2</field>
+      </shadow>
+    </value>
+    <next>
+      <block type="sand_table_robot__home">
+        <next>
+          <block type="sand_table_robot__move_line">
+            <value name="target_x">
+              <shadow type="math_number">
+                <field name="NUM">20</field>
+              </shadow>
+            </value>
+            <value name="target_y">
+              <shadow type="math_number">
+                <field name="NUM">0</field>
+              </shadow>
+            </value>
+            <value name="segments">
+              <shadow type="math_number">
+                <field name="NUM">500</field>
+              </shadow>
+            </value>
+            <value name="speed">
+              <shadow type="math_number">
+                <field name="NUM">2</field>
+              </shadow>
+            </value>
+            <next>
+              <block type="sand_table_robot__move_line">
+                <value name="target_x">
+                  <shadow type="math_number">
+                    <field name="NUM">20</field>
+                  </shadow>
+                </value>
+                <value name="target_y">
+                  <shadow type="math_number">
+                    <field name="NUM">20</field>
+                  </shadow>
+                </value>
+                <value name="segments">
+                  <shadow type="math_number">
+                    <field name="NUM">500</field>
+                  </shadow>
+                </value>
+                <value name="speed">
+                  <shadow type="math_number">
+                    <field name="NUM">2</field>
+                  </shadow>
+                </value>
+                <next>
+                  <block type="sand_table_robot__move_line">
+                    <value name="target_x">
+                      <shadow type="math_number">
+                        <field name="NUM">0</field>
+                      </shadow>
+                    </value>
+                    <value name="target_y">
+                      <shadow type="math_number">
+                        <field name="NUM">20</field>
+                      </shadow>
+                    </value>
+                    <value name="segments">
+                      <shadow type="math_number">
+                        <field name="NUM">500</field>
+                      </shadow>
+                    </value>
+                    <value name="speed">
+                      <shadow type="math_number">
+                        <field name="NUM">2</field>
+                      </shadow>
+                    </value>
+                    <next>
+                      <block type="sand_table_robot__move_line">
+                        <value name="target_x">
+                          <shadow type="math_number">
+                            <field name="NUM">0</field>
+                          </shadow>
+                        </value>
+                        <value name="target_y">
+                          <shadow type="math_number">
+                            <field name="NUM">0</field>
+                          </shadow>
+                        </value>
+                        <value name="segments">
+                          <shadow type="math_number">
+                            <field name="NUM">500</field>
+                          </shadow>
+                        </value>
+                        <value name="speed">
+                          <shadow type="math_number">
+                            <field name="NUM">2</field>
+                          </shadow>
+                        </value>
+                        <next>
+                          <block type="sand_table_robot__draw_spiral">
+                            <value name="max_radius">
+                              <shadow type="math_number">
+                                <field name="NUM">30</field>
+                              </shadow>
+                            </value>
+                            <value name="vindinger">
+                              <shadow type="math_number">
+                                <field name="NUM">10</field>
+                              </shadow>
+                            </value>
+                            <value name="segments_pr_omgang">
+                              <shadow type="math_number">
+                                <field name="NUM">60</field>
+                              </shadow>
+                            </value>
+                            <value name="speed">
+                              <shadow type="math_number">
+                                <field name="NUM">2</field>
+                              </shadow>
+                            </value>
+                            <next>
+                              <block type="sand_table_robot__off"/>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+  
+
+</xml>

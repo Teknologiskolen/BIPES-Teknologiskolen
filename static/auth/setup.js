@@ -1,4 +1,9 @@
 // Student First-Time Setup JavaScript
+const authText = window.authText || {};
+
+function t(key, fallback) {
+    return authText[key] || fallback;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('setup-form');
@@ -30,16 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentPassword = document.getElementById('current-password').value;
         const newPassword = document.getElementById('new-password').value;
         const confirmPassword = document.getElementById('confirm-password').value;
-        const email = document.getElementById('email').value;
-
         // Validation
         if (newPassword !== confirmPassword) {
-            showAlert('Passwords do not match', 'error');
+            showAlert(t('passwords_no_match', 'Passwords do not match'), 'error');
             return;
         }
 
         if (newPassword.length < 8) {
-            showAlert('New password must be at least 8 characters', 'error');
+            showAlert(t('new_password_min', 'New password must be at least 8 characters'), 'error');
             return;
         }
 
@@ -47,12 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
         clearAlert();
 
         try {
-            // Change password
-            const passwordResponse = await fetch('/api/auth/student/change-password', {
+            // Change password (endpoint depends on whether a teacher or student is signed in)
+            const userType = window.bipesUserType || 'student';
+            const endpoint = userType === 'teacher'
+                ? '/api/auth/teacher/change-password'
+                : '/api/auth/student/change-password';
+            const passwordResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     current_password: currentPassword,
                     new_password: newPassword
@@ -62,40 +70,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const passwordData = await passwordResponse.json();
 
             if (!passwordResponse.ok) {
-                showAlert(passwordData.error || 'Failed to change password', 'error');
+                showAlert(passwordData.error || t('password_change_failed', 'Failed to change password'), 'error');
                 setLoading(false);
                 return;
             }
 
-            // Add email if provided
-            if (email && email.trim() !== '') {
-                const emailResponse = await fetch('/api/auth/student/add-email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email: email })
-                });
-
-                const emailData = await emailResponse.json();
-
-                if (!emailResponse.ok) {
-                    showAlert(`Password changed but email failed: ${emailData.error}`, 'error');
-                    setTimeout(() => {
-                        window.location.href = '/ide';
-                    }, 2000);
-                    return;
-                }
-            }
-
-            // Success
-            showAlert('Account setup complete! Redirecting to IDE...', 'success');
+            // Success — teachers go to their classes home, students to the IDE.
+            showAlert(t('setup_complete', 'Password changed! Redirecting...'), 'success');
             setTimeout(() => {
-                window.location.href = '/ide';
+                if (userType === 'teacher')
+                    window.location.href = window.authPreferences ? window.authPreferences.path('/classes') : '/classes';
+                else
+                    window.location.href = window.authPreferences ? window.authPreferences.idePath() : '/ide';
             }, 1500);
 
         } catch (error) {
-            showAlert('Network error. Please try again.', 'error');
+            showAlert(t('network_error', 'Network error. Please try again.'), 'error');
         } finally {
             setLoading(false);
         }
@@ -133,9 +123,9 @@ function setLoading(isLoading) {
 
     if (isLoading) {
         button.disabled = true;
-        buttonText.innerHTML = '<span class="spinner"></span> Setting up...';
+        buttonText.innerHTML = '<span class="spinner"></span> ' + t('setting_up', 'Setting up...');
     } else {
         button.disabled = false;
-        buttonText.textContent = 'Complete Setup';
+        buttonText.textContent = t('complete_setup', 'Complete Setup');
     }
 }

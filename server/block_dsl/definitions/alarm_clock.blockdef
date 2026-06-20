@@ -1,0 +1,140 @@
+// Alarm-clock framework (alarm_clock.py), exposed at three grains so you can
+// research flexibility vs encapsulation:
+//   COARSE  : create + update + alarm_started/is_ringing/alarm_stopped (≈ text programming)
+//   MID     : read + your button mapping (event queries -> commands) + your screen (draw_* helpers)
+//   FINE    : raw getters (now_*, *_text, field, *_changed, flash_on) + draw_text/clear/fill
+// This .blockdef is the source of truth. The big block-by-block example stays as the
+// fully-exposed reference.
+
+module alarm_clock
+import "alarm_clock"
+url "https://github.com/bipes"
+
+category "Alarm Clock" color=200 {
+
+    class AlarmClock as singleton named "alarm" {
+
+        // ---- create -------------------------------------------------------
+        block __init__ tooltip="Create the alarm clock: SPI object (ST7735S group) + display, RTC and 3 button pins." {
+            param spi type=Any
+            param dc type=Number default=16 pin
+            param rst type=Number default=20 pin
+            param cs type=Number default=17 pin
+            param clk type=Number default=1 pin
+            param dat type=Number default=0 pin
+            param rtc_rst type=Number default=2 pin
+            param field_pin type=Number default=14 pin
+            param plus_pin type=Number default=15 pin
+            param mode_pin type=Number default=13 pin
+            param width type=Number default=160
+            param height type=Number default=128
+        }
+
+        // ---- COARSE: one call does it all --------------------------------
+        block update tooltip="COARSE: read time + default buttons + default screen + alarm check, all at once."
+        block set_alarm tooltip="Pre-set the alarm time." {
+            param hour type=Number default=7
+            param minute type=Number default=0
+        }
+        block enable_alarm tooltip="Turn the alarm on/off." {
+            param on type=Boolean default=true
+        }
+        block is_enabled kind=value tooltip="True if the alarm is on."
+        block is_ringing kind=value tooltip="True while the alarm is going off."
+        block alarm_started kind=value tooltip="True ONCE when the alarm starts — start your sound."
+        block alarm_stopped kind=value tooltip="True ONCE when the user stops it — stop your sound."
+
+        // ---- MID: drive the loop yourself --------------------------------
+        block read tooltip="MID: read the RTC once and work out what changed (call first each loop)."
+
+        // mode: ask
+        block in_normal kind=value tooltip="True when showing the clock."
+        block in_set_alarm kind=value tooltip="True when setting the alarm."
+        block in_set_clock kind=value tooltip="True when setting the clock."
+        block in_ringing kind=value tooltip="True when the alarm is ringing."
+        // mode: do
+        block set_alarm_mode tooltip="Switch to the SET ALARM screen."
+        block set_clock_mode tooltip="Switch to the SET CLOCK screen (loads the current date/time to edit)."
+        block go_normal tooltip="Go back to the clock screen."
+
+        // button events (map these to commands however you like)
+        block field_pressed kind=value tooltip="True once when the FIELD button is pressed."
+        block plus_pressed kind=value tooltip="True when the PLUS button is pressed (and auto-repeats when held)."
+        block mode_clicked kind=value tooltip="True once on a single click of the MODE button."
+        block mode_double_clicked kind=value tooltip="True once on a double-click of the MODE button."
+        block handle_buttons tooltip="Run the DEFAULT button mapping (instead of writing your own)."
+
+        // edit / commit commands
+        block next_field tooltip="Move the edit cursor to the next field."
+        block increase tooltip="Increase the value of the field being edited."
+        block save tooltip="Smart SAVE: stop if ringing, commit in a set-screen, else open SET ALARM."
+        block commit_alarm tooltip="Keep the edited alarm and return to the clock."
+        block commit_clock tooltip="Write the edited date/time to the RTC and return to the clock."
+        block stop tooltip="Stop the ringing alarm."
+        block field kind=value tooltip="Index of the field being edited (0-based)."
+
+        // alarm: detect (query) vs act (command) kept separate
+        block alarm_hour kind=value tooltip="The alarm hour."
+        block alarm_minute kind=value tooltip="The alarm minute."
+        block alarm_due kind=value tooltip="QUERY only: true when the alarm time is reached (no side effects)."
+        block start_ringing tooltip="ACTION only: put the clock into the ringing state."
+
+        // ---- screen: helpers (partial redraw kept inside) ----------------
+        block begin_frame tooltip="Frame bookkeeping (draws nothing): arms 'mode changed' and tells the draw helpers to repaint. Clear the screen yourself: if mode changed -> fill."
+        block mode_changed kind=value tooltip="True on the first frame after the mode changed (clear/redraw static labels once)."
+        block draw_clock tooltip="Draw the running HH:MM:SS (only changed digits are repainted)." {
+            param x type=Number default=16
+            param y type=Number default=40
+            param color type=Number default=65535
+            param size type=Number default=2
+        }
+        block draw_date tooltip="Draw DD/MM/YYYY." {
+            param x type=Number default=40
+            param y type=Number default=95
+            param color type=Number default=65535
+        }
+        block draw_edit_time tooltip="Draw the HH:MM being edited, with a ^^ cursor under the active field." {
+            param x type=Number default=40
+            param y type=Number default=45
+            param color type=Number default=65535
+            param size type=Number default=2
+        }
+        block draw_edit_date tooltip="Draw the DD/MM/YYYY being edited (set-clock), with ^^ under the active field." {
+            param x type=Number default=40
+            param y type=Number default=68
+            param color type=Number default=65535
+        }
+        block draw_ringing tooltip="Draw the flashing red ALARM screen (call each loop)."
+        block draw_default tooltip="Draw the built-in 4-screen layout (what update() uses)."
+
+        // ---- FINE: raw values + raw drawing ------------------------------
+        block now_hour kind=value tooltip="Current hour (0-23)."
+        block now_minute kind=value tooltip="Current minute (0-59)."
+        block now_second kind=value tooltip="Current second (0-59)."
+        block now_day kind=value tooltip="Current day of month."
+        block now_month kind=value tooltip="Current month."
+        block now_year kind=value tooltip="Current year."
+        block time_text kind=value tooltip="Current time as text 'HH:MM:SS'."
+        block date_text kind=value tooltip="Current date as text 'DD/MM/YYYY'."
+        block hour_changed kind=value tooltip="True if the hour changed since the last read()."
+        block minute_changed kind=value tooltip="True if the minute changed since the last read()."
+        block second_changed kind=value tooltip="True if the second changed since the last read()."
+        block flash_on kind=value tooltip="Alternates True/False every second (for blinking)."
+        block draw_text tooltip="Draw any text at (x, y)." {
+            param string type=String default="Hello"
+            param x type=Number default=0
+            param y type=Number default=0
+            param color type=Number default=65535
+            param size type=Number default=1
+        }
+        block clear tooltip="Clear (black-fill) a rectangle." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param w type=Number default=10
+            param h type=Number default=10
+        }
+        block fill tooltip="Fill the whole screen with a colour." {
+            param color type=Number default=0
+        }
+    }
+}

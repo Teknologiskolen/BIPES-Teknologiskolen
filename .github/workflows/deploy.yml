@@ -1,0 +1,74 @@
+name: Deploy (manual)
+
+# Manual, button-triggered production deploy. Build the image on GitHub's runners,
+# push it to GHCR, then SSH to the VM and have it pull + restart (no on-VM build).
+# Run it from the Actions tab → "Deploy (manual)" → "Run workflow" on the branch you
+# want live (deploy from the same branch the VM tracks, e.g. master).
+on:
+  workflow_dispatch:
+
+# Never run two deploys at once; let an in-progress deploy finish rather than cancel it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/teknologiskolen/bipes-web
+
+jobs:
+  build-push:
+    name: Build + push image to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase image name (GHCR requires lowercase)
+        id: img
+        run: echo "name=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:latest
+            ${{ steps.img.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Pull + restart on the VM
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production   # optional: add required reviewers in repo settings for a deploy gate
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    steps:
+      - name: Deploy over SSH (git pull + image pull + restart)
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" '
+            set -eu
+            cd /opt/bipes
+            git pull --ff-only
+            C="docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml"
+            $C pull web
+            $C up -d --remove-orphans
+            docker image prune -f
+            $C ps
+          '

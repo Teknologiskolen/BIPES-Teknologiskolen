@@ -10,12 +10,13 @@ Blockly.Blocks['project_metadata'] = {
     this.appendValueInput("project_iot_id")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField(new Blockly.FieldLabel("IOT ID"), "project_iot_id")
+        .appendField(new Blockly.FieldLabel("IoT ID"), "project_iot_id")
     this.appendValueInput("project_description")
         .setCheck("String")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField(new Blockly.FieldLabel(Msg["project_info_desc"]), "project_description")
-    this.setColour(230)
+    this.setInputsInline(true)
+    this.setColour(260)
     this.setTooltip("Information about the project")
     this.setHelpUrl("http://www.bipes.net.br")
   }
@@ -31,7 +32,7 @@ Blockly.Blocks['localstorage_store'] = {
         this.updateShape_();
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(230);
+        this.setColour(260);
         this.setMutator(new Blockly.Mutator(["localstorage_store_item"]));
         this.setTooltip("The data will be stored in the browser, organized by topic, see the 'Databoard' tab.");
     },
@@ -87,7 +88,7 @@ Blockly.Blocks['localstorage_store'] = {
 };
 Blockly.Blocks['localstorage_store_container'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(260);
         this.appendDummyInput().appendField("dataset");
         this.appendStatementInput("STACK");
         this.setTooltip("Dataset composed by multiple axis, the first axis is 'x'.");
@@ -96,7 +97,7 @@ Blockly.Blocks['localstorage_store_container'] = {
 };
 Blockly.Blocks['localstorage_store_item'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(260);
         this.appendDummyInput().appendField("axis");
         this.setPreviousStatement(!0);
         this.setNextStatement(!0);
@@ -116,8 +117,36 @@ Blockly.Blocks['try_catch'] = {
         .appendField(Msg["exp1"]);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(260);
  this.setTooltip("");
  this.setHelpUrl("");
+  }
+};
+
+// try / except <chosen error>. Unlike try_catch (bare except), this catches a SPECIFIC
+// exception so you can e.g. clean up on Ctrl-C (KeyboardInterrupt) without hiding real
+// bugs. NB KeyboardInterrupt is NOT an Exception, so "any error" does NOT catch Ctrl-C.
+Blockly.Blocks['try_except'] = {
+  init: function() {
+    this.appendStatementInput("TRY").setCheck(null).appendField("try");
+    this.appendStatementInput("EXCEPT").setCheck(null)
+        .appendField("if")
+        .appendField(new Blockly.FieldDropdown([
+          ["any error", "Exception"],
+          ["Ctrl-C (stop)", "KeyboardInterrupt"],
+          ["value error", "ValueError"],
+          ["type error", "TypeError"],
+          ["index / key error", "LookupError"],
+          ["OS / I/O error", "OSError"],
+          ["out of memory", "MemoryError"],
+          ["any incl. Ctrl-C", "BaseException"]
+        ]), "EXC")
+        .appendField("happens, do");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(260);
+    this.setTooltip("Run the 'try' blocks; if the chosen error happens, run the handler instead of crashing. Use 'Ctrl-C (stop)' to clean up (e.g. clear the screen) when the program is stopped. 'any error' does NOT catch Ctrl-C.");
+    this.setHelpUrl("");
   }
 };

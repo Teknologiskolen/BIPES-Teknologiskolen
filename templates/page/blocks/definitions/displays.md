@@ -1,17 +1,22 @@
 # %{DISPLAYS}
 <category name="%{DISPLAYS}">
 
+# Display
+<category name="%{CAT_DISPLAY}" colour="45">
+
 # NeoPixel LED Strip
-<category name="NeoPixel LED Strip">
+<category name="NeoPixel LED Strip" colour="45">
 <label text="NeoPixel RGB LED Strip"></label>
 <label text="Library: https://github.com/blaz-r/pi_pico_neopixel"></label>
 <button text="%{INSTALL_LIBRARY}: neopixel" callbackKey="installPyLib"></button>
 
-# neopixel_led_strip
-<block type="neopixel_led_strip"></block>
-
 # neopixel_init
 <block type="neopixel_init">
+  <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
    <value name="pin">
       <shadow type="pinout">
         <field name="PIN">0</field>
@@ -31,8 +36,9 @@
 
 # neopixel_brightness
 <block type="neopixel_brightness">
-  <value name="strip_name">
-    <shadow type="neopixel_led_strip">
+  <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
     </shadow>
  </value>
  <value name="brightness">
@@ -85,8 +91,9 @@
 
 # neopixel_set_pixel
 <block type="neopixel_set_pixel">
- <value name="strip_name">
-    <shadow type="neopixel_led_strip">
+ <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
     </shadow>
  </value>
  <value name="address">
@@ -107,8 +114,9 @@
 
 # neopixel_set_line_pixel
 <block type="neopixel_set_line_pixel">
- <value name="strip_name">
-    <shadow type="neopixel_led_strip">
+ <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
     </shadow>
  </value>
  <value name="start">
@@ -134,8 +142,9 @@
 
 # neopixel_set_line_gradient_pixel
 <block type="neopixel_set_line_gradient_pixel">
- <value name="strip_name">
-    <shadow type="neopixel_led_strip">
+ <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
     </shadow>
  </value>
  <value name="start">
@@ -164,12 +173,19 @@
 </block>
 
 # neopixel_write
-<block type="neopixel_write"></block>
+<block type="neopixel_write">
+ <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+ </value>
+</block>
 
 # neopixel_rotate_left
 <block type="neopixel_rotate_left">
-   <value name="strip_name">
-      <shadow type="neopixel_led_strip">
+   <value name="id">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
       </shadow>
     </value>
     <value name="steps">
@@ -181,8 +197,9 @@
 
 # neopixel_rotate_right
 <block type="neopixel_rotate_right">
-   <value name="strip_name">
-      <shadow type="neopixel_led_strip">
+   <value name="id">
+      <shadow type="math_number">
+        <field name="NUM">1</field>
       </shadow>
     </value>
     <value name="steps">
@@ -193,7 +210,7 @@
   </block>
 
 # Character display
-<category name="Character display">
+<category name="%{CAT_CHARACTER_DISPLAY}">
 <label text="PCF8574 Display controller"></label>
 <label text="Library: https://github.com/dhylands/python_lcd"></label>
 <button text="%{INSTALL_LIBRARY}: I2CLCD" callbackKey="installPyLib"></button>
@@ -226,16 +243,34 @@
 <block type="char_lcd_clear"></block>
 
 # char_lcd_putstr
-<block type="char_lcd_putstr"></block>
+<block type="char_lcd_putstr">
+  <value name="text">
+    <shadow type="text">
+      <field name="TEXT">Hello</field>
+    </shadow>
+  </value>
+</block>
 
 # char_lcd_moveto
 <block type="char_lcd_moveto"></block>
 
 # char_lcd_backlight
-<block type="char_lcd_backlight"></block>
+<block type="char_lcd_backlight">
+  <value name="state">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
 
 # char_lcd_display
-<block type="char_lcd_display"></block>
+<block type="char_lcd_display">
+  <value name="state">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
 
 # ST7789 Display
 <category name="ST7789 Display">
@@ -379,7 +414,7 @@
 </block>
 
 # OLED Display
-<category name="OLED Display">
+<category name="%{CAT_OLED_DISPLAY}">
 <label text="SSD1306 OLED I2C Display"></label>
 <button text="%{INSTALL_LIBRARY}: SSD1306" callbackKey="installPyLib"></button>
 
@@ -428,10 +463,16 @@
 <block type="clear_oled"></block>
 
 # fill_oled
-<block type="fill_oled"></block>
+<block type="fill_oled">
+  <value name="value">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # LED Matrix
-<category name="LED Matrix">
+<category name="%{CAT_LED_MATRIX}">
 <label text="TM1640 LED Matrix"></label>
 <label text="Library: https://github.com/mcauser/micropython-tm1640"></label>
 <button text="%{INSTALL_LIBRARY}: TM1640" callbackKey="installPyLib"></button>

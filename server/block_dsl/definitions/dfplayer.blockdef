@@ -1,0 +1,49 @@
+// Block definitions for the DFPlayer Mini MP3 driver (dfplayer.py).
+// The library .py is untouched; this .blockdef is the single source of truth.
+
+module dfplayer
+import "dfplayer"
+url "https://github.com/bipes"
+
+category "DFPlayer" color=30 {
+
+    class DFPlayer as singleton named "dfplayer" {
+
+        block __init__ tooltip="Create a DFPlayer MP3 module on a UART." {
+            param uart_id type=Number default=1
+            param tx_pin  type=Number default=4 pin
+            param rx_pin  type=Number default=5 pin
+        }
+
+        block play tooltip="Play a track by number (1-3000)." {
+            param track type=Number default=1
+        }
+        block play_folder tooltip="Play a track from a folder (folder 1-99, track 1-255)." {
+            param folder type=Number default=1
+            param track  type=Number default=1
+        }
+        block play_mp3 tooltip="Play a track from the /mp3 folder." {
+            param track type=Number default=1
+            param loop  type=Boolean default=false
+        }
+        block pause        tooltip="Pause playback."
+        block resume       tooltip="Resume playback."
+        block stop         tooltip="Stop playback."
+        block loop_current tooltip="Enable or disable looping the current track." {
+            param enable type=Boolean default=true
+        }
+        block next tooltip="Skip to the next track."
+        block prev tooltip="Skip to the previous track."
+        block volume tooltip="Set the volume level (0-30)." {
+            param level type=Number default=15
+        }
+        block volume_up   tooltip="Increase the volume."
+        block volume_down  tooltip="Decrease the volume."
+        block eq tooltip="Set the equaliser mode." {
+            param mode type=Number default=0 options[("Normal","0"),("Pop","1"),("Rock","2"),("Jazz","3"),("Classic","4"),("Bass","5")]
+        }
+        block reset tooltip="Reset the DFPlayer."
+        block sleep tooltip="Put the DFPlayer into standby."
+        block wake  tooltip="Wake the DFPlayer from standby."
+    }
+}

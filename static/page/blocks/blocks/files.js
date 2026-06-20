@@ -19,7 +19,8 @@ Blockly.Blocks['file_open'] = {
         .appendField(Msg["file_binary"])
         .appendField(new Blockly.FieldCheckbox("TRUE"), "checkbox_binary");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Open File");
  this.setHelpUrl("bipes.net.br");
   }
@@ -39,7 +40,8 @@ Blockly.Blocks['file_open_write'] = {
  this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
 
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Open text file for writing on the filesystem");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -58,7 +60,8 @@ Blockly.Blocks['file_open_read'] = {
  this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
 
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Open text file for reading on the filesystem");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -76,7 +79,8 @@ Blockly.Blocks['file_write'] = {
         .appendField("Data:");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Write to a file");
  this.setHelpUrl("bipes.net.br");
   }
@@ -94,7 +98,8 @@ Blockly.Blocks['file_write_line'] = {
         .appendField(Msg["line"]);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Write line to a file");
  this.setHelpUrl("bipes.net.br");
   }
@@ -111,7 +116,8 @@ Blockly.Blocks['file_write_byte'] = {
         .appendField("Byte:");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Write byte to a file");
  this.setHelpUrl("bipes.net.br");
   }
@@ -124,7 +130,8 @@ Blockly.Blocks['file_read'] = {
         .appendField("Read data from the file")
         .appendField(new Blockly.FieldVariable("file"), "filename");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Read data from a file");
  this.setHelpUrl("bipes.net.br");
   }
@@ -138,7 +145,8 @@ Blockly.Blocks['file_close'] = {
         .appendField(new Blockly.FieldVariable("file"), "filename");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("Close a file");
  this.setHelpUrl("bipes.net.br");
   }
@@ -154,7 +162,8 @@ Blockly.Blocks['files_list'] = {
 
     this.setOutput(true, null);
 
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(165);
  this.setTooltip("List files from current directory ");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -172,7 +181,8 @@ Blockly.Blocks["sd_mount"] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("mount point");
 
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip("Mount SD Card on the specified folder");
@@ -208,13 +218,14 @@ Blockly.Blocks["sd_mount_custom"] = {
 
   this.appendValueInput("freq")
         .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField("freq");
+        .appendField(Msg["field_frequency"]);
 
   this.appendValueInput("pIn")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("mount point");
 
-        this.setColour(0);
+        this.setInputsInline(false);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip("Mount SD Card on the specified folder Custom Pins)");
@@ -227,7 +238,8 @@ Blockly.Blocks["uos_uname"] = {
   init: function() {
     this.appendDummyInput()
         .appendField(" uname");
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(165);
     this.setOutput(true, null);
  this.setTooltip(".. function:: uname() Return a tuple (possibly a named tuple) containing information about the underlying machine and/or its operating system. The tuple has five fields ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/uos.html");
@@ -240,7 +252,8 @@ Blockly.Blocks["uos_urandom"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" urandom");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setOutput(true, null);
  this.setTooltip(".. function:: urandom(n) Return a bytes object with block_definitions.js block_definitions_custom.js functions.txt generate-blocks.sh generator_stubs.js generator_stubs_custom.js onlyfunctions.txt random bytes. Whenever possible, it is generated by the hardware random number generator. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/uos.html");
@@ -253,7 +266,8 @@ Blockly.Blocks["uos_chdir"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" chdir");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: chdir(path) Change current directory. ");
@@ -267,7 +281,8 @@ Blockly.Blocks["uos_getcwd"] = {
   init: function() {
     this.appendDummyInput()
         .appendField(" getcwd");
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(165);
     this.setOutput(true, null);
  this.setTooltip(".. function:: getcwd() Get the current directory. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/uos.html");
@@ -278,7 +293,8 @@ Blockly.Blocks["uos_ilistdir"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" ilistdir");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -290,7 +306,8 @@ Blockly.Blocks["uos_listdir"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" listdir");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     //this.setPreviousStatement(true, null);
     //this.setNextStatement(true, null);
     this.setOutput(true, null);
@@ -309,7 +326,8 @@ Blockly.Blocks["uos_mkdir"] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("name");
 
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: mkdir(path) Create a new directory. ");
@@ -327,7 +345,8 @@ Blockly.Blocks["uos_remove"] = {
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("filename");
 
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: remove(path) Remove a file. ");
@@ -339,7 +358,8 @@ Blockly.Blocks["uos_rmdir"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" rmdir");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: rmdir(path) Remove a directory. ");
@@ -351,7 +371,8 @@ Blockly.Blocks["uos_rename"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" rename");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: rename(old_path, new_path) Rename a file. ");
@@ -363,7 +384,8 @@ Blockly.Blocks["uos_stat"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" stat");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setOutput(true, null);
  this.setTooltip(".. function:: stat(path) Get the status of a file or directory. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/uos.html");
@@ -374,9 +396,10 @@ Blockly.Blocks["uos_statvfs"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" statvfs");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setOutput(true, null);
- this.setTooltip(".. function:: statvfs(path) Get the status of a fileystem. ");
+ this.setTooltip(".. function:: statvfs(path) Get the status of a filesystem. ");
  this.setHelpUrl("https://docs.micropython.org/en/latest/library/uos.html");
   }
 };
@@ -387,7 +410,8 @@ Blockly.Blocks["uos_sync"] = {
   init: function() {
     this.appendDummyInput()
         .appendField(" sync");
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: sync() Sync all filesystems. ");
@@ -399,7 +423,8 @@ Blockly.Blocks["uos_dupterm"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" dupterm");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: dupterm(stream_object, index=0, /) Duplicate or switch the MicroPython terminal (the REPL) on the given `stream` -like ");
@@ -411,7 +436,8 @@ Blockly.Blocks["uos_mount"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" mount");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(" ");
@@ -423,7 +449,8 @@ Blockly.Blocks["uos_umount"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" umount");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. function:: umount(mount_point) Unmount a filesystem. *mount_point* can be a string naming the mount locatio n, ");
@@ -435,7 +462,8 @@ Blockly.Blocks["uos_readblocks"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" readblocks");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. method:: readblocks(block_num, buf) .. method:: readblocks(block_num, buf, offset) The first form reads aligned, multiples of blocks. ");
@@ -447,7 +475,8 @@ Blockly.Blocks["uos_readblocks"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" readblocks");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. method:: readblocks(block_num, buf, offset) The first form reads aligned, multiples of blocks. Starting at the block given by the index *block_num*, read blocks from ");
@@ -461,7 +490,8 @@ Blockly.Blocks["uos_writeblocks"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" writeblocks");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. method:: writeblocks(block_num, buf) .. method:: writeblocks(block_num, buf, offset) The first form writes aligned, multiples of blocks, and requires that th ");
@@ -475,7 +505,8 @@ Blockly.Blocks["uos_writeblocks"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" writeblocks");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. method:: writeblocks(block_num, buf, offset) The first form writes aligned, multiples of blocks, and requires that th e ");
@@ -489,7 +520,8 @@ Blockly.Blocks["uos_ioctl"] = {
   init: function() {
   this.appendValueInput("pIn")
         .appendField(" ioctl");
-        this.setColour(0);
+        this.setInputsInline(true);
+        this.setColour(165);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
  this.setTooltip(".. method:: ioctl(op, arg) Control the block device and query its parameters. The operation to perform is given by *op* which is one of the following integers: ");

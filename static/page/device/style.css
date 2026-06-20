@@ -1,6 +1,8 @@
 nav #device::before {
 	background-position: left calc(-1.5rem*20) top;
 }
+/* Device icon switches to the "connected" cell only when a connection is active
+   (the .using class), not merely when the device page is selected (.on). */
 nav #device.using::before {
 	background-position: left calc(-1.5rem*20) bottom;
 }
@@ -30,15 +32,14 @@ section#device #new-connection #WebSerial.unsupported #baudrate {
 section#device #new-connection #WebSerial:not(.unsupported) #baudrate {
   text-align:center;
   position: absolute;
-  margin-top: -5em;
-  margin-left: -1.5em;
+  top: 0.7rem;
+  left: 0.75rem;
+  width: calc(100% - 1.5rem);
+  margin: 0;
+  z-index: 1;
 }
 section#device #new-connection #WebSerial:not(.unsupported) .silk {
-  position:relative;
-  margin-top: -3rem;
-  width: 100%;
-  height: calc(100% - 2.75rem);
-  display: block;
+  display: none;
 }
 body.light #new-connection #WebSerial select {
   border-color: #fff;
@@ -65,9 +66,13 @@ section#device #new-connection #WebBluetooth > div:before {
 section#device #new-connection button div {
   justify-content: flex-start;
   padding-left: 1em;
+  min-height: 5.5rem;
 }
 section#device #new-connection button div:before {
   margin: -6rem -1.5rem 0 0 !important;
+}
+section#device #new-connection #WebSerial {
+  position: relative;
 }
 section#device #devices button {
   flex-shrink: 0;
@@ -75,9 +80,38 @@ section#device #devices button {
 section#device #devices button > div {
   min-width: 15rem;
 }
-section#device #devices button > div {
+section#device #devices button:not(.image-source) > div {
   transition: .25s ease background-color, .125s ease transform;
-  display: block;
+  display: inline-flex;   /* hug the content so the card sizes to the text */
+  width: auto;
+  min-width: 0;           /* override the generic 15rem that left a big empty area */
+}
+/* Two-column body: actions (left) + status (right), side by side, auto-sizing. */
+section#device #devices button .device-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 0.6rem 0.75rem;
+}
+section#device #devices button .device-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+}
+section#device #devices button .device-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.05rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+section#device #devices button .device-status h4 {
+  margin: 0 0 0.1rem 0;
 }
 body.dark section#device #devices button > div {
   border: 1px solid #fff;
@@ -85,17 +119,15 @@ body.dark section#device #devices button > div {
 body.light section#device #devices button > div {
   border: 1px solid #000;
 }
-section#device .device-connect.master button > div,
+section#device .device-connect.master #devices button.on > div,
 section#device button.unsupported > div {
   cursor: default !important;
 }
-section#device .device-connect:not(.master) button {
+section#device .device-connect:not(.master) button,
+section#device .device-connect.master #devices button:not(.on) {
   cursor: pointer
 }
-section#device .device-connect.master #devices .silk {
-  display: none;
-}
-section#device .device-connect:not(.master) #devices .silk {
+section#device .device-connect #devices .silk {
   position: absolute;
   width: 15rem;
   height: 9em;
@@ -114,17 +146,40 @@ section#device button.unsupported span {
   margin-top: 0.25em;
   font-weight: bold;
 }
-section#device #devices button > div > div.using-text {
-  float: right;
-  margin-top: -6.125rem;
-  margin-left: -1em;
+section#device #devices button .using-text {
   visibility: hidden;
 }
-section#device #devices button.on > div > div.using-text {
+section#device #devices button.on .using-text {
   visibility: visible;
 }
 section#device #devices button > div > div {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  max-width: 100%;
+  word-break: break-word;
+}
+section#device #devices button.image-source {
+  cursor: default;
+}
+section#device #devices button.image-source > div {
+  min-height: 9rem;
+}
+section#device #devices button.image-source .image-source-header {
+  margin: 0.35rem 0;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+body.light section#device #devices button.image-source .image-source-header {
+  background: rgba(15, 23, 42, 0.06);
+}
+body.dark section#device #devices button.image-source .image-source-header {
+  background: rgba(255, 255, 255, 0.08);
+}
+section#device #devices button.image-source button#disconnect {
+  display: inline-flex;
+  filter: none;
 }
 body.dark section#device #devices button.on > div {
   background-color: #fff;
@@ -141,19 +196,19 @@ body.light section#device #devices button.on h4 {
   color: #eee;
 }
 section#device button#disconnect {
-  float: left;
-  width: 8em;
-  min-width: 8em;
-  margin-top: -2em;
-  margin-left: -1.75em;
+  width: auto;
+  padding-left: .5em;
+  padding-right: .5em;
+  white-space: nowrap;
+  margin: 0;
   display: none;
 }
 section#device button#fetch {
-  float: left;
-  width: 7.5em;
-  min-width: 7em;
-  margin-top: -4em;
-  margin-left: -1.75rem;
+  width: auto;
+  padding-left: .5em;
+  padding-right: .5em;
+  white-space: nowrap;
+  margin: 0;
   display: none;
 }
 section#device .device-connect #new-connection {
@@ -161,9 +216,21 @@ section#device .device-connect #new-connection {
   overflow: hidden;
   height: 9rem;
 }
+section#device .device-connect #new-connection .funky {
+  gap: 1rem;
+  align-items: stretch;
+  overflow: visible;
+  padding: 0;
+}
+section#device .device-connect #new-connection .funky button {
+  flex: 0 0 auto;
+  min-width: 10 rem;
+  width: auto;
+  padding: 0 .5rem;
+}
 section#device .device-connect.master #new-connection {
-  height: 0rem;
-  opacity: 0;
+  height: 9rem;
+  opacity: 1;
 }
 section#device .device-connect.master button.on button#disconnect,
 section#device .device-connect.master button.on button#fetch {
@@ -226,6 +293,88 @@ section#device #webSocketSetup > div {
     border-right: none;
     border-bottom: none;
   }
+}
+
+/* WiFi-device provisioning popup — reuses the WebSocket dialog's card styling. */
+section#device #wifiSetup.on {
+  overflow-y: auto;
+}
+section#device #wifiSetup > div {
+  max-width: 30rem;
+  padding: 0 1rem;
+  min-height: 20rem;
+  margin: 110vh auto 0 auto;
+  overflow: hidden;
+  text-align: center;
+}
+@media screen and (max-width: 30rem){
+  section#device #wifiSetup > div {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+}
+section#device #wifiSetup h3 {
+  padding-top: 1rem;
+}
+section#device #wifiSetup h4 {
+  text-align: left;
+  padding: 1rem 0 0 0;
+}
+section#device #wifiSetup .warnings {
+  display: block;
+  text-align: left;
+  padding-top: 1rem;
+}
+section#device #wifiSetup input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: .5rem 0;
+  border-bottom: 1px solid #666;
+}
+section#device #wifiSetup > div > div {
+  text-align: right;
+  padding-top: 1em;
+}
+section#device #wifiSetup #connect {
+  margin-bottom: .5rem;
+  background: linear-gradient(130deg, rgba(106,168,251,1) -100%, rgba(123,73,173,1) 200%);
+  color: #fff !important;
+  padding: .5rem 1rem;
+  margin-left: .25rem;
+}
+section#device #wifiSetup #wifiDeviceList {
+  text-align: left;
+}
+section#device #wifiSetup .wifi-device-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem 0;
+  border-bottom: 1px solid rgba(125,125,125,.25);
+}
+section#device #wifiSetup .wifi-dot {
+  color: #999;
+  font-size: .8rem;
+}
+section#device #wifiSetup .wifi-device-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+section#device #wifiSetup .wifi-device-name:hover {
+  text-decoration: underline;
+}
+section#device #wifiSetup .wifi-device-row button {
+  padding: .2rem .6rem;
+  width: auto;
+}
+/* Remove uses the standard "remove" X-in-a-box icon (sprite position 7). */
+section#device #wifiSetup .wifi-device-row button.wifi-remove:before {
+  background-position: left calc(-1.5rem*7) top;
 }
  
 section#device #webSocketSetup h3 {
@@ -338,4 +487,3 @@ div#status-bar button#firmware:before {
   background: none;
   width: 0;
 }
-

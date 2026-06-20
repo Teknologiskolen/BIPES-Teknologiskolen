@@ -294,6 +294,15 @@
   <field name="VAR">to str</field>
 </block>
 
+# pad_number
+<block type="pad_number">
+  <value name="VALUE">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
 # %{LISTS}
 <category name="%{LISTS}" colour="%{LISTS_HUE}">
 
@@ -375,7 +384,7 @@
 <category name="%{FUNCTIONS}" colour="%{PROCEDURES_HUE}" custom="PROCEDURE">
 
 # Oximeter
-<category name="Oximeter">
+<category name="%{CAT_OXIMETER}">
 <label text="MAX30100 pulse oximeter sensor"></label>
 <label text="Library: https://github.com/"></label>
 <button text="Install MAX30100 library" callbackKey="installPyLib"></button>

@@ -1,58 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Setup - BIPES</title>
+    <title>Welcome - BIPES</title>
     <link rel="stylesheet" href="/static/auth/style.css">
+    <script src="/static/base/csrf.js?v={{ app_version }}"></script>
 </head>
-<body>
+<body class="login-page {{ theme }}" data-i18n-doctitle="setup_title">
     <div class="auth-container">
         <div class="auth-header">
-            <h1>Welcome!</h1>
-            <p>Please set up your account</p>
+            <h1 data-i18n="setup_title">Welcome!</h1>
+            <p data-i18n="setup_subtitle">Please set up your account</p>
         </div>
 
         <div id="alert-container"></div>
 
         <div class="alert alert-info">
-            <strong>First-time setup required:</strong> Please change your password to secure your account. You can also add an email address for easier login.
+            <strong data-i18n="setup_info_label">First-time setup required:</strong> <span data-i18n="setup_info">Please change your password to secure your account.</span>
         </div>
 
         <form id="setup-form" class="auth-form">
             <div class="form-group">
-                <label for="current-password">Current Password</label>
-                <input type="password" id="current-password" name="current_password" required placeholder="Your teacher-provided password">
+                <label for="current-password" data-i18n="current_password">Current Password</label>
+                <input type="password" id="current-password" name="current_password" required placeholder="Your teacher-provided password" data-i18n-placeholder="current_password_placeholder">
             </div>
 
             <div class="form-group">
-                <label for="new-password">New Password <span style="color: red;">*</span></label>
-                <input type="password" id="new-password" name="new_password" required placeholder="Choose a new password" minlength="8">
+                <label for="new-password"><span data-i18n="new_password">New Password</span> <span style="color: red;">*</span></label>
+                <input type="password" id="new-password" name="new_password" required placeholder="Choose a new password" data-i18n-placeholder="new_password_placeholder" minlength="8">
                 <div id="password-strength" class="password-strength"></div>
-                <small style="color: #666; font-size: 0.85rem;">Minimum 8 characters</small>
+                <small style="color: #666; font-size: 0.85rem;" data-i18n="minimum_password">Minimum 8 characters</small>
             </div>
 
             <div class="form-group">
-                <label for="confirm-password">Confirm New Password <span style="color: red;">*</span></label>
-                <input type="password" id="confirm-password" name="confirm_password" required placeholder="Confirm your new password">
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email Address (Optional)</label>
-                <input type="email" id="email" name="email" placeholder="your.email@example.com">
-                <small style="color: #666; font-size: 0.85rem;">You can use email to login instead of class code</small>
+                <label for="confirm-password"><span data-i18n="confirm_new_password">Confirm New Password</span> <span style="color: red;">*</span></label>
+                <input type="password" id="confirm-password" name="confirm_password" required placeholder="Confirm your new password" data-i18n-placeholder="confirm_new_password_placeholder">
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <span class="btn-text">Complete Setup</span>
+                <span class="btn-text" data-i18n="complete_setup">Complete Setup</span>
             </button>
         </form>
 
         <div class="auth-links">
-            <p><small>* Required fields</small></p>
+            <p><small data-i18n="required_fields">* Required fields</small></p>
         </div>
     </div>
 
+    <div id="status-bar" class="auth-status-bar">
+        <div id="extra">
+            <button id="forum" class="status-icon" type="button" title="Forum" data-i18n="forum" data-i18n-title="forum">Forum</button>
+            <button id="theme" class="status-icon" type="button" title="Change theme" data-i18n="mode" data-i18n-title="change_theme">Mode</button>
+            <span id="language" class="status-icon"><span data-i18n="language">Language</span>
+                <select id="auth-language" title="Language" data-i18n-title="language">
+                    {% for key, value in available_lang.items() -%}
+                    <option value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div id="globals"></div>
+    </div>
+
+    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script src="/static/msg/{{ lang }}.js"></script>
+    <script src="/static/auth/preferences.js"></script>
+    <script>window.bipesUserType = "{{ user_type }}";</script>
     <script src="/static/auth/setup.js"></script>
 </body>
 </html>

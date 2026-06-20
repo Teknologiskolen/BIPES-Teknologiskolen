@@ -1,0 +1,56 @@
+// Block definitions for the Kitronik Pico Robotics board (PicoRobotics.py).
+// The library .py is untouched; this .blockdef is the single source of truth.
+
+module PicoRobotics
+import "PicoRobotics"
+url "https://kitronik.co.uk"
+
+category "Robotics Board" color=30 {
+
+    class KitronikPicoRobotics as singleton named "board" {
+
+        block __init__ tooltip="Create the Kitronik Robotics board (I2C address + SDA/SCL pins)." {
+            param I2CAddress type=Number default=108
+            param sda type=Number default=8 pin
+            param scl type=Number default=9 pin
+        }
+
+        block adjustServos tooltip="Calibrate the servo pulse range." {
+            param change type=Number default=0
+        }
+
+        block motorOn tooltip="Drive a motor (1-4) in a direction at a speed (0-100)." {
+            param motor type=Number default=1
+            param direction options[("forward","f"),("reverse","r")]
+            param speed type=Number default=50
+        }
+        block motorOff tooltip="Stop a motor (1-4)." {
+            param motor type=Number default=1
+        }
+
+        block servoWrite tooltip="Move a servo (1-8) to an angle in degrees (0-180)." {
+            param servo type=Number default=1
+            param degrees type=Number default=90
+        }
+        block servoWriteRadians tooltip="Move a servo (1-8) to an angle in radians." {
+            param servo type=Number default=1
+            param radians type=Number default=0
+        }
+
+        block step tooltip="Step a stepper motor by a number of steps in a direction." {
+            param motor type=Number default=1
+            param direction options[("forward","f"),("reverse","r")]
+            param steps type=Number default=200
+            param speed type=Number default=20
+            param holdPosition type=Boolean default=false
+        }
+        block stepAngle tooltip="Step a stepper motor by an angle in degrees." {
+            param motor type=Number default=1
+            param direction options[("forward","f"),("reverse","r")]
+            param angle type=Number default=90
+            param speed type=Number default=20
+            param holdPosition type=Boolean default=false
+            param stepsPerRev type=Number default=200
+        }
+    }
+}

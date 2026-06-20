@@ -1,0 +1,37 @@
+# Development override.
+#
+#   Start it with:   docker compose up -d --build      (bake current code once)
+#   then:            docker compose watch               (live-sync edits)
+#
+# Docker Compose Watch actively copies changed host files into the running
+# container, which avoids the Docker Desktop file-share cache lag that makes
+# in-place bind-mount edits show up stale. In dev, nginx proxies ALL static to
+# the web container (docker/nginx.dev.conf), and Watch keeps web's files live:
+#   - static/ + templates/  -> synced (Flask serves them fresh per request)
+#   - server/ + app.py       -> synced and the web container restarts (gunicorn
+#                               has no reload), so Python changes take effect.
+#
+# For a clean production run, ignore this file:
+#   docker compose -f docker-compose.yml up -d
+services:
+  web:
+    develop:
+      watch:
+        - action: sync
+          path: ./static
+          target: /app/static
+        - action: sync
+          path: ./templates
+          target: /app/templates
+        - action: sync+restart
+          path: ./server
+          target: /app/server
+        - action: sync+restart
+          path: ./app.py
+          target: /app/app.py
+
+  nginx:
+    # In dev, serve everything (incl. /static) through Flask so Watch's live
+    # files are what's served — no nginx static bind mount to go stale.
+    volumes:
+      - ./docker/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro

@@ -1,0 +1,15 @@
+# Production deploy using a PREBUILT image pulled from the GitHub Container Registry
+# (GHCR) instead of building on the VM. The CD workflow (.github/workflows/deploy.yml)
+# builds + pushes the image on GitHub's runners; the VM only pulls it — much lighter on
+# the 1 vCPU / 2 GB box than `up --build`.
+#
+# Layer it on top of the base + prod files:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml pull web
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml up -d
+#
+# `image` overrides the base `build:` (with the image present after `pull`, `up` does not
+# rebuild). WEB_IMAGE lets you pin a specific tag (e.g. a :<sha>) for rollback.
+services:
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/teknologiskolen/bipes-web:latest}
+    pull_policy: always

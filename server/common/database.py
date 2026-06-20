@@ -15,6 +15,10 @@ def get_db(__db):
         import psycopg
         return __db if isinstance(__db, psycopg.Connection) else connect(__db)
 
+def _is_closed_connection(db):
+    closed = getattr(db, "closed", False)
+    return closed is True or closed == 1
+
 # Replace %s with ? if sqlite
 def _s(sql):
     if current_app.config['DATABASE'] == 'sqlite':
@@ -32,6 +36,9 @@ def unixtime(cols):
 
 # Connect to db
 def connect(database):
+    if 'db' in g and _is_closed_connection(g.db):
+        g.pop('db', None)
+
     if 'db' not in g:
         if current_app.config['DATABASE'] == 'sqlite':
             import sqlite3
@@ -54,7 +61,7 @@ def connect(database):
 
 # Close db
 def close(e=None):
-    if g.db is not None:
+    if hasattr(g, 'db') and g.db is not None:
         g.db.close()
 
     g.pop('db', None)
@@ -115,59 +122,6 @@ def select(__db, table_name, columns, *args):
     g.pop('db', None)
     return (table_name, columns, data)
 
-
-# Get data from database
-def select_where(__db, table_name, where, columns, *args):
-    db = get_db(__db)
-
-    str_c = ', '.join(columns)
-
-    __sql = ' order by lastEdited desc'
-    if len(args) == 2:
-        __sql = ' where lastEdited < %s' + __sql + ' limit %s'
-
-    if current_app.config['DATABASE'] == 'postgresql':
-        from psycopg import sql
-        __sql = f'select {str_c} from ' + '{}' + f' where {where[0]} = %s' + __sql
-        _sql = sql.SQL(__sql).format(sql.Identifier(table_name))
-    elif current_app.config['DATABASE'] == 'sqlite':
-        _sql = f'select {str_c} from {table_name} where {where[0]} = %s' + __sql
-
-    if len(args) == 2:
-        data = db.execute(_s(_sql), (where[1], args[0], args[1])).fetchall()
-    else:
-        data = db.execute(_s(_sql), (where[1],)).fetchall()
-
-    db.close()
-    g.pop('db', None)
-
-    return (table_name, columns, data)
-
-
-# Get data from database
-def select_distinct(__db, table_name, columns, *args):
-    db = get_db(__db)
-
-    str_c = ', '.join(columns)
-
-    if current_app.config['DATABASE'] == 'postgresql':
-        from psycopg import sql
-        __sql = f'select distinct {str_c}' + ' from {}'
-        _sql = sql.SQL(__sql).format(sql.Identifier(table_name))
-    elif current_app.config['DATABASE'] == 'sqlite':
-        _sql = f'select distinct {str_c} from {table_name}'
-    if len(args) == 2:
-        _sql += f' where lastEdited < %s'
-    if len(args) == 2:
-        _sql += f' limit %s'
-        data = db.execute(_s(_sql), (args[0], args[1])).fetchall()
-    else:
-        data = db.execute(_s(_sql)).fetchall()
-
-    db.close()
-    g.pop('db', None)
-
-    return (table_name, columns, data)
 
 # Fetch data from database
 def fetch(__db, table_name, columns, where):
@@ -247,21 +201,4 @@ def update(__db, table_name, columns, values):
 
     return (table_name, columns)
 
-# Convert db rows to json
-# The tuple data is table name, columns name and data rows.
-def rows_to_json(data, single=False):
-    table_name = data[0]
-    columns = data[1]
-    json_list = []
-    json_output = {table_name: json_list}
-    if single is False:
-        rows = data[2]
-        for row in rows:
-            json_dict = dict(zip(columns, row))
-            json_list.append(json_dict)
-    else:
-        row = data[2]
-        json_dict = dict(zip(columns, row))
-        json_list.append(json_dict)
-
-    return json_output 
+# (rows_to_json removed — only the legacy EasyMQTT /mqtt endpoints used it.)

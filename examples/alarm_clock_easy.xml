@@ -1,0 +1,209 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  
+
+  <block type="alarm_clock__create" x="40" y="40">
+    <value name="spi">
+      <block type="spi">
+        <field name="firstbit">MSB</field>
+        <value name="id">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+        <value name="baudrate">
+          <shadow type="math_number">
+            <field name="NUM">40000000</field>
+          </shadow>
+        </value>
+        <value name="polarity">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+        <value name="phase">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+        <value name="bits">
+          <shadow type="math_number">
+            <field name="NUM">8</field>
+          </shadow>
+        </value>
+        <value name="sck">
+          <shadow type="math_number">
+            <field name="NUM">18</field>
+          </shadow>
+        </value>
+        <value name="mosi">
+          <shadow type="math_number">
+            <field name="NUM">19</field>
+          </shadow>
+        </value>
+        <value name="miso">
+          <shadow type="math_number">
+            <field name="NUM">4</field>
+          </shadow>
+        </value>
+      </block>
+    </value>
+    <value name="dc">
+      <shadow type="pinout">
+        <field name="PIN">16</field>
+      </shadow>
+    </value>
+    <value name="rst">
+      <shadow type="pinout">
+        <field name="PIN">20</field>
+      </shadow>
+    </value>
+    <value name="cs">
+      <shadow type="pinout">
+        <field name="PIN">17</field>
+      </shadow>
+    </value>
+    <value name="clk">
+      <shadow type="pinout">
+        <field name="PIN">1</field>
+      </shadow>
+    </value>
+    <value name="dat">
+      <shadow type="pinout">
+        <field name="PIN">0</field>
+      </shadow>
+    </value>
+    <value name="rtc_rst">
+      <shadow type="pinout">
+        <field name="PIN">2</field>
+      </shadow>
+    </value>
+    <value name="field_pin">
+      <shadow type="pinout">
+        <field name="PIN">14</field>
+      </shadow>
+    </value>
+    <value name="plus_pin">
+      <shadow type="pinout">
+        <field name="PIN">15</field>
+      </shadow>
+    </value>
+    <value name="mode_pin">
+      <shadow type="pinout">
+        <field name="PIN">13</field>
+      </shadow>
+    </value>
+    <value name="width">
+      <shadow type="math_number">
+        <field name="NUM">160</field>
+      </shadow>
+    </value>
+    <value name="height">
+      <shadow type="math_number">
+        <field name="NUM">128</field>
+      </shadow>
+    </value>
+    <next>
+      <block type="alarm_clock__set_alarm">
+        <value name="hour">
+          <shadow type="math_number">
+            <field name="NUM">7</field>
+          </shadow>
+        </value>
+        <value name="minute">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+        <next>
+          <block type="try_except">
+            <field name="EXC">KeyboardInterrupt</field>
+            <statement name="TRY">
+              <block type="controls_whileUntil">
+                <field name="MODE">WHILE</field>
+                <value name="BOOL">
+                  <block type="logic_boolean">
+                    <field name="BOOL">TRUE</field>
+                  </block>
+                </value>
+                <statement name="DO">
+                  <block type="alarm_clock__update">
+                    <next>
+                      <block type="controls_if">
+                        <value name="IF0">
+                          <block type="alarm_clock__alarm_started"/>
+                        </value>
+                        <statement name="DO0">
+                          <block type="music__create">
+                            <value name="songString">
+                              <shadow type="text">
+                                <field name="TEXT">0 A5 2 0;4 E5 2 0;8 A5 2 0;12 E5 2 0</field>
+                              </shadow>
+                            </value>
+                            <value name="looping">
+                              <shadow type="logic_boolean">
+                                <field name="BOOL">TRUE</field>
+                              </shadow>
+                            </value>
+                            <value name="tempo">
+                              <shadow type="math_number">
+                                <field name="NUM">3</field>
+                              </shadow>
+                            </value>
+                            <value name="duty">
+                              <shadow type="math_number">
+                                <field name="NUM">2512</field>
+                              </shadow>
+                            </value>
+                            <value name="pin">
+                              <shadow type="pinout">
+                                <field name="PIN">3</field>
+                              </shadow>
+                            </value>
+                          </block>
+                        </statement>
+                        <next>
+                          <block type="controls_if">
+                            <value name="IF0">
+                              <block type="alarm_clock__is_ringing"/>
+                            </value>
+                            <statement name="DO0">
+                              <block type="music__tick"/>
+                            </statement>
+                            <next>
+                              <block type="controls_if">
+                                <value name="IF0">
+                                  <block type="alarm_clock__alarm_stopped"/>
+                                </value>
+                                <statement name="DO0">
+                                  <block type="music__stop"/>
+                                </statement>
+                                <next>
+                                  <block type="utime_sleep_ms">
+                                    <value name="pIn">
+                                      <shadow type="math_number">
+                                        <field name="NUM">10</field>
+                                      </shadow>
+                                    </value>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </statement>
+              </block>
+            </statement>
+            <statement name="EXCEPT">
+              <block type="music__stop"/>
+            </statement>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+  
+
+</xml>

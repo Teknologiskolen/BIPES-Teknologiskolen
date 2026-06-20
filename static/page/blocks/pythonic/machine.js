@@ -62,7 +62,7 @@ Blockly.Python["reset_cause_deep"] = function(block) {
 Blockly.Python['pinout'] = function(block) {
   var pin = block.getFieldValue('PIN');
 
-  return [pin, Blockly.Python.ORDER_NONE];
+  return [pin, Blockly.Python.ORDER_ATOMIC];
 };
 
 Blockly.Python['gpio_set'] = function(block) {
@@ -79,9 +79,9 @@ Blockly.Python['gpio_set'] = function(block) {
 		var code = 'gpio' + value_pin2 + '.value=' + value_value + '\n';
         } else {
 		Blockly.Python.definitions_['import_pin'] = 'from machine import Pin';
-		Blockly.Python.definitions_['gpio_set'] = 'def gpio_set(pin,value):\n  if value >= 1:\n    Pin(pin, Pin.OUT).on()\n  else:\n    Pin(pin, Pin.OUT).off()';
-
-		var code = 'gpio_set(' + value_pin + ', ' + value_value + ')\n';
+		var x = value_pin.replace(/[^a-zA-Z0-9_]/g, '');
+		Blockly.Python.definitions_['gpio_out_' + x] = 'pin' + x + ' = Pin(' + value_pin + ', Pin.OUT)\n';
+		var code = 'pin' + x + '.value(' + value_value + ')\n';
 	}
 	return code;
 
@@ -112,8 +112,8 @@ Blockly.Python['gpio_get'] = function(block) {
         } else {
 		//Standard MicroPython pin digital pin reading
 		Blockly.Python.definitions_['import_pin'] = 'from machine import Pin';
-		Blockly.Python.definitions_[`gpio_get_${x}`] = 'pIn' + x + '=Pin(' + x + ', Pin.IN' + pUpDown + ')\n\n';
-		var code = 'pIn' + x + '.value()';
+		Blockly.Python.definitions_[`gpio_get_${x}`] = 'pin' + x + ' = Pin(' + x + ', Pin.IN' + pUpDown + ')\n';
+		var code = 'pin' + x + '.value()';
 	}
 
   return [code, Blockly.Python.ORDER_NONE];

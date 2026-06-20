@@ -1,0 +1,22 @@
+// Block definitions for the HC-SR04 ultrasonic distance sensor (hcsr04.py).
+// Multiple-instance: give each sensor an ID, then read distance by that ID.
+// The library .py is untouched; this .blockdef is the single source of truth.
+
+module hcsr04
+import "hcsr04"
+url "https://github.com/rsc1975/micropython-hcsr04"
+
+category "Ultrasonic" color=330 {
+
+    class HCSR04 as multiple ref key_input {
+
+        block __init__ tooltip="Create an HC-SR04 sensor (trigger + echo pins)." {
+            param trigger_pin type=Number pin
+            param echo_pin type=Number pin
+            param echo_timeout_us type=Number default=30000
+        }
+
+        block distance_cm kind=value tooltip="Measure the distance in centimetres."
+        block distance_mm kind=value tooltip="Measure the distance in millimetres."
+    }
+}

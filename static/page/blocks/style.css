@@ -92,6 +92,13 @@ section#blocks #blocks-code #run:before {
 section#blocks #blocks-code #run.on:before {
   background-position: left calc(-1.5rem*18) bottom;
 }
+/* While a start/stop transfer is in progress: dim, show a wait cursor and block
+   clicks so the PUT/RUN sequence can't be interrupted (JS also ignores the click). */
+section#blocks #blocks-code #run.busy {
+  opacity: .55;
+  cursor: progress;
+  pointer-events: none;
+}
 body.light section#blocks #blocks-code,
 body.light section#blocks #codemirror button#copy {
   background-color: #fff;

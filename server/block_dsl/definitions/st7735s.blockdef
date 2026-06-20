@@ -1,0 +1,77 @@
+// Block definitions for the ST7735S TFT display driver (st7735s.py).
+// The library .py is untouched; this .blockdef is the single source of truth.
+// Connect the "create SPI" block (Clock Helpers) into the spi input.
+
+module st7735s
+import "st7735s"
+url "https://github.com/bipes"
+
+category "ST7735S" color=45 {
+
+    class ST7735S as singleton named "display" {
+
+        block __init__ tooltip="Create an ST7735S display (give it an SPI object and the DC/RST/CS pins)." {
+            param spi type=Any
+            param dc  type=Number pin
+            param rst type=Number pin
+            param cs  type=Number pin
+            param width  type=Number default=160
+            param height type=Number default=128
+        }
+
+        block fill tooltip="Fill the whole screen with a colour." {
+            param color type=Number default=0
+        }
+        block fill_rect tooltip="Fill a rectangle with a colour." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param w type=Number default=10
+            param h type=Number default=10
+            param color type=Number default=0
+        }
+        block pixel tooltip="Set one pixel to a colour." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param color type=Number default=0
+        }
+        block hline tooltip="Draw a horizontal line." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param w type=Number default=10
+            param color type=Number default=0
+        }
+        block vline tooltip="Draw a vertical line." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param h type=Number default=10
+            param color type=Number default=0
+        }
+        block rect tooltip="Draw a rectangle outline." {
+            param x type=Number default=0
+            param y type=Number default=0
+            param w type=Number default=10
+            param h type=Number default=10
+            param color type=Number default=0
+        }
+        block line tooltip="Draw a line between two points." {
+            param x0 type=Number default=0
+            param y0 type=Number default=0
+            param x1 type=Number default=10
+            param y1 type=Number default=10
+            param color type=Number default=0
+        }
+        block text tooltip="Draw text at (x, y)." {
+            param string type=String default="Hello"
+            param x type=Number default=0
+            param y type=Number default=0
+            param color type=Number default=0
+            param size type=Number default=1
+        }
+    }
+
+    block color565 kind=value tooltip="Make a 16-bit colour from red/green/blue (0-255)." {
+        param r type=Number default=255
+        param g type=Number default=255
+        param b type=Number default=255
+    }
+}

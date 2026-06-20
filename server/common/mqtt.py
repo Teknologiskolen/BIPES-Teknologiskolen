@@ -1,19 +1,51 @@
 
-from flask import (
-      Blueprint, request, current_app
-)
+from flask import current_app
 from flask_mqtt import Mqtt
-import json
+import base64
+import hashlib
+import hmac
 
-from server.common import database as dbase
+from server.common import auth
+
 #--------------------------------------------------------------------------
-# Blueprint
-bp = Blueprint('mqtt', __name__, url_prefix='/mqtt')
-_db = 'MQTT'
+# Server-side MQTT client.
+#
+# The browser talks to the broker directly over websockets (nginx /wss) using
+# short-lived, per-device credentials; physical devices connect over TLS (8883).
+# The Flask app itself only needs to PUBLISH (e.g. the OTA-notify in devices.py) —
+# it does not subscribe to or store any telemetry. The legacy EasyMQTT HTTP
+# store/relay (the /mqtt/<session>/... endpoints and the "+/#" subscriber) was
+# removed; only the publish client and the per-user session helper remain.
+#--------------------------------------------------------------------------
 
-#---------------------------------------------------------------------------
+
+def server_session_for_user(user=None):
+    """Stable per-user MQTT session id: an HMAC of the user's identity under the
+    app SECRET_KEY. Used by devices.py to scope a user's device topic prefixes so
+    they aren't guessable/forgeable."""
+    user = user or auth.get_current_user()
+    if not user:
+        return None
+
+    secret = current_app.config.get('SECRET_KEY') or current_app.config.get('FLASK_SECRET_KEY')
+    message = f"{user['user_type']}:{user['user_id']}".encode('utf-8')
+    digest = hmac.new(str(secret).encode('utf-8'), message, hashlib.sha256).digest()
+    token = base64.b32encode(digest).decode('ascii').lower().rstrip('=')[:15]
+    return f"u{token}"
+
+
+def publish(topic, payload):
+    mqtt_client = current_app.extensions.get('bipes_mqtt')
+    if mqtt_client is None:
+        return False
+
+    mqtt_client.publish(topic, payload)
+    return True
+
 
 def listen(app, conf):
+    """Initialise a PUBLISH-ONLY MQTT client on the app (no subscription, no storage).
+    Every gunicorn worker can publish (OTA notify); none subscribe."""
     if conf['password'] is None:
         print("No password provided, skipping mqtt.")
         return
@@ -34,7 +66,7 @@ def listen(app, conf):
         app.config['MQTT_USERNAME'] = conf['username']
     else:
         app.config['MQTT_USERNAME'] = 'bipes'
-        
+
     app.config['MQTT_PASSWORD'] = conf['password'].strip()
     if 'ssl' in conf:
         app.config['MQTT_SSL'] = True if conf['ssl'] == 'true' or conf['ssl'] == '1' else False
@@ -47,132 +79,6 @@ def listen(app, conf):
         app.config['MQTT_TLS_ENABLED'] = False
 
     mqtt = Mqtt()
-
-    @mqtt.on_message()
-    def handle_mqtt_message(client, userdata, msg):
-        full_topic = msg.topic.split("/", 1)
-
-        if len(full_topic) < 2:
-            return
-
-        session = full_topic[0]
-        topic = full_topic[1]
-        data = msg.payload.decode()
-
-        if app.config['DATABASE'] == 'sqlite':
-            from server.sqlite.mqtt import sql_macro_table
-        elif app.config['DATABASE'] == 'postgresql':
-            from server.postgresql.mqtt import sql_macro_table
-
-        with app.app_context():
-            db = dbase.connect(_db)
-            if not dbase.has_table(db, (session,)):
-                dbase.exec(db, sql_macro_table, session)
-
-            if app.config['DATABASE'] == 'sqlite':
-                import uuid
-                dbase.insert(db, session,
-                    ['uuid','topic','data'],
-                    (uuid.uuid1().bytes, topic, data))
-            elif app.config['DATABASE'] == 'postgresql':
-                dbase.insert(db, session,
-                    ['topic','data'],
-                    (topic, data))
-        return
-
-    @mqtt.on_connect()
-    def handle_connect(client, userdata, flags, rc):
-        mqtt.subscribe('#')
-
     mqtt.init_app(app)
+    app.extensions['bipes_mqtt'] = mqtt
     return
-
-# Get current password and connection config
-@bp.route('/public_conf', methods=('POST', 'GET'))
-def mqtt_public_conf():
-    if 'MQTT_PASSWORD' not in current_app.config:
-        return {'easyMQTT':{'password':False}}
-
-    # When behind HTTPS reverse proxy, browser connects via wss:// through nginx /wss path
-    forwarded_proto = request.headers.get('X-Forwarded-Proto', 'http')
-    if forwarded_proto == 'https':
-        return {
-            'easyMQTT':{
-                'password':current_app.config['MQTT_PASSWORD'],
-                'ssl':True,
-                'host':request.host.split(':')[0],
-                'ws_port':443,
-                'path':'/wss'
-            }
-        }
-    else:
-        return {
-            'easyMQTT':{
-                'password':current_app.config['MQTT_PASSWORD'],
-                'ssl':current_app.config['MQTT_SSL'],
-                'host':current_app.config['MQTT_BROKER_URL'],
-                'ws_port':current_app.config['MQTT_BROKER_WS_PORT']
-            }
-        }
-
-# Get all data
-@bp.route('/<session>/grep', methods=('POST', 'GET'))
-def mqtt_select(session):
-    obj = request.json
-    cols = ['topic','data']
-
-    db = dbase.connect(_db)
-    if not dbase.has_table(db, (session,)):
-        return {session:[]}
-
-    if obj != None and 'from' in obj and 'limit' in obj:
-        return dbase.rows_to_json(dbase.select(db, session, cols, obj['from'], obj['limit']))
-    else:
-        return dbase.rows_to_json(dbase.select(db, session, cols))
-
-
-# List topics
-@bp.route('/<session>/ls', methods=('POST', 'GET'))
-def mqtt_select_distinct(session):
-    obj = request.json
-    cols = ['topic']
-    db = dbase.connect(_db)
-    if not dbase.has_table(db, (session,)):
-        return {session:[]}
-
-    if obj != None and 'from' in obj and 'limit' in obj:
-        return dbase.rows_to_json(dbase.select_distinct(db, session, cols, obj['from'], obj['limit']))
-    else:
-        return dbase.rows_to_json(dbase.select_distinct(db, session, cols))
-
-
-# Get data from topic
-@bp.route('/<session>/<topic>/grep', methods=('POST', 'GET'))
-def mqtt_select_topic(session, topic):
-    obj = request.json
-    cols = ['lastEdited','data']
-    db = dbase.connect(_db)
-    topic = topic.replace('$','/')
-
-    if not dbase.has_table(db, (session,)):
-        return {session:[]}
-
-    if obj != None and 'from' in obj and 'limit' in obj:
-        return dbase.rows_to_json(dbase.select_where(db, session, ['topic', topic], cols, obj['from'], obj['limit']))
-    else:
-        return dbase.rows_to_json(dbase.select_where(db, session, ['topic', topic],  cols))
-
-
-# Remove  topic
-@bp.route('/<session>/<topic>/rm', methods=('POST', 'GET'))
-def mqtt_delete(session, topic):
-    obj = request.json
-    db = dbase.connect(_db)
-    topic = topic.replace('$','/')
-
-    if not dbase.has_table(db, (session,)):
-        return {session:[]}
-
-    dbase.delete(db, session, ['topic'], [topic])
-
-    return {session:[]}

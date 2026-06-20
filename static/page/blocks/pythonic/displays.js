@@ -1,30 +1,30 @@
 // NeoPixel -------------------------------------------------------------------
 Blockly.Python['neopixel_led_strip'] = function(block) {
-	var name = block.getFieldValue('strip_name');
-	code = `${name}`
+	var id = String(Number(block.getFieldValue('id')));
+	code = `${id}`
 	return [code, Blockly.Python.ORDER_NONE];
 };
 
 Blockly.Python['neopixel_init'] = function(block) {
   Blockly.Python.definitions_['from_machine_import_Pin'] = 'from machine import Pin';
   Blockly.Python.definitions_['from_neopixel_import_Neopixel'] = 'from neopixel import Neopixel';
+  Blockly.Python.definitions_['neopixel_instances'] = 'neopixel_instances = {}';
 
-  var name = block.getFieldValue('strip_name');
+  var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
   var pinInput = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
   var pin = pinInput.replace('(','').replace(')','');
   var number = Blockly.Python.valueToCode(block, 'number', Blockly.Python.ORDER_NONE);
   var state_machine = Blockly.Python.valueToCode(block, 'state_machine', Blockly.Python.ORDER_ATOMIC);
 
-  var code = `${name} = Neopixel(${number},${state_machine},${pin})\n`;
+  var code = `neopixel_instances[${id}] = Neopixel(${number},${state_machine},${pin})\n`;
 
   return code;
 };
 
 Blockly.Python['neopixel_brightness'] = function(block) {
-	var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-	var name = nameInput.replace('(','').replace(')','');
+	var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
 	var bright = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_ATOMIC);
-	var code = `${name}.brightness(${bright})\n` + `${name}.show()\n`;
+	var code = `neopixel_instances[${id}].brightness(${bright})\n` + `neopixel_instances[${id}].show()\n`;
 	return code;
 };
 
@@ -63,62 +63,58 @@ Blockly.Python['HSL_to_RGB'] = function(block) {
 };
 
 Blockly.Python['neopixel_set_line_gradient_pixel'] = function(block) {
-  var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-  var name = nameInput.replace('(','').replace(')','');
+  var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
   var start = Blockly.Python.valueToCode(block, 'start', Blockly.Python.ORDER_NONE);
   var end = Blockly.Python.valueToCode(block, 'end', Blockly.Python.ORDER_NONE);
   var startColor = Blockly.Python.valueToCode(block, 'startColor', Blockly.Python.ORDER_NONE);
   var endColor = Blockly.Python.valueToCode(block, 'endColor', Blockly.Python.ORDER_NONE);
   var brightness = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_NONE);
 
-  var code = `${name}.set_pixel_line_gradient(${start},${end},${startColor},${endColor}, ${brightness})\n` +  `${name}.show()\n`;
+  var code = `neopixel_instances[${id}].set_pixel_line_gradient(${start},${end},${startColor},${endColor}, ${brightness})\n` +  `neopixel_instances[${id}].show()\n`;
 
   return code;
 };
 
 Blockly.Python['neopixel_set_line_pixel'] = function(block) {
-  var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-  var name = nameInput.replace('(','').replace(')','');
+  var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
   var start = Blockly.Python.valueToCode(block, 'start', Blockly.Python.ORDER_NONE);
   var end = Blockly.Python.valueToCode(block, 'end', Blockly.Python.ORDER_NONE);
   var color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_NONE);
   var brightness = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_NONE);
 
-  var code = `${name}.set_pixel_line(${start},${end},${color}, ${brightness})\n` +  `${name}.show()\n`;
+  var code = `neopixel_instances[${id}].set_pixel_line(${start},${end},${color}, ${brightness})\n` +  `neopixel_instances[${id}].show()\n`;
 
   return code;
 };
 
 Blockly.Python['neopixel_set_pixel'] = function(block) {
-  var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-  var name = nameInput.replace('(','').replace(')','');
+  var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
   var address = Blockly.Python.valueToCode(block, 'address', Blockly.Python.ORDER_NONE);
   var color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_NONE);
   var brightness = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_NONE);
 
-  var code = `${name}.set_pixel(${address},${color}, ${brightness})\n` +  `${name}.show()\n`;
+  var code = `neopixel_instances[${id}].set_pixel(${address},${color}, ${brightness})\n` +  `neopixel_instances[${id}].show()\n`;
 
   return code;
 };
 
 Blockly.Python['neopixel_write'] = function(block) {
-  var code = 'np.write()\n';
+  var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
+  var code = `neopixel_instances[${id}].show()\n`;
   return code;
 };
 
 Blockly.Python['neopixel_rotate_left'] = function(block) {
-	var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-	var name = nameInput.replace('(','').replace(')','');
+	var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
 	var steps = Blockly.Python.valueToCode(block, 'steps', Blockly.Python.ORDER_ATOMIC);
-	var code = `${name}.rotate_left(${steps})\n` + `${name}.show()\n`;
+	var code = `neopixel_instances[${id}].rotate_left(${steps})\n` + `neopixel_instances[${id}].show()\n`;
 	return code;
 };
 
 Blockly.Python['neopixel_rotate_right'] = function(block) {
-	var nameInput = Blockly.Python.valueToCode(block, 'strip_name', Blockly.Python.ORDER_ATOMIC);
-	var name = nameInput.replace('(','').replace(')','');
+	var id = Blockly.Python.valueToCode(block, 'id', Blockly.Python.ORDER_ATOMIC);
 	var steps = Blockly.Python.valueToCode(block, 'steps', Blockly.Python.ORDER_ATOMIC);
-	var code = `${name}.rotate_right(${steps})\n` + `${name}.show()\n`;
+	var code = `neopixel_instances[${id}].rotate_right(${steps})\n` + `neopixel_instances[${id}].show()\n`;
 	return code;
 };
 

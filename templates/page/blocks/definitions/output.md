@@ -1,9 +1,9 @@
 # %{OUTPUTS}
-<category name="%{OUTPUTS}">
+<category name="%{OUTPUTS}" colour="30">
 
 # Relay
-<category name="Relay">
-<label text="Relay"></label>
+<category name="%{CAT_RELAY}">
+<label text="%{CAT_RELAY}"></label>
 
 # relay_switch
 <block type="relay_switch">
@@ -36,16 +36,49 @@
 </block>
 
 # mcp23017_setup
-<block type="mcp23017_setup"></block>
+<block type="mcp23017_setup">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="value">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # mcp23017_output
-<block type="mcp23017_output"></block>
+<block type="mcp23017_output">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="value">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # mcp23017_input
-<block type="mcp23017_input"></block>
+<block type="mcp23017_input">
+  <value name="pin">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="pullup">
+    <shadow type="logic_boolean">
+      <field name="BOOL">FALSE</field>
+    </shadow>
+  </value>
+</block>
 
 # RC Servo Motor
-<category name="RC Servo Motor">
+<category name="%{CAT_RC_SERVO}">
 <label text="Hobby RC Servo Motor"></label>
 
 # init_servo
@@ -67,8 +100,8 @@
 </block>
 
 # Stepper Motor
-<category name="Stepper Motor">
-<label text="Stepper Motor"></label>
+<category name="%{CAT_STEPPER_MOTOR}">
+<label text="%{CAT_STEPPER_MOTOR}"></label>
 
 # stepper_init
 <block type="stepper_init">
@@ -104,8 +137,8 @@
 </block>
 
 # DC Motor
-<category name="DC Motor">
-<label text="DC Motor"></label>
+<category name="%{CAT_DC_MOTOR}">
+<label text="%{CAT_DC_MOTOR}"></label>
 
 # dc_motor_init
 <block type="dc_motor_init">

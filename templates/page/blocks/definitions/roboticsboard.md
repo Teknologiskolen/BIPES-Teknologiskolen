@@ -1,5 +1,5 @@
 # Robotics Board
-<category name="Robotics Board">
+<category name="Robotics Board" colour="30">
 <label text="Pico Robotics Board"></label>
 <label text="Library: https://github.com/KitronikLtd/Kitronik-Pico-Robotics-Board-MicroPython"></label>
 <button text="%{INSTALL_LIBRARY}: PicoRobotics" callbackKey="installPyLib"></button>

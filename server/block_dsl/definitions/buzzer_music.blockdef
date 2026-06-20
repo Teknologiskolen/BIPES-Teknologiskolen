@@ -1,0 +1,29 @@
+// Block definitions for buzzer music on a passive piezo buzzer (buzzer_music.py).
+// Plays onlinesequencer.net-format song strings via PWM. The library .py is the plain
+// driver; this .blockdef is the single source of truth for the blocks.
+//
+// NB: the constructor params are in the SAME ORDER as music.__init__ (songString,
+// looping, tempo, duty, pin) because the generator passes them positionally.
+
+module buzzer_music
+import "buzzer_music"
+url "https://github.com/james1236/buzzer_music"
+
+category "Buzzer Music" color=160 {
+
+    class music as singleton named "buzzer" {
+
+        block __init__ label="set up buzzer song" tooltip="Set up a song to play on a passive piezo buzzer (onlinesequencer.net format). Call 'update buzzer' every loop to keep it playing." {
+            param songString type=String default="0 A5 2 0;4 E5 2 0;8 A5 2 0;12 E5 2 0"
+            param looping type=Boolean default=true
+            param tempo type=Number default=3
+            param duty type=Number default=2512
+            param pin type=Number default=3 pin
+        }
+
+        block tick    label="update buzzer"  tooltip="Call this every loop pass to advance the music (non-blocking)."
+        block stop    label="stop buzzer"    tooltip="Stop the music and silence the buzzer."
+        block restart label="restart buzzer" tooltip="Restart the song from the beginning."
+        block resume  label="resume buzzer"  tooltip="Resume playing after a stop."
+    }
+}

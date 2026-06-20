@@ -3,6 +3,7 @@ Blockly.Blocks['var_to_int'] = {
   init: function() {
     this.appendValueInput("var")
         .appendField(new Blockly.FieldLabelSerializable("to int"), "VAR")
+    this.setInputsInline(true)
     this.setColour(230)
     this.setOutput(true, null)
     this.setTooltip("Convert anything to Int.")

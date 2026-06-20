@@ -1,0 +1,66 @@
+name: CI
+
+# Fast pre-deploy checks. There is no unit-test suite yet, so this validates that
+# the code compiles, the frontend JS parses, the production image builds, and the
+# compose stack is valid — i.e. that a `git pull && docker compose up --build` on the
+# VM won't fail. Runs on pushes to the main branches and on every PR.
+on:
+  push:
+    branches: [master, forth]
+  pull_request:
+    branches: [master]
+
+# A newer push to the same ref cancels the older in-progress run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Byte-compile app.py + server/
+        run: python -m compileall -q app.py server
+
+  javascript:
+    name: JS syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: node --check every static JS file (excluding built *.umd.js bundles)
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r f; do
+            node --check "$f" || { echo "SYNTAX ERROR: $f"; fail=1; }
+          done < <(find static -name '*.js' ! -name '*.umd.js' -not -path '*/node_modules/*')
+          exit $fail
+
+  docker:
+    name: Docker build + compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production web image
+        run: docker build -f docker/Dockerfile.prod -t bipes-web:ci .
+      - name: Validate the production compose stack
+        run: |
+          # Throwaway secrets just to satisfy the `${VAR:?}` required-variable checks;
+          # `config -q` only parses/validates, it does not start anything.
+          cat > .env <<'EOF'
+          FLASK_SECRET_KEY=ci-dummy
+          PASSWORD_PEPPER=ci-dummy
+          MOSQUITTO_DYNSEC_ADMIN_PASSWORD=ci-dummy
+          POSTGRES_PASSWORD=ci-dummy
+          MOSQUITTO_PASSWORD=ci-dummy
+          EOF
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q
+          rm -f .env

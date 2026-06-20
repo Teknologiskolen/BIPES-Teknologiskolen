@@ -1,0 +1,46 @@
+// Generic, reusable buttons (buttons.py ButtonHub). One hub manages ANY number of
+// buttons on any pins, each with its own pull / debounce / hold / auto-repeat — nothing
+// about the count or behaviour is hardcoded. This .blockdef is the source of truth.
+
+module buttons
+import "buttons"
+url "https://github.com/bipes"
+
+category "Buttons" color=20 {
+
+    class ButtonHub as singleton named "buttons_hub" {
+
+        block __init__ tooltip="Create the button manager (once, before adding buttons)."
+
+        block add tooltip="Add a button on a pin. Pull-down = wired to 3V3; pull-up = wired to GND." {
+            param pin type=Number pin
+            param pull options[("pull-down","down"),("pull-up","up"),("none","none")]
+            param debounce_ms type=Number default=130
+            param hold_ms type=Number default=500
+            param repeat_ms type=Number default=120
+            param double_ms type=Number default=400
+        }
+
+        block was_pressed kind=value tooltip="True ONCE each time the button on this pin is pressed." {
+            param pin type=Number pin
+        }
+        block was_double_clicked kind=value tooltip="True ONCE when the button on this pin is pressed twice quickly (within double_ms)." {
+            param pin type=Number pin
+        }
+        block was_clicked kind=value tooltip="True ONCE for a confirmed SINGLE click (a lone press with no quick second press). Pairs with 'was double clicked'." {
+            param pin type=Number pin
+        }
+        block was_released kind=value tooltip="True ONCE each time the button on this pin is released." {
+            param pin type=Number pin
+        }
+        block is_down kind=value tooltip="True while the button on this pin is held down." {
+            param pin type=Number pin
+        }
+        block is_held kind=value tooltip="True once the button has been held past its hold threshold." {
+            param pin type=Number pin
+        }
+        block repeated kind=value tooltip="Auto-repeat: fires repeatedly while the button is held (after the hold threshold)." {
+            param pin type=Number pin
+        }
+    }
+}

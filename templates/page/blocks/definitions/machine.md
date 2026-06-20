@@ -41,8 +41,8 @@
 <block type="reset_cause_deep"></block>
     
 # In/Out Pins
-<category name="In/Out Pins">
-<label text="In/Out Pins"></label>
+<category name="%{CAT_IO_PINS}">
+<label text="%{CAT_IO_PINS}"></label>
 
 # pinout
 <block type="pinout"></block>

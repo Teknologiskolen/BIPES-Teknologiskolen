@@ -21,9 +21,26 @@ class SessionManager {
             this.clearSession();
             return;
         }
+
+        // Renew the session only while the user is actively working. Real input
+        // events (editing blocks, clicking, typing) mark activity; passively watching
+        // MQTT telemetry produces no input, so the session is allowed to lapse — the
+        // intended behaviour. Capture phase so Blockly can't swallow the events first.
+        this._lastActivity = Date.now();
+        this._activityHandler = () => { this._lastActivity = Date.now(); };
+        ['pointerdown', 'keydown'].forEach((ev) =>
+            window.addEventListener(ev, this._activityHandler, { passive: true, capture: true }));
+
         await this.checkSession();
-        // Check session every 5 minutes
-        this.checkInterval = setInterval(() => this.checkSession(), 5 * 60 * 1000);
+        // Every 5 minutes, ping /api/auth/me (which refreshes the server session) ONLY
+        // if the user interacted since the last tick. Active editing therefore never
+        // expires; an idle tab lapses ~1h after the last interaction. We do NOT force
+        // a redirect here — that's left to explicit actions (e.g. connecting a device)
+        // so an actively-editing user is never yanked away mid-edit.
+        this.checkInterval = setInterval(() => {
+            if (Date.now() - this._lastActivity <= 5 * 60 * 1000)
+                this.checkSession();
+        }, 5 * 60 * 1000);
     }
 
     /**
@@ -142,6 +159,11 @@ class SessionManager {
     destroy() {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
+        }
+        if (this._activityHandler) {
+            ['pointerdown', 'keydown'].forEach((ev) =>
+                window.removeEventListener(ev, this._activityHandler, { capture: true }));
+            this._activityHandler = null;
         }
     }
 }

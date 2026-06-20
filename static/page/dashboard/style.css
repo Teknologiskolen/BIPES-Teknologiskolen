@@ -93,43 +93,67 @@ section#dashboard #grid #edit:before {
   margin: 0;
 }
 
-section#dashboard #addMenu > div {
-  max-width: 14rem;
-  padding: 0.5rem;
-  margin-right: .75rem;
+section#dashboard #addMenu > div.dashboard-add-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: min(32rem, calc(100vh - 5rem));
+  padding: 1rem;
+  overflow-y: auto;
+  margin: 0;
+  border-radius: 1.25rem;
+  transform: translate(-50%, calc(-50% + 2rem)) scale(.96);
+  transition: transform ease .25s, opacity ease .25s;
+}
+body.dark section#dashboard #addMenu > div.dashboard-add-card {
+  background: #2a2a2a;
+}
+body.light section#dashboard #addMenu > div.dashboard-add-card {
+  background: #f0f0f0;
+}
+section#dashboard #addMenu.on > div.dashboard-add-card {
+  transform: translate(-50%, -50%) scale(1);
+}
+section#dashboard .dashboard-add-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+}
+section#dashboard .dashboard-add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.75rem;
+}
+section#dashboard .dashboard-add-btn {
   display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  margin-left: auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.85rem 0.65rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  background: rgba(84,190,255,0.08);
+  color: inherit;
+  font-size: 0.8rem;
+  min-height: 4.5rem;
+  width: 100%;
+  max-width: none;
+  transition: background-color ease .125s;
 }
-section#dashboard #addMenu.on > div {
-  margin-top: calc(100vh - 15rem);
+section#dashboard .dashboard-add-btn:hover,
+section#dashboard .dashboard-add-btn:focus {
+  background: rgba(84,190,255,0.18);
 }
-section#dashboard #addMenu button {
-  padding: .5em;
-  border-radius: 0.5em;
-  display: block;
-  max-width: 5em;
+section#dashboard .dashboard-add-btn svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex-shrink: 0;
 }
-@media screen and (max-width:39.99rem) {
-  section#dashboard #addMenu.on > div {
-    margin-top: calc(100vh - 14rem - 3rem);
-  }
-}
-@media screen and (min-width:40rem) and (orientation:portrait) {
-  section#dashboard.pos1 #addMenu.on > div {
-    margin-top: calc(50vh - 10rem);
-  }
-}
-@media screen and (max-width:39.99rem) and (orientation:portrait) {
-  section#dashboard.pos1 #addMenu.on > div {
-    margin-top: calc(50vh - 11rem);
-  }
-}
-@media screen and (orientation:landscape) {
-  section#dashboard.pos1 #addMenu > div {
-    margin-right: calc(50vw - 1em) !important;
-  }
+section#dashboard .dashboard-add-btn span {
+  line-height: 1.2;
 }
 
 /* Grid */
@@ -148,6 +172,14 @@ section#dashboard .muuri-item > div {
   width: 100%;
   height: 100%;
   transition: box-shadow ease .25s;
+}
+section#dashboard .muuri-item.responsive-measuring > div,
+section#dashboard .muuri-item.responsive-measuring > div > span,
+section#dashboard .muuri-item.responsive-measuring > div > button,
+section#dashboard .muuri-item.responsive-measuring .press,
+section#dashboard .muuri-item.responsive-measuring .container {
+  height: auto !important;
+  min-height: 0 !important;
 }
 body.light section#dashboard .muuri-item > div {
   background: #eee;
@@ -185,10 +217,20 @@ section#dashboard .muuri #grab {
 section#dashboard #grid .muuri-item span,
 section#dashboard #grid .muuri-item button {
   font-size: .8rem;
+  min-width: 0;
 }
 section#dashboard #grid .muuri-item h2,
 section#dashboard #grid .muuri-item h3 {
   font-weight: normal;
+}
+section#dashboard #grid .muuri-item h2,
+section#dashboard #grid .muuri-item h3,
+section#dashboard #grid .muuri-item p,
+section#dashboard #grid .muuri-item button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 section#dashboard #grid:not(.on):not(.ani) #silk {
   display: none;
@@ -221,6 +263,77 @@ section#dashboard #grid .muuri-item.switch button.press:hover {
     transform: scale(1.02);
 }
 section#dashboard #grid .muuri-item.switch button.press:active {
+    transform: scale(0.98);
+}
+
+/* Three State Switch */
+section#dashboard #grid .muuri-item.three-state-switch span.press {
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  background: rgba(84,190,255,0.05);
+  transition: .125s ease transform, .25s ease background-color;
+  cursor: default;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .45rem;
+  padding: .7rem;
+  box-sizing: border-box;
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press:hover {
+  transform: scale(1.02);
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press h2,
+section#dashboard #grid .muuri-item.three-state-switch span.press h3 {
+  margin: 0;
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press .choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .35rem;
+  width: 100%;
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press .choices button {
+  min-width: 0;
+  padding: .45rem .2rem;
+  border-radius: .6rem;
+  border: 1px solid rgba(84,190,255,0.3);
+  background: rgba(84,190,255,0.08);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press .choices button.on {
+  background: rgba(84,190,255,0.6);
+  border-color: rgba(84,190,255,0.85);
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press .choices button:hover {
+  background: rgba(84,190,255,0.25);
+}
+section#dashboard #grid .muuri-item.three-state-switch span.press .choices button:active {
+  transform: scale(0.96);
+}
+
+/* Button */
+section#dashboard #grid .muuri-item.button button.press {
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  background: rgba(255,165,0,0.1);
+  transition: .125s ease transform, .25s ease background-color;
+  cursor:pointer;
+  overflow: hidden;
+}
+section#dashboard #grid .muuri-item.button button.press.on {
+  background-color: rgba(255,165,0,0.5);
+}
+section#dashboard #grid .muuri-item.button button.press:hover {
+    transform: scale(1.02);
+}
+section#dashboard #grid .muuri-item.button button.press:active {
     transform: scale(0.98);
 }
 
@@ -278,6 +391,164 @@ section#dashboard #grid .muuri-item.gauge .percentage {
 
 section#dashboard #grid .muuri-item.gauge .value {
   font-size: 1rem;
+}
+
+/* ML Classifier */
+section#dashboard #grid .muuri-item.ml-classifier span {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  height: 100%;
+  min-width: 0;
+  padding: .5rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+section#dashboard #grid .muuri-item.ml-classifier h2,
+section#dashboard #grid .muuri-item.ml-classifier h3,
+section#dashboard #grid .muuri-item.ml-classifier p {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+section#dashboard #grid .muuri-item.ml-classifier select {
+  border: none;
+  border-radius: .6rem;
+  padding: .35rem .45rem;
+  background: rgba(84,190,255,0.12);
+  color: inherit;
+  width: 100%;
+}
+section#dashboard #grid .muuri-item.ml-classifier .ml-preview {
+  --dashboard-media-ratio: 4 / 3;
+  align-items: center;
+  aspect-ratio: var(--dashboard-media-ratio);
+  display: flex;
+  flex: 0 1 auto;
+  justify-content: center;
+  min-height: 4.5rem;
+  border-radius: .75rem;
+  overflow: hidden;
+  background: rgba(0,0,0,.18);
+}
+section#dashboard #grid .muuri-item.ml-classifier video,
+section#dashboard #grid .muuri-item.ml-classifier img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+section#dashboard #grid .muuri-item.ml-classifier h3 {
+  font-weight: bold;
+}
+section#dashboard #grid .muuri-item.ml-classifier h3.ready {
+  color: #16a34a;
+}
+section#dashboard #grid .muuri-item.ml-classifier p {
+  min-height: 2.2em;
+  line-height: 1.2;
+  padding: 0 .15rem;
+  margin-bottom: .45rem;
+  font-size: .7rem;
+  opacity: .75;
+}
+section#dashboard #grid .muuri-item.ml-classifier .ml-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .4rem;
+  margin-top: .15rem;
+}
+section#dashboard #grid .muuri-item.ml-classifier .ml-buttons button {
+  min-width: 0;
+  border-radius: .6rem;
+  padding: .25rem;
+  background: rgba(84,190,255,0.15);
+}
+
+/* Vision Processor */
+section#dashboard #grid .muuri-item.vision-processor span {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  height: 100%;
+  min-width: 0;
+  padding: .5rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+section#dashboard #grid .muuri-item.vision-processor h2,
+section#dashboard #grid .muuri-item.vision-processor h3,
+section#dashboard #grid .muuri-item.vision-processor p {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+section#dashboard #grid .muuri-item.vision-processor select {
+  border: none;
+  border-radius: .6rem;
+  padding: .35rem .45rem;
+  background: rgba(249,115,22,0.14);
+  color: inherit;
+  width: 100%;
+}
+section#dashboard #grid .muuri-item.vision-processor .vision-preview {
+  --dashboard-media-ratio: 4 / 3;
+  align-items: center;
+  aspect-ratio: var(--dashboard-media-ratio);
+  display: flex;
+  flex: 0 1 auto;
+  justify-content: center;
+  min-height: 4.5rem;
+  border-radius: .75rem;
+  overflow: hidden;
+  background: rgba(0,0,0,.18);
+  position: relative;
+}
+section#dashboard #grid .muuri-item.vision-processor video,
+section#dashboard #grid .muuri-item.vision-processor canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+section#dashboard #grid .muuri-item.vision-processor video {
+  position: absolute;
+  inset: 0;
+  opacity: .18;
+}
+section#dashboard #grid .muuri-item.vision-processor h3 {
+  font-weight: bold;
+}
+section#dashboard #grid .muuri-item.vision-processor h3.ready {
+  color: #f97316;
+}
+section#dashboard #grid .muuri-item.vision-processor p {
+  min-height: 2.2em;
+  line-height: 1.2;
+  padding: 0 .15rem;
+  margin-bottom: .45rem;
+  font-size: .7rem;
+  opacity: .75;
+}
+section#dashboard #grid .muuri-item.vision-processor .vision-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .4rem;
+  margin-top: .15rem;
+}
+section#dashboard #grid .muuri-item.vision-processor .vision-buttons button {
+  min-width: 0;
+  border-radius: .6rem;
+  padding: .25rem;
+  background: rgba(249,115,22,0.16);
+}
+section#dashboard #grid .muuri-item.vision-processor span.debug-off .vision-preview,
+section#dashboard #grid .muuri-item.vision-processor span.debug-off h3 {
+  display: none;
 }
 
 section#dashboard .muuri-item.chart > div {
@@ -554,12 +825,16 @@ div#status-bar button#mqtt.off:before {
 
 /* Coordinate */
 section#dashboard #grid .muuri-item.coordinate span {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 0.5rem;
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  min-width: 0;
+  gap: 0.35rem;
 }
 section#dashboard #grid .muuri-item.coordinate h2 {
   margin: 0;
@@ -570,7 +845,10 @@ section#dashboard #grid .muuri-item.coordinate canvas {
   border-radius: 0.5rem;
   cursor: crosshair;
   display: block;
-  margin: 0.25rem auto 0;
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  flex: 0 1 auto;
 }
 /* Coordinate sizes - square containers */
 section#dashboard #grid .muuri-item.coordinate.coord-small {
@@ -588,12 +866,16 @@ section#dashboard #grid .muuri-item.coordinate.coord-large {
 
 /* Drawing */
 section#dashboard #grid .muuri-item.drawing span {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 0.5rem;
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  min-width: 0;
+  gap: 0.35rem;
 }
 section#dashboard #grid .muuri-item.drawing h2 {
   margin: 0;
@@ -604,14 +886,18 @@ section#dashboard #grid .muuri-item.drawing canvas {
   border-radius: 0.5rem;
   cursor: crosshair;
   display: block;
-  margin: 0.25rem auto 0;
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  flex: 0 1 auto;
 }
 section#dashboard #grid .muuri-item.drawing .drawing-buttons {
   display: flex;
   justify-content: center;
   gap: 0.25rem;
-  margin-top: 0.25rem;
+  margin-top: 0;
   flex-wrap: wrap;
+  width: 100%;
 }
 section#dashboard #grid .muuri-item.drawing .drawing-buttons button {
   font-size: 0.6rem;
@@ -630,4 +916,26 @@ section#dashboard #grid .muuri-item.drawing.drawing-medium {
 section#dashboard #grid .muuri-item.drawing.drawing-large {
   width: 450px !important;
   height: 450px !important;
+}
+
+/* Run-mode guard banner: shown when a connected runtime device is stopped (program
+   mode). The dashboard only shows live data while the program is running. */
+section#dashboard .dashboard-mode-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 184, 0, 0.96);
+  color: #1a1a1a;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+section#dashboard .dashboard-mode-banner button {
+  flex: 0 0 auto;
 }

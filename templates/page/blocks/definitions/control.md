@@ -21,10 +21,27 @@
 </block>
 
 # control_pid.compute
-<block type="control_pid.compute"></block>
+<block type="control_pid.compute">
+  <value name="INPUT">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # control_pid.compute_not_realtime
-<block type="control_pid.compute_not_realtime"></block>
+<block type="control_pid.compute_not_realtime">
+  <value name="INPUT">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="DT">
+    <shadow type="math_number">
+      <field name="NUM">0.1</field>
+    </shadow>
+  </value>
+</block>
 
 # control_pid.tunings
 <block type="control_pid.tunings">
@@ -77,14 +94,36 @@
 <button text="%{LOAD_EXAMPLE}: PID_water_boiler" callbackKey="loadExample"></button>
 
 # simulate_water_boiler
-<block type="simulate_water_boiler"></block>
+<block type="simulate_water_boiler">
+  <value name="POWER">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
-# Non realtime simulation:
-<label text="Non realtime simulation:"></label>
+# Non-real-time simulation:
+<label text="Non-real-time simulation:"></label>
 <button text="%{LOAD_EXAMPLE}: PID_dc_motor" callbackKey="loadExample"></button>
 
 # simulate_dcmotor.sim
-<block type="simulate_dcmotor.sim"></block>
+<block type="simulate_dcmotor.sim">
+  <value name="POWER">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="DT">
+    <shadow type="math_number">
+      <field name="NUM">0.001</field>
+    </shadow>
+  </value>
+  <value name="LOAD">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
 
 # simulate_dcmotor.vars
 <block type="simulate_dcmotor.vars"></block>W

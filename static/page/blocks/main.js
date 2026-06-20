@@ -87,7 +87,11 @@ class Blocks {
     this.workspace.setVisible(true)
     this.code.init()
     this.inited = true
+    if (typeof project.ensureCurrent == 'function')
+      project.ensureCurrent()
     let obj = project.projects[project.currentUID]
+    if (!obj)
+      return
     if (obj.hasOwnProperty('blocks'))
       this.load(obj.blocks)
     if (obj.hasOwnProperty('device'))
@@ -98,6 +102,62 @@ class Blocks {
     // Shortcuts
     shortcut.add("Ctrl+Shift+L", () => {this.export.png()})
     shortcut.add("Ctrl+Shift+Alt+L", () => {this.export.svg()})
+
+    // "Paste blocks" in the workspace right-click menu (reads the clipboard).
+    if (!this._pasteMenuRegistered) {
+      this._pasteMenuRegistered = true
+      try {
+        Blockly.ContextMenuRegistry.registry.register({
+          id: 'bipesPasteBlocks',
+          weight: 99,
+          scopeType: Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+          displayText: () => Msg['PasteBlocks'] || 'Paste blocks',
+          preconditionFn: () => 'enabled',
+          callback: () => { this.pasteFromClipboard() }
+        })
+      } catch (e) { console.warn('Blocks: could not register paste menu', e) }
+    }
+
+    // Ctrl+V: paste block XML copied from an embedded lesson chain. Blockly 7
+    // already registers its own Ctrl+V shortcut (pastes its INTERNAL clipboard —
+    // the last block stack copied inside the editor), so a separate document
+    // 'paste' listener would fire IN ADDITION to Blockly's: that pasted both the
+    // embed chain AND Blockly's internal stack ("all blocks in the project").
+    // The right-click "Paste blocks" menu only calls our handler, which is why it
+    // was correct.
+    //
+    // Blockly 7's register() only stores the shortcut object; the Ctrl+V -> name
+    // key mapping lives separately in keyMap_ and is NOT rebuilt by register().
+    // So we must NOT unregister/re-register (that drops the key mapping and Ctrl+V
+    // stops working). Instead, wrap the existing shortcut's callback IN PLACE so
+    // the key mapping is untouched: prefer block XML from the SYSTEM clipboard
+    // (same as the right-click "Paste blocks" menu), and only fall back to
+    // Blockly's internal paste when the clipboard isn't block XML (so in-editor
+    // keyboard copy/paste still works).
+    if (!this._pasteShortcutPatched) {
+      this._pasteShortcutPatched = true
+      try {
+        let SR = Blockly.ShortcutRegistry.registry
+        let shortcut = SR.registry_ && SR.registry_['paste']
+        if (shortcut && !shortcut._bipesPatched) {
+          shortcut._bipesPatched = true
+          let originalCallback = shortcut.callback
+          shortcut.callback = (ws, e, sc) => {
+            let fallback = () => originalCallback ? originalCallback(ws, e, sc) : false
+            if (navigator.clipboard && navigator.clipboard.readText) {
+              navigator.clipboard.readText()
+                .then((text) => {
+                  if (text && /<(xml|block)\b/i.test(text)) this.pasteXml(text)
+                  else fallback()
+                })
+                .catch(() => fallback())
+              return true
+            }
+            return fallback()
+          }
+        }
+      } catch (e) { console.warn('Blocks: could not patch paste shortcut', e) }
+    }
   }
   /*
    * On hidden, deinitiate the page.
@@ -126,6 +186,71 @@ class Blocks {
       Blockly.svgResize(this.workspace)
     },250)
   }
+  sanitizeLegacyXml (xmlText){
+    if (typeof xmlText !== 'string' || !xmlText)
+      return xmlText
+
+    if (xmlText.indexOf('strip_name') !== -1)
+      xmlText = xmlText.replace(/<field name="strip_name">[\s\S]*?<\/field>/g, '')
+
+    // runtime_start lost its TRANSPORT dropdown (Bluetooth/WiFi have their own start
+    // blocks now). Drop the orphaned field from old saved projects so Blockly doesn't
+    // warn "Ignoring non-existent field TRANSPORT". TRANSPORT was unique to that block.
+    if (xmlText.indexOf('TRANSPORT') !== -1)
+      xmlText = xmlText.replace(/<field name="TRANSPORT">[\s\S]*?<\/field>/g, '')
+
+    // Strip stale top-level <shadow> blocks. These occur when saved projects have
+    // shadow blocks whose type is now incompatible with the input they used to fill
+    // (e.g. a math_number shadow where an SPI block is now required). Blockly orphans
+    // them at the top level of the XML and then throws "Shadow block cannot be a
+    // top-level block" when trying to load the workspace.
+    if (xmlText.indexOf('<shadow') !== -1) {
+      try {
+        const dom = new DOMParser().parseFromString(xmlText, 'text/xml')
+        const root = dom.documentElement
+        Array.from(root.childNodes)
+          .filter(n => n.nodeName === 'shadow')
+          .forEach(n => root.removeChild(n))
+        xmlText = new XMLSerializer().serializeToString(dom)
+      } catch(_e) { /* keep original if XML parsing fails */ }
+    }
+
+    return xmlText
+  }
+  /*
+   * Append block XML (e.g. copied from an embed) to the current workspace
+   * without clearing it. Returns true on success.
+   */
+  pasteXml (text){
+    if (!text)
+      return false
+    try {
+      let dom = Blockly.Xml.textToDom(this.sanitizeLegacyXml(text))
+      let ids = Blockly.Xml.domToWorkspace(dom, this.workspace)   // appends, doesn't clear
+      // Nudge pasted blocks so they don't land exactly on existing ones.
+      if (ids && ids.forEach)
+        ids.forEach((id) => {
+          let b = this.workspace.getBlockById(id)
+          if (b && b.moveBy) b.moveBy(24, 24)
+        })
+      this.code.update()
+      notification.send(`${Msg['PageBlocks'] || 'Blocks'}: ${Msg['BlocksPasted'] || 'Blocks pasted'}`)
+      return true
+    } catch (e) {
+      console.warn('Blocks: paste failed', e)
+      notification.send(`${Msg['PageBlocks'] || 'Blocks'}: ${Msg['PasteFailed'] || 'Could not paste blocks'}`)
+      return false
+    }
+  }
+  /* Read the clipboard and paste block XML (for the Paste button). */
+  pasteFromClipboard (){
+    if (navigator.clipboard && navigator.clipboard.readText)
+      navigator.clipboard.readText()
+        .then((t) => this.pasteXml(t))
+        .catch(() => notification.send(`${Msg['PageBlocks'] || 'Blocks'}: ${Msg['UseCtrlV'] || 'Press Ctrl+V to paste'}`))
+    else
+      notification.send(`${Msg['PageBlocks'] || 'Blocks'}: ${Msg['UseCtrlV'] || 'Press Ctrl+V to paste'}`)
+  }
   /*
    * On load a project, load the blocks' scope of the project.
    */
@@ -135,11 +260,17 @@ class Blocks {
     if (obj.hasOwnProperty('xml')) {
       this.loadedWorkspace = false
       Blockly.Events.disable()
-      Blockly.Xml.clearWorkspaceAndLoadFromXml(
-        Blockly.Xml.textToDom(obj.xml),
-        this.workspace
-      )
-      Blockly.Events.enable()
+      try {
+        Blockly.Xml.clearWorkspaceAndLoadFromXml(
+          Blockly.Xml.textToDom(this.sanitizeLegacyXml(obj.xml)),
+          this.workspace
+        )
+      } catch(e) {
+        console.warn('Blocks: could not restore workspace, starting fresh.', e.message)
+        this.workspace.clear()
+      } finally {
+        Blockly.Events.enable()
+      }
       // Update code if generating
       this.code.update()
     }
@@ -217,6 +348,11 @@ class BlocksCode {
 
     this.interval           // store watcher interval.
     this.executing          // store if is executing code.
+    this.busy = false       // a start/stop transfer is in progress (button locked)
+    this.busyTarget = ''    // the runtime mode we're transitioning to ('run'/'program')
+    this.busyStable = 0     // consecutive ticks the device has held the target mode
+    this.busyDeadline = 0    // safety timeout so a lost reply can't wedge the button
+    this._bootTicks = 0      // ticks the device has been booting (M,boot) — caps the lock
 
     let $ = this.$ = {}
 
@@ -284,13 +420,78 @@ class BlocksCode {
 
     DOM.switchState(this.$.container)
   }
+  // True when the active device is currently RUNNING a program — so the Play button
+  // should show (and act as) Stop. For a runtime device that means run mode (blocks.py
+  // executing); for a plain REPL device it means the channel is busy (prompt.locked).
+  isRunning (){
+    let uid = channel.targetDevice
+    if (channel.runtimeUids && channel.runtimeUids.has(uid))
+      return device.runtimeMode(uid) === 'run'
+    return prompt.locked
+  }
+  // The active device is rebooting (it emitted "M,boot" and hasn't settled into run
+  // or program yet). Happens on our own deploy soft-reset AND on a terminal Run/Reset
+  // we didn't initiate — so the button must lock here even when we aren't `busy`, or
+  // a second Play could fire during the "starting blocks.py in 1s" countdown.
+  _deviceBooting (){
+    let uid = channel.targetDevice
+    return !!(channel.runtimeUids && channel.runtimeUids.has(uid) &&
+              device.runtimeMode(uid) === 'boot')
+  }
+  // Lock the button while a start/stop transfer runs, so the multi-step sequence
+  // (STOP -> PUT -> RUN -> M,run) can't be interrupted by a click and the button
+  // doesn't flicker as each M, line arrives. Cleared when the device settles into
+  // the target mode, or after a safety timeout.
+  _beginTransition (targetMode){
+    this.busy = true
+    this.busyTarget = targetMode
+    this.busyStable = 0
+    // 35 s: covers a worst-case start over serial where the device reboots and joins
+    // WiFi (blocking) before it can answer the STOP/PUT/RUN handshake.
+    this.busyDeadline = Date.now() + 35000
+  }
   watcher (){
-    // Handle executing change without triggering DOM change everytime.
-    if (prompt.locked){
-      this.$.runButton.$.classList.add('on')
-    } else if (!prompt.locked){
-      this.$.runButton.$.classList.remove('on')
+    let btn = this.$.runButton.$
+    if (this.busy){
+      btn.classList.add('busy')
+      // Freeze the icon at the target state (no flicker), keep it click-locked.
+      if (this.busyTarget === 'run') btn.classList.add('on')
+      else btn.classList.remove('on')
+      // Release only once the target mode HOLDS for a few ticks. The start sequence
+      // (STOP -> PUT -> RUN) can briefly bounce run<->program before settling, so a
+      // single match isn't enough — debounce it, or give up after the safety timeout.
+      let uid = channel.targetDevice
+      let isRuntime = channel.runtimeUids && channel.runtimeUids.has(uid)
+      let atTarget
+      if (this.busyTarget === 'program')
+        // Stopped = either the runtime's program mode OR the device left the runtime
+        // entirely (serial QUIT -> bare REPL). Both mean "not running".
+        atTarget = !isRuntime || device.runtimeMode(uid) === 'program'
+      else
+        atTarget = isRuntime && device.runtimeMode(uid) === 'run'
+      this.busyStable = atTarget ? this.busyStable + 1 : 0
+      if (this.busyStable >= 4 || Date.now() > this.busyDeadline)
+        this.busy = false
+      return
     }
+    // Not in a Blocks-initiated transfer, but the device is rebooting (e.g. the
+    // terminal Run/Reset triggered a soft reboot). Lock the button and show the
+    // running icon until it settles, so a second Play can't fire mid-boot. Bounded by
+    // a tick cap so a stuck boot can't wedge the button forever.
+    if (this._deviceBooting()){
+      btn.classList.add('busy')
+      btn.classList.add('on')
+      if (++this._bootTicks < 80)   // ~20 s at 250 ms ticks
+        return
+    } else {
+      this._bootTicks = 0
+    }
+    btn.classList.remove('busy')
+    // Reflect run state on the button: '.on' swaps the play icon to a stop icon.
+    if (this.isRunning())
+      btn.classList.add('on')
+    else
+      btn.classList.remove('on')
   }
   /*
    * Update generated code, only when the panel is visible.
@@ -307,24 +508,64 @@ class BlocksCode {
     })
   }
   exec (){
-    // If already executing, stop.
-    if (prompt.locked){
-      command.dispatch(channel, 'rawPush', [
-        '\x03',
-        channel.targetDevice, [], command.tabUID
-      ])
+    // A start/stop transfer is mid-flight, or the device is rebooting (M,boot, e.g. a
+    // terminal Run) — ignore the click so the user can't abort the PUT/RUN sequence,
+    // spam the device, or fire a second Play during the boot countdown.
+    if (this.busy || this._deviceBooting())
+      return
+
+    let target = channel.targetDevice
+
+    // Button acts as STOP while a program is running — SAME logic as the terminal
+    // Stop button (files.device.stopExecution): runtime -> STOP (program mode, stays
+    // connected so Play can re-run); REPL -> Ctrl-C.
+    if (this.isRunning()){
+      if (channel.runtimeUids && channel.runtimeUids.has(target))
+        this._beginTransition('program')
+      files.device.stopExecution()
       return
     }
 
     let script = Blockly.Python.workspaceToCode(this.parent.workspace)
 
-    let cmd = channel.pasteMode(script)
-    command.dispatch(channel, 'push', [
-      cmd,
-      channel.targetDevice,
-      ['files', 'project', '_execedOnTarget'],
-      command.tabUID
-    ])
+    // Runtime device installed and connected (program mode / idle): persist the
+    // program as blocks.py and start it via the runtime protocol (not a paste).
+    if (channel.runtimeUids && channel.runtimeUids.has(target)) {
+      this._beginTransition('run')
+      files.device.runProgram(script)
+      return
+    }
+
+    // Not a live runtime. Decide by whether bipes_runtime is actually INSTALLED on the
+    // device (main.py + bipes_runtime.py present):
+    //   - installed     -> DEPLOY: persist blocks.py and boot the launcher.
+    //   - NOT installed  -> just RUN the script in place (paste-exec); do NOT save it as
+    //                       blocks.py (there'd be no launcher to run it anyway).
+    // Serial with the runtime deploys directly (write + soft-reset); other transports
+    // boot into the runtime first.
+    let conn = channel.connections[target]
+    let serial = !!(conn && conn.current && conn.current.name === 'WebSerial')
+    files.device.deviceHasRuntime().then((hasRuntime) => {
+      if (channel.targetDevice != target)
+        return                                      // user switched device meanwhile
+      if (hasRuntime) {
+        this._beginTransition('run')
+        if (serial) {
+          files.device.runProgram(script)           // serial: write blocks.py + soft-reset
+        } else {
+          notification.send(`${Msg['PageBlocks']}: ${Msg['StartingRuntime'] || 'starting runtime…'}`)
+          files.device.bootRuntimeThen(() => files.device.runProgram(script))
+        }
+      } else {
+        // No bipes_runtime on the device — run the program as-is, don't save it.
+        command.dispatch(channel, 'push', [
+          channel.pasteMode(script),
+          target,
+          ['files', 'project', '_execedOnTarget'],
+          command.tabUID
+        ])
+      }
+    })
   }
   _execedOnTarget (str, cmd, tabUID){
     this.$.runButton.$.classList.remove('on')
@@ -432,8 +673,62 @@ function isLocalContext() {
   return window.location.protocol === 'file:';
 }
 
+// Cached per page load so adding/re-adding WiFi blocks doesn't keep rotating the
+// device password on the server.
+let _wifiBlockCreds
+// Auto-fill the MQTT credentials on a "Start over WiFi (manual settings)" block when
+// it's dropped in, so the student never copies them by hand. WiFi name/password stay
+// student-entered; host defaults to this page's host (broker usually runs on the same
+// server); user/password/prefix come from the server (the user's WiFi device).
+function autofillWifiCredentials (block) {
+  // Only relevant when the credential FIELDS are shown (literal block, or the combined
+  // WiFi block switched to "enter here"). In secrets-mode there's no HOST field and
+  // nothing to fill — the device reads /secrets.json itself.
+  if (!block.getField('HOST'))
+    return
+  let host = window.location.hostname
+  if (host && host !== 'localhost' && host !== '127.0.0.1')
+    block.setFieldValue(host, 'HOST')
+  let existing = {}
+  try { existing = JSON.parse(block.data || '{}') } catch (e) {}
+  if (existing.user)   // already carries MQTT creds (loaded project / re-toggled) — leave it
+    return
+  if (!document.getElementById('user-info'))   // provisioning needs a login
+    return
+  // Stash the credentials on the block's hidden `data` (not shown as fields); the
+  // code generator reads them from there and injects them into run(wifi=...).
+  let fill = (c) => {
+    if (!c) return
+    block.data = JSON.stringify({
+      user: c.mqtt_username || '',
+      password: c.mqtt_password || '',
+      prefix: c.mqtt_topic_prefix || ''
+    })
+  }
+  if (_wifiBlockCreds) { fill(_wifiBlockCreds); return }
+  fetch('/api/devices/block-credentials', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'}, body:'{}'
+  }).then(r => r.json()).then(j => {
+    if (j && j.success) { _wifiBlockCreds = j; fill(j) }
+  }).catch(() => {})
+}
+
 let moreInfo = 'is unknown, set at static/page/blocks/external.js'
 let blocksRegisterCallbacks = (workspace) => {
+  // Auto-fill MQTT credentials on the WiFi blocks. On CREATE (block dragged in) and on
+  // CHANGE (the combined WiFi block's dropdown switched to "enter here", which reveals
+  // the credential fields), top up the HOST field + hidden MQTT creds.
+  workspace.addChangeListener((event) => {
+    if (event.type !== Blockly.Events.BLOCK_CREATE && event.type !== Blockly.Events.BLOCK_CHANGE)
+      return
+    let ids = event.ids || (event.blockId ? [event.blockId] : [])
+    ids.forEach((id) => {
+      let block = workspace.getBlockById(id)
+      if (block && (block.type === 'runtime_start_wifi_literal' || block.type === 'runtime_program_wifi'))
+        autofillWifiCredentials(block)
+    })
+  })
   workspace.registerButtonCallback('installPyLib', (button) => {
     if (!/: (.*)$/.test(button.text_)){
       console.error(`Blocks: Blockly button "${button.text_}" is invalid.`)
@@ -451,8 +746,7 @@ let blocksRegisterCallbacks = (workspace) => {
     if (typeof lib.file === "string")
       _toFetch = [lib.file]
     else
-      _toFetch = lib.fileblocksExport
-	 console.log(_toFetch)
+      _toFetch = lib.file
 
 	if(isLocalContext()) {
 		_toFetch.forEach(_lib_file => {
@@ -516,11 +810,17 @@ let blocksRegisterCallbacks = (workspace) => {
         return response.text()
       }).then(response => {
         Blockly.Events.disable()
-        Blockly.Xml.clearWorkspaceAndLoadFromXml(
-          Blockly.Xml.textToDom(response),
-          bipes.page.blocks.workspace
-        )
-        Blockly.Events.enable()
+        try {
+          Blockly.Xml.clearWorkspaceAndLoadFromXml(
+            Blockly.Xml.textToDom(bipes.page.blocks.sanitizeLegacyXml(response)),
+            bipes.page.blocks.workspace
+          )
+        } catch(e) {
+          console.warn('Blocks: could not load example XML.', e.message)
+          bipes.page.blocks.workspace.clear()
+        } finally {
+          Blockly.Events.enable()
+        }
       })
   })
 
@@ -538,6 +838,30 @@ let blocksRegisterCallbacks = (workspace) => {
     }
     let doc = knownDocs[id]
     window.open(`${doc.hostname}/${doc.file}`, '_blank')
+  })
+
+  // Functions category: show the normal (synchronous) function blocks AND the
+  // async-function blocks together. The category is custom="PROCEDURE", so its
+  // flyout is built by a callback — we wrap Blockly's default one and append the
+  // async-function / cooperative-wait / await blocks. Defensive: if anything
+  // changes in the Blockly API, fall back to the default function blocks.
+  workspace.registerToolboxCategoryCallback('PROCEDURE', (ws) => {
+    let xmlList = Blockly.Procedures.flyoutCategory(ws)
+    try {
+      let toDom = (s) =>
+        (Blockly.utils && Blockly.utils.xml && Blockly.utils.xml.textToDom)
+          ? Blockly.utils.xml.textToDom(s)
+          : Blockly.Xml.textToDom(s)
+      let extras = [
+        toDom('<block type="runtime_async_function"></block>'),
+        toDom('<block type="runtime_wait"><value name="MS"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>'),
+        toDom('<block type="runtime_await"></block>')
+      ]
+      return Array.prototype.slice.call(xmlList).concat(extras)
+    } catch (e) {
+      console.error('Blocks: could not add async-function blocks to Functions category', e)
+      return xmlList
+    }
   })
 }
 

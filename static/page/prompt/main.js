@@ -6,6 +6,20 @@ import {command} from '../../base/command.js'
 import {channel} from '../../base/channel.js'
 import {Tool} from '../../base/tool.js'
 
+// True when the active device is CURRENTLY a running bipes_runtime (it's emitting
+// READY/T,/M, lines, so it's in runtimeUids). When it has dropped to the REPL it
+// leaves runtimeUids and these become classic REPL actions.
+function isRuntime () {
+  return !!(channel.runtimeUids && channel.runtimeUids.has(channel.targetDevice))
+}
+// Send a runtime message line to the active device (used by Reset).
+function sendRuntime (line) {
+  command.dispatch(channel, 'rawPush', [line, channel.targetDevice, [], command.tabUID])
+}
+// NOTE: Run/Stop now go through files.device.startExecution()/stopExecution() so the
+// Blocks button, the terminal buttons and the Ctrl+Shift+S shortcut share ONE
+// implementation. Stop = STOP (runtime program mode, keeps the link up) / Ctrl-C.
+
 class Prompt {
   constructor (){
     this.name = 'prompt'
@@ -22,10 +36,16 @@ class Prompt {
         title:'(Ctrl+Shift+S)'
       })
       .onclick(command, () => {
-        command.dispatch(channel, 'rawPush', [
-            '\x03',
-            channel.targetDevice, [], command.tabUID
-          ])
+        // SAME logic as the Blocks Stop button.
+        try { window.bipes.page.files.device.stopExecution() } catch (e) {}
+        })
+    $.startProgramButton = new DOM('button', {
+        innerText:Msg['StartExecution'] || 'Run',
+        className:'master'
+      })
+      .onclick(command, () => {
+        // SAME logic as the device-program Run (re-run what's on the device).
+        try { window.bipes.page.files.device.startExecution() } catch (e) {}
         })
     $.quickActions = new DOM('div', {className:"quick-actions"})
       .append([
@@ -33,25 +53,28 @@ class Prompt {
           .onclick(this, ()=>{this.prompt.clear()}),
         new DOM('button', {innerText:Msg['ResetDevice'], className:'master'})
           .onclick(command, () => {
-            command.dispatch(channel, 'rawPush', [
-                '\x04',
-                channel.targetDevice, [], command.tabUID
-              ])
+            if (isRuntime())
+              sendRuntime('RESET\n')
+            else
+              command.dispatch(channel, 'rawPush', ['\x04', channel.targetDevice, [], command.tabUID])
             }),
+        $.startProgramButton,
         $.stopProgramButton,
         new DOM('button', {innerText:Msg['StopTimers'], className:'master'})
           .onclick(command, () => {
-            command.dispatch(channel, 'push', [
-                'from machine import Timer; [Timer(i).deinit() for i in range(0,16)]\r',
-                channel.targetDevice, [], command.tabUID
-              ])
+            if (isRuntime())
+              try { window.bipes.page.files.device.stopExecution() } catch (e) {}  // runtime: just stop
+            else
+              command.dispatch(channel, 'push', [
+                  'from machine import Timer; [Timer(i).deinit() for i in range(0,16)]\r',
+                  channel.targetDevice, [], command.tabUID
+                ])
             }),
         new DOM('button', {innerText:Msg['DeviceInfo'], className:'master'})
           .onclick(command, () => {
-            command.dispatch(channel, 'push', [
-                'import os; os.uname()\r',
-                channel.targetDevice, [], command.tabUID
-              ])
+            // Same as the device card's "Get info": runtime -> INFO message,
+            // REPL -> os.uname(); the reply refreshes the card either way.
+            try { window.bipes.page.device.fetchInfo(channel.targetDevice) } catch (e) {}
             })
       ])
 

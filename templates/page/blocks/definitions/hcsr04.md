@@ -1,5 +1,5 @@
 # HC-SR04
-<category name="Ultra Sonic Sensor">
+<category name="%{CAT_ULTRASONIC_SENSOR}">
 <label text="Library: https://github.com/blaz-r/pi_pico_neopixel/blob/main/neopixel.py"></label>
 <button text="Install HCSR04 library" callbackKey="installPyLib"></button>
 

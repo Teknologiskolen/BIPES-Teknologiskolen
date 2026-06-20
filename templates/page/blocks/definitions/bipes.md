@@ -1,9 +1,8 @@
 # BIPES
-<category name="BIPES">
+<category name="BIPES" colour="260">
 
 # project_metadata
 <block type="project_metadata">
-  <field name="NAME">Project INFO</field>
   <value name="project_author">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -23,6 +22,9 @@
 
 # try_catch
 <block type="try_catch"></block>
+
+# try_except
+<block type="try_except"></block>
 
 # localstorage_store
 <block type="localstorage_store">

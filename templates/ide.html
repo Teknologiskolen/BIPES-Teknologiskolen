@@ -8,11 +8,30 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./static/media/icon/apple-touch-icon.png">
   <link rel="manifest" href="static/media/manifest.webmanifest">
   <meta name="theme-color" content="#fff">
-  <script>
-    if ('serviceWorker' in navigator)
-	navigator.serviceWorker.register('serviceworker.js', {scope: '../'})
-  </script>
-  <link rel="stylesheet" href='./static/style.css'/>
+  <script src="./static/base/csrf.js?v={{ app_version }}"></script>
+		  <script>
+		    const swBlockedHosts = new Set(['localhost', '127.0.0.1', '::1'])
+		    const canRegisterServiceWorker =
+		      'serviceWorker' in navigator &&
+		      window.location.protocol === 'https:' &&
+		      !swBlockedHosts.has(window.location.hostname)
+
+		    if (canRegisterServiceWorker) {
+			navigator.serviceWorker.register('serviceworker.js', {scope: '../'}).catch((err) => {
+			  console.warn('Service worker registration failed:', err)
+			})
+		    } else if ('serviceWorker' in navigator && swBlockedHosts.has(window.location.hostname)) {
+			navigator.serviceWorker.getRegistrations().then((registrations) => {
+			  registrations.forEach((registration) => registration.unregister())
+			})
+			if ('caches' in window) {
+			  caches.keys().then((keys) => {
+			    keys.forEach((key) => caches.delete(key))
+			  })
+			}
+		    }
+		  </script>
+  <link rel="stylesheet" href='./static/style.css?v={{ app_version }}'/>
   {% for item in imports -%}
   <script type="text/javascript" src="./static/libs/{{ item }}.js"></script>
   {% endfor %}
@@ -40,10 +59,18 @@
 </div>
 <div id="extra">
   {% if user %}
+  <button id="logout-quick" type="button">Logout</button>
   <div id="user-info">
     <span id="user-name">{{ user.name }}</span>
     <span id="user-role">{{ user.user_type }}</span>
-    <a id="logout-link" href="#">Logout</a>
+    <a id="change-password-link" href="/setup?theme={{ theme }}&lang={{ lang }}">Change password</a>
+    <button id="logout-link" type="button">Logout</button>
+  </div>
+  {% else %}
+  <a id="login-quick" href="/login?theme={{ theme }}&lang={{ lang }}">Login</a>
+  <div id="guest-info">
+    <span id="guest-label">Guest mode</span>
+    <a id="login-link" href="/login?theme={{ theme }}&lang={{ lang }}">Login</a>
   </div>
   {% endif %}
   <div id="app-version">Version {{ app_version }}</div>
@@ -61,17 +88,28 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var btn = document.getElementById('logout-link');
-  if (btn) {
+  function guestIdeUrl() {
+    var url = new URL(window.location.href);
+    var lang = document.documentElement.lang || url.searchParams.get('lang') || '{{ lang }}' || 'en';
+    var theme = url.searchParams.get('theme') || '{{ theme }}' || 'light';
+    return '/ide?theme=' + encodeURIComponent(theme) + '&lang=' + encodeURIComponent(lang);
+  }
+
+  function bindLogout(id) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
     btn.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       fetch('/api/auth/logout', {method:'POST', credentials:'include'})
-        .then(function() { window.location.href = '/'; });
+        .then(function() { window.location.href = guestIdeUrl(); });
     });
   }
+  bindLogout('logout-link');
+  bindLogout('logout-quick');
 });
 </script>
-<script type="{{import_type}}" src="./static/libs/bipes.umd.js"></script>
+<script type="{{import_type}}" src="./static/libs/bipes.umd.js?v={{ app_version }}"></script>
 {% if import_type == "text/javascript" -%}
 <script>
   Bipes()

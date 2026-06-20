@@ -7,7 +7,97 @@ import {rosetta} from '../../base/rosetta.js'
 import {channel} from '../../base/channel.js'
 
 import {notification} from '../notification/main.js'
+import {prompt} from '../prompt/main.js'
 import {project} from '../project/main.js'
+
+// True when the active device speaks the bipes_runtime message protocol.
+function isRuntime () {
+  // Route file ops through the bipes_runtime message protocol ONLY on transports
+  // that have no REPL — Bluetooth and WiFi/MQTT. Over serial the device is a normal
+  // REPL, so programming and file management use the classic REPL path (and only the
+  // dashboard reads the runtime telemetry). Serial: REPL for files; BLE/MQTT: messages.
+  let c = channel.connections && channel.connections[channel.targetDevice]
+  return !!(c && /bluetooth|mqtt/i.test(c.currentProtocol || ''))
+}
+
+// File operations over the bipes_runtime message protocol (LS/GET/PUT/DEL/RUN),
+// for devices that aren't a REPL (e.g. running over Bluetooth). Each returns a
+// Promise; responses are captured via channel.subscribeText. The device emits
+// each response atomically, so telemetry can't interleave a GET body.
+const runtimeFiles = {
+  _send (line) {
+    command.dispatch(channel, 'rawPush', [line, channel.targetDevice, [], command.tabUID])
+  },
+  // Resolve when a response line satisfies parse(line) (non-null); reject on timeout.
+  // Accumulates across chunks and only parses COMPLETE (newline-terminated) lines —
+  // over Bluetooth a reply like "L,a.py,b.py,...\n" is split across 20-byte
+  // notifications, so parsing each chunk on its own would match a truncated line.
+  _expect (parse, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      let done = false, buf = ''
+      let unsub = channel.subscribeText((chunk) => {
+        buf += String(chunk)
+        let nl
+        while ((nl = buf.search(/[\r\n]/)) >= 0) {
+          let ln = buf.slice(0, nl).trim()
+          buf = buf.slice(nl + 1)
+          let r = parse(ln)
+          if (r !== undefined && r !== null) { finish(); resolve(r); return }
+        }
+      })
+      let timer = setTimeout(() => { if (!done) { finish(); reject(new Error('timeout')) } }, timeoutMs || 8000)
+      function finish () { done = true; try { unsub() } catch (e) {}; clearTimeout(timer) }
+    })
+  },
+  ls () {
+    let p = this._expect((ln) => ln.indexOf('L,') === 0 ? ln.slice(2).split(',').filter(s => s.length) : null, 6000)
+    this._send('LS\n')
+    return p
+  },
+  get (name) {
+    // Collect the raw body between the "G,<name>" header and "__END__".
+    return new Promise((resolve, reject) => {
+      let acc = '', done = false
+      let unsub = channel.subscribeText((chunk) => {
+        acc += String(chunk)
+        let si = acc.indexOf('G,' + name)
+        if (si < 0) return
+        let bodyStart = acc.indexOf('\n', si)
+        if (bodyStart < 0) return
+        let ei = acc.indexOf('__END__', bodyStart)
+        if (ei < 0) return
+        finish(); resolve(acc.slice(bodyStart + 1, ei))
+      })
+      let timer = setTimeout(() => { if (!done) { finish(); reject(new Error('timeout')) } }, 12000)
+      function finish () { done = true; try { unsub() } catch (e) {}; clearTimeout(timer) }
+      this._send('GET,' + name + '\n')
+    })
+  },
+  put (name, content) {
+    // 30 s: a device that just rebooted may still be joining WiFi (a blocking step)
+    // when the PUT arrives, so it can't ACK until the join finishes.
+    let p = this._expect((ln) => ln.indexOf('ACK,PUT_DONE') === 0 ? true : null, 30000)
+    this._send('PUT,' + name + '\n' + content + '__END__\n')
+    return p
+  },
+  del (name) {
+    let p = this._expect((ln) => ln.indexOf('ACK,DEL') === 0 ? true : null, 6000)
+    this._send('DEL,' + name + '\n')
+    return p
+  },
+  run () {
+    this._send('RUN\n')
+  },
+  stop () {
+    // STOP -> program mode. Idempotent: the runtime ACKs STOP even when already
+    // stopped, so this is safe to call whether the device is running or stopped.
+    // 30 s: a freshly rebooted device may be mid-WiFi-join (blocking) and can't ACK
+    // until that finishes.
+    let p = this._expect((ln) => ln.indexOf('ACK,STOP') === 0 ? true : null, 30000)
+    this._send('STOP\n')
+    return p
+  }
+}
 
 class Files {
   constructor (){
@@ -147,6 +237,7 @@ class DeviceFiles {
     this.arrayBufferFilename                 // Temporaly store file filename
     this.arrayBufferTarget                   // After fetch, download or show
     this.arrayBufferPos                      // Position on the current file being sent
+    this.runAfterWriteFilename = null        // Filename to execute after upload finishes
 
     let $ = this.$ = {}
 
@@ -199,11 +290,17 @@ class DeviceFiles {
       title:Msg['WriteToDevice']
     }).onclick(this, this._fromEditor)
 
+    $.executeOnTarget = new DOM('button', {
+      id:'run',
+      className:'icon files-execute',
+      title:Msg['ExecuteScript']
+    }).onclick(this, this._execEditorOnTarget)
+
     this.parent.$.sidebar.append($.detailsFileOnTarget)
-    this.parent.$.header.append($.saveToTarget)
+    this.parent.$.header.append([$.saveToTarget, $.executeOnTarget])
 
     command.add([this.parent, this], {
-      buildFileTree: this._buildFileTree,
+      buildFileTree: this._buildTargetFileTree,
       editorSetValue: this._editorSetValue,
       downloadValue: this._downloadValue,
       // miscellanious WebSocket file handling (run on master)
@@ -215,17 +312,36 @@ class DeviceFiles {
   }
 
   listDir (path, tabUID, dom, ev) {
-    if (dom != undefined) {
+    // A click on the <summary> lands here. Every branch below preventDefaults,
+    // which cancels the native <details> open/close — so we drive it ourselves.
+    // (Without this, "Device files" never expanded: fileOnTarget was exempted
+    // from the old toggle logic and dom.open was never set.)
+    if (dom != undefined && ev != undefined) {
       ev.preventDefault()
-      if (dom.id != "fileOnTarget"){
-        if (dom.open) {
-          dom.open = false
-          return
-        }
-      }
-      if (dom.open) {
+      dom.open = !dom.open
+      if (!dom.open)        // collapsing -> nothing to list
         return
-      }
+      // expanding -> fall through and fetch this directory's contents
+    }
+    if (this._serialRuntimeRunning()) {   // serial: list at the REPL (classic path)
+      this._quitToRepl().then(() => this.listDir(path, tabUID))
+      return
+    }
+    if (isRuntime()) {
+      // Runtime device: flat root listing over the message protocol (no REPL,
+      // no recursion). Stops the REPL "WITH OPEN(...)" spam on these devices.
+      let tab = tabUID == undefined ? command.tabUID : tabUID
+      // File operations require program mode (a quiet channel) — stop the program
+      // first if it's running, so telemetry can't corrupt the listing.
+      this.ensureProgramMode().then(() => runtimeFiles.ls()).then((names) => {
+        // Device tree builder expects a depth-1 root: [{name:'', files:[...]}].
+        let entries = names.length ? names.map((n) => ({name: n})) : [{empty: true}]
+        this.fileOnTarget = [{name: '', files: entries}]
+        command.dispatch([this.parent, this], 'buildFileTree', [this.fileOnTarget, [""], tab])
+      }).catch((e) => {
+        notification.send(`${Msg['PageFiles']}: ${e.message || e}`)
+      })
+      return
     }
 
     path = (path == undefined) ? '/' : path
@@ -269,6 +385,8 @@ class DeviceFiles {
     let matches = str.match(reg)
     if (matches != null) {
       matches = matches.map(str => str.replaceAll("'",""))
+      // Never surface device credentials in the file tree (see bipes_runtime._PROTECTED).
+      matches = matches.filter(m => m !== 'secrets.json' && m !== '/secrets.json')
       matches.forEach ((match) => {
         if(match.match(/\./) == null) {
           ref.push({
@@ -289,7 +407,7 @@ class DeviceFiles {
    * @param{object} map - Array path to a directory
    * @param{string} tabUID - UID from the requesting tab
    */
-  _buildFileTree (fileOnTarget, map, tabUID) {
+  _buildTargetFileTree (fileOnTarget, map, tabUID) {
     this.fileOnTarget = fileOnTarget
 
     if (tabUID != command.tabUID)
@@ -347,7 +465,7 @@ class DeviceFiles {
             if (item.files[0].hasOwnProperty('empty')) {
               doms[doms.length - 1].$.open = true
               doms[doms.length - 1].append(
-                new DOM('span', {innerText:'(Empty)', className:'emptyDir'})
+                new DOM('span', {innerText:`(${Msg['Empty']})`, className:'emptyDir'})
               )
             } else
             _iterate (item.files, doms[doms.length - 1], path)
@@ -403,6 +521,20 @@ class DeviceFiles {
    * @param{string} filename - Path to file, eg. /libs/my_lib.py
    */
   fetchFile (target, filename) {
+    if (this._serialRuntimeRunning()) {   // serial: read at the REPL (classic path)
+      this._quitToRepl().then(() => this.fetchFile(target, filename))
+      return
+    }
+    if (isRuntime()) {
+      // Program mode for a clean read (telemetry would otherwise interleave into the
+      // file body and corrupt it).
+      this.ensureProgramMode().then(() => runtimeFiles.get(filename)).then((content) => {
+        command.dispatch([this.parent, this],
+          target == 'editor' ? 'editorSetValue' : 'downloadValue',
+          [filename, content, command.tabUID])
+      }).catch((e) => notification.send(`${Msg['PageFiles']}: ${e.message || e}`))
+      return
+    }
     switch (channel.currentProtocol) {
       case 'WebSocket':
         command.dispatch([this.parent, this], 'getFileArrayBuffer', [
@@ -567,10 +699,119 @@ class DeviceFiles {
   _fromEditor (){
     //For codemirror
       let script = this.parent.codemirror.state.doc.toString(),
-        filename = this.parent.$.filename.$.value
+        filename = this.editorFilename()
     //let uint8Array = new Uint8Array([...script].map(s => s.charCodeAt(0)))
 
     this.writeToTarget (filename, script)
+  }
+  editorFilename (){
+    let filename = this.parent.$.filename.$.value || ''
+    filename = filename.trim()
+    if (filename && filename[0] != '/')
+      filename = '/' + filename
+    if (filename && filename.indexOf('.') == -1)
+      filename += '.py'
+    this.parent.$.filename.$.value = filename
+    return filename
+  }
+  /**
+   * Execute the current editor contents on the active target device.
+   */
+  _execEditorOnTarget (){
+    if (channel.targetDevice == undefined) {
+      notification.send(Msg["NotConnectedWarning"])
+      return
+    }
+
+    if (prompt.locked) {
+      command.dispatch(channel, 'rawPush', [
+        '\x03',
+        channel.targetDevice, [], command.tabUID
+      ])
+      return
+    }
+
+    let script = this.parent.codemirror.state.doc.toString()
+    let filename = this.editorFilename()
+    if (!filename) {
+      notification.send(`${Msg['PageFiles']}: ${Msg['Filename']}`)
+      return
+    }
+
+    this.runAfterWriteFilename = filename
+    this.$.executeOnTarget.$.classList.add('on')
+    this.writeToTarget(filename, script)
+  }
+  _ranEditorOnTarget (str, cmd, tabUID){
+    if (command.tabUID != tabUID)
+      return
+
+    this.runAfterWriteFilename = null
+    this.$.executeOnTarget.$.classList.remove('on')
+    notification.send(`${Msg['PageFiles']}: ${Msg['ScriptFinishedExecuting']}`)
+  }
+  /**
+   * The mode guard for ALL file operations (list, open, save, delete, install
+   * library, deploy blocks). File work only happens in program mode — a quiet file
+   * server. If the program is running we STOP it first (and wait until the device has
+   * actually reached program mode, so the op isn't sent during the run->program switch
+   * and lost/corrupted). No-op if it's already stopped.
+   */
+  ensureProgramMode (){
+    let uid = channel.targetDevice
+    let dev = (window.bipes && window.bipes.page) ? window.bipes.page.device : undefined
+    let modeOf = () => (dev && dev.runtimeMode) ? dev.runtimeMode(uid) : undefined
+    if (modeOf() === 'program')
+      return Promise.resolve()
+    notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['PausedToManageFiles'] || 'paused the program to manage files'}`)
+    return runtimeFiles.stop()
+      .then(() => new Promise((resolve) => {
+        // Wait for M,program (device.runtimeMode flips) so the program-mode reader is
+        // up before we PUT — otherwise the PUT lands during the run->program switch
+        // (reader briefly down) and is lost.
+        let tries = 0
+        let poll = () => {
+          if (modeOf() === 'program' || ++tries > 50) { resolve(); return }  // ~10 s cap
+          setTimeout(poll, 200)
+        }
+        poll()
+      }))
+      .catch(() => {})   // STOP timed out -> still attempt the transfer
+  }
+  // True when the active device is a runtime running OVER SERIAL. Over USB there is a
+  // real REPL, so program mode = the bare >>> REPL: file work uses the classic REPL
+  // path, not the runtime's message-protocol file server (which is BLE/WiFi-only).
+  // True only when a serial device is ACTUALLY running a program (in runtimeUids AND
+  // run mode). A device sitting at the >>> REPL (mode 'program' / stale flag) is NOT
+  // "running", so we won't QUIT it (which would NameError at the REPL).
+  _serialRuntimeRunning (){
+    let uid = channel.targetDevice
+    let conn = channel.connections[uid]
+    let serial = conn && conn.current && conn.current.name === 'WebSerial'
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    return !!(serial && channel.runtimeUids && channel.runtimeUids.has(uid) &&
+              dev && dev.runtimeMode && dev.runtimeMode(uid) === 'run')
+  }
+  // Drop a RUNNING serial program to the >>> REPL (QUIT) and resolve once it's no
+  // longer running (mode left 'run' / left runtimeUids). Only called when actually
+  // running, so QUIT is valid. No-op otherwise.
+  _quitToRepl (){
+    let uid = channel.targetDevice
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let running = () => channel.runtimeUids && channel.runtimeUids.has(uid) &&
+                        dev && dev.runtimeMode && dev.runtimeMode(uid) === 'run'
+    if (!running())
+      return Promise.resolve()
+    notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['ReplForFiles'] || 'stopped to the REPL to manage files'}`)
+    command.dispatch(channel, 'rawPush', ['QUIT\n', uid, [], command.tabUID])
+    return new Promise((resolve) => {
+      let tries = 0
+      let poll = () => {
+        if (!running() || ++tries > 40) { resolve(); return }  // ~8 s cap
+        setTimeout(poll, 200)
+      }
+      poll()
+    })
   }
   /**
    * Get file from ``codemirror`` editor and calls :js:func:`Files.writeToTarget` to upload.
@@ -578,6 +819,62 @@ class DeviceFiles {
    * @param{string/ArrayBuffer} script - File to be saved
    */
   writeToTarget (filename, script){
+    // Serial: program mode is the REPL — drop to it, then the classic write path runs.
+    if (this._serialRuntimeRunning()) {
+      this._quitToRepl().then(() => this.writeToTarget(filename, script))
+      return
+    }
+    if (isRuntime()) {
+      if (script instanceof ArrayBuffer)
+        script = new TextDecoder().decode(script)
+      // Over WiFi/MQTT, push the program via OTA-over-HTTP (the server stores it and
+      // notifies the device, which fetches it over HTTP and reboots into it). This is
+      // far faster than a chunked MQTT PUT and is what OTA is for. Other files still
+      // use the message PUT path below.
+      let conn = channel.connections[channel.targetDevice]
+      if (conn && conn.current && conn.current.name === 'WebMqtt' &&
+          (filename === 'blocks.py' || filename === '/blocks.py')) {
+        let uid = (conn.current.prefix || '').split('/')[2]   // <session>/devices/<uid>
+        if (uid) {
+          fetch('/api/devices/' + uid + '/ota', {
+            method:'POST', credentials:'include',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({code: script, filename: 'blocks.py'})
+          }).then((r) => r.json()).then((j) => {
+            if (j && j.success)
+              notification.send(`${Msg['PageFiles']}: ${Msg['OtaSent'] || 'Program sent over WiFi — the device will fetch it and reboot'}`)
+            else
+              notification.send(`${Msg['PageFiles']}: OTA ${(j && j.error) || 'failed'}`)
+          }).catch((e) => notification.send(`${Msg['PageFiles']}: OTA ${e.message || e}`))
+          this.runAfterWriteFilename = null
+          return
+        }
+      }
+      // Over MQTT the command channel is line-oriented (each line is published to its
+      // own topic), so a multi-line file like a library gets shredded — only blocks.py
+      // (handled above via OTA-over-HTTP) can cross WiFi. Refuse instead of silently
+      // corrupting the file, and tell the user to install it over USB. (This is why a
+      // device could keep running an OLD bipes_runtime.py after a "WiFi" re-flash.)
+      if (conn && conn.current && conn.current.name === 'WebMqtt') {
+        notification.send(`${Msg['PageFiles']}: ${Msg['LibOverUsbOnly'] || ('connect over USB to install ' + filename + ' — library transfer over WiFi is not supported')}`)
+        this.runAfterWriteFilename = null
+        return
+      }
+      // Stop the running program FIRST and wait until it's idle, so the PUT goes over
+      // a quiet link (no telemetry/loop interleaving -> no missend packets).
+      this.ensureProgramMode()
+        .then(() => runtimeFiles.put(filename, script))
+        .then(() => {
+        notification.send(`${Msg['PageFiles']}: ${Msg['FileSaved'] || 'Saved'} ${filename}`)
+        // "Save & run" sets runAfterWriteFilename; on a runtime device that's RUN.
+        if (this.runAfterWriteFilename === filename) {
+          this.runAfterWriteFilename = null
+          runtimeFiles.run()
+        }
+        this.listDir('/', command.tabUID)   // refresh the file list
+      }).catch((e) => notification.send(`${Msg['PageFiles']}: ${e.message || e}`))
+      return
+    }
 
     switch (channel.currentProtocol) {
       case 'WebSocket':
@@ -590,17 +887,26 @@ class DeviceFiles {
         ])
         break
       case 'WebSerial':
-      case 'WebBluetooth':
+      case 'WebBluetooth': {
         if (script instanceof ArrayBuffer)
           script = new TextDecoder().decode(script)
-        script = script
+        // Write in many small f.write() chunks instead of ONE giant string literal.
+        // A Pico can't allocate a 30 KB string in a single (contiguous) block —
+        // it raises MemoryError even when total free RAM is larger (fragmentation).
+        // Each chunk is escaped independently; chunking the RAW text never splits an
+        // escape sequence. Starts with f=open(...) so rosetta.write.reg still matches.
+        let esc = (s) => s
           .replaceAll(/\\/g, '\\\\')
           .replaceAll(/(\r\n|\r|\n)/g, '\\r')
           .replaceAll(/'/g, "\\'")
           .replaceAll(/"/g, '\\"')
-        let cmd = channel.pasteMode(
-          rosetta.write.cmd(filename, script)
-        )
+        // `_=f.write(...)` assigns the byte-count result to a throwaway so the REPL
+        // doesn't echo "256" for every chunk while writing.
+        let CH = 256, lines = ['f=open("' + filename + '",\'w\')']
+        for (let i = 0; i < script.length; i += CH)
+          lines.push("_=f.write('" + esc(script.slice(i, i + CH)) + "')")
+        lines.push('f.close()')
+        let cmd = channel.pasteMode(lines.join('\n') + '\n')
 
         command.dispatch(channel, 'push', [
           cmd,
@@ -609,7 +915,172 @@ class DeviceFiles {
           command.tabUID
         ])
         break
+      }
     }
+  }
+  /**
+   * Canonical STOP — used by BOTH the Blocks Play/Stop button and the terminal Stop
+   * button so they behave identically. Transport-aware program mode:
+   *   - Serial: drop to the bare >>> REPL (QUIT) — over USB there IS a REPL, so that
+   *     is what "stopped / program mode" means; re-running reboots into the runtime.
+   *   - Bluetooth/WiFi: STOP to the runtime's program-mode file server (no REPL there,
+   *     and this keeps the BLE/MQTT link up so it doesn't have to reconnect).
+   *   - Already at the REPL (not a runtime): plain Ctrl-C.
+   */
+  stopExecution (){
+    let uid = channel.targetDevice
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let inRt = channel.runtimeUids && channel.runtimeUids.has(uid)
+    let mode = (inRt && dev && dev.runtimeMode) ? dev.runtimeMode(uid) : undefined
+    let conn = channel.connections[uid]
+    let serial = conn && conn.current && conn.current.name === 'WebSerial'
+    if (inRt && mode === 'run')
+      // Actively running: serial drops to the >>> REPL (QUIT); BLE/WiFi to the
+      // program-mode file server (STOP, keeps the link up).
+      command.dispatch(channel, 'rawPush', [serial ? 'QUIT\n' : 'STOP\n', uid, [], command.tabUID])
+    else if (inRt && !serial)
+      // BLE/WiFi runtime already idle in program mode — STOP is idempotent.
+      command.dispatch(channel, 'rawPush', ['STOP\n', uid, [], command.tabUID])
+    else
+      // At the bare REPL (or stale flag): Ctrl-C. NEVER QUIT here — at the REPL it's
+      // just an undefined name ("NameError: name 'QUIT' isn't defined").
+      command.dispatch(channel, 'rawPush', ['\x03', uid, [], command.tabUID])
+  }
+  /**
+   * Canonical RUN (re-run the program already on the device) — shared by the terminal
+   * Run button. Runtime device -> RUN; plain REPL -> Ctrl-D soft reboot (main.py
+   * re-runs the program). To DEPLOY new blocks and run, use runProgram() (write+run).
+   */
+  startExecution (){
+    let uid = channel.targetDevice
+    if (channel.runtimeUids && channel.runtimeUids.has(uid))
+      command.dispatch(channel, 'rawPush', ['RUN\n', uid, [], command.tabUID])
+    else
+      command.dispatch(channel, 'rawPush', ['\x04', uid, [], command.tabUID])
+  }
+  // Normalize a program for comparison: unify line endings, strip trailing whitespace
+  // and trailing blank lines, so cosmetic-only differences don't force a re-transfer.
+  _normScript (s){
+    return String(s).replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').replace(/\n+$/, '')
+  }
+  /**
+   * Run a program on a RUNTIME device (one with main.py + bipes_runtime.py):
+   * persist it as blocks.py and start it. Used by the Blocks "Run" button when the
+   * active device is a runtime device. Works from BOTH runtime sub-modes:
+   *   - serial / BLE: STOP (-> program mode; idempotent if already stopped) so the
+   *     old program isn't running while we overwrite, then PUT blocks.py, then RUN.
+   *   - WiFi / MQTT: OTA over HTTP, which reboots into the new blocks.py (handles
+   *     either mode, since the MQTT link is command/line-oriented, not a byte
+   *     stream suitable for a raw PUT body).
+   * @param{string} script - the generated program.
+   */
+  runProgram (script){
+    if (script instanceof ArrayBuffer)
+      script = new TextDecoder().decode(script)
+    let uid = channel.targetDevice
+    let conn = channel.connections[uid]
+    let proto = conn && conn.current && conn.current.name
+
+    // Don't re-transfer an unchanged program. Compare against what we last deployed to
+    // THIS device (= its current blocks.py, since we wrote it). If it matches, skip the
+    // slow write/OTA: if it's already running, leave it; otherwise just start it.
+    if (!this._deployed) this._deployed = {}
+    let norm = this._normScript(script)
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let running = channel.runtimeUids && channel.runtimeUids.has(uid) &&
+                  dev && dev.runtimeMode && dev.runtimeMode(uid) === 'run'
+    if (this._deployed[uid] === norm) {
+      if (running)
+        notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['ProgramUnchangedRunning'] || 'program unchanged — already running'}`)
+      else {
+        notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['ProgramUnchanged'] || 'program unchanged — starting it'}`)
+        this.startExecution()
+      }
+      return
+    }
+    this._deployed[uid] = norm   // remember what we're deploying (cleared on disconnect)
+
+    if (proto === 'WebMqtt'){
+      this.runAfterWriteFilename = 'blocks.py'
+      this.writeToTarget('blocks.py', script)   // -> OTA (writeToTarget MQTT path)
+      return
+    }
+    if (proto === 'WebSerial'){
+      // Serial = REPL. Write blocks.py AND soft-reset in ONE paste, so it doesn't
+      // depend on a write-completion callback (which doesn't fire while the device is
+      // still flagged a runtime -> the button used to freeze). The trailing
+      // soft_reset() makes main.py boot the new blocks.py (M,boot -> run).
+      this._quitToRepl().then(() => {
+        let esc = (s) => s.replaceAll(/\\/g, '\\\\').replaceAll(/(\r\n|\r|\n)/g, '\\r')
+                          .replaceAll(/'/g, "\\'").replaceAll(/"/g, '\\"')
+        let CH = 256, lines = ['f=open("blocks.py",\'w\')']
+        for (let i = 0; i < script.length; i += CH)
+          lines.push("_=f.write('" + esc(script.slice(i, i + CH)) + "')")
+        lines.push('f.close()')
+        lines.push('import machine; machine.soft_reset()')   // boot main.py -> runs blocks.py
+        command.dispatch(channel, 'rawPush',
+          [channel.pasteMode(lines.join('\n') + '\n'), uid, [], command.tabUID])
+        notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['FileSaved'] || 'Saved'} blocks.py`)
+      })
+      return
+    }
+    // Bluetooth: no REPL — use the message-protocol file server (stop -> put -> run).
+    runtimeFiles.stop()
+      .then(() => runtimeFiles.put('blocks.py', script))
+      .then(() => {
+        notification.send(`${Msg['PageFiles'] || 'Files'}: ${Msg['FileSaved'] || 'Saved'} blocks.py`)
+        runtimeFiles.run()
+      })
+      .catch((e) => notification.send(`${Msg['PageFiles'] || 'Files'}: ${e.message || e}`))
+  }
+  /**
+   * Does the connected device have the runtime installed (main.py + bipes_runtime.py)?
+   * Asked over the bare REPL (serial / WebREPL) — BLE/MQTT devices are always runtime,
+   * so this path isn't reached for them. Resolves false on timeout (-> classic run).
+   */
+  deviceHasRuntime (){
+    return new Promise((resolve) => {
+      let acc = '', done = false
+      let finish = (v) => {
+        if (done) return
+        done = true
+        try { unsub() } catch (e) {}
+        clearTimeout(timer)
+        resolve(v)
+      }
+      let unsub = channel.subscribeText((chunk) => {
+        acc += String(chunk)
+        // The output line is `__BIPESLS__ ['boot.py', 'main.py', ...]`; the echoed
+        // command has `__BIPESLS__"` (no space+bracket), so this won't match it.
+        let m = acc.match(/__BIPESLS__ (\[[^\]]*\])/)
+        if (m)
+          finish(m[1].indexOf("'main.py'") >= 0 && m[1].indexOf("'bipes_runtime.py'") >= 0)
+      })
+      let timer = setTimeout(() => finish(false), 4000)
+      command.dispatch(channel, 'rawPush', [
+        '\r\nimport os; print("__BIPESLS__", os.listdir("/"))\r\n',
+        channel.targetDevice, [], command.tabUID
+      ])
+    })
+  }
+  /**
+   * Soft-reset so main.py boots into the runtime, wait until it's up (flagged in
+   * channel.runtimeUids — program mode counts; a missing blocks.py just lands it in
+   * program mode), then run `cb`.
+   */
+  bootRuntimeThen (cb){
+    let uid = channel.targetDevice
+    command.dispatch(channel, 'rawPush', ['\x04', uid, [], command.tabUID])   // Ctrl-D soft reset
+    let tries = 0
+    let poll = () => {
+      if (channel.runtimeUids && channel.runtimeUids.has(uid)) { cb(); return }
+      if (++tries > 50) {                                       // ~10 s
+        notification.send(`${Msg['PageFiles'] || 'Device'}: runtime did not start`)
+        return
+      }
+      setTimeout(poll, 200)
+    }
+    setTimeout(poll, 700)   // let the 1 s boot window pass
   }
   _putFileArrayBuffer (filename, script, tabUID, targetDevice){
     if (channel.current == undefined || channel.targetDevice != targetDevice)
@@ -666,6 +1137,8 @@ class DeviceFiles {
     if (command.tabUID != tabUID)
       return
     this.listDir(filename.match(/(.*)\/(?:.*)/)[1], tabUID)
+    if (this.runAfterWriteFilename === filename)
+      this.runOnTarget(filename)
   }
 
   _wroteToTarget (str, cmd, tabUID){
@@ -673,7 +1146,17 @@ class DeviceFiles {
     if (!reg.test(cmd))
       return
 
+    if (this._rebootAfterWrite) {
+      // Deploy over serial: soft-reset (Ctrl-D) so main.py boots the new blocks.py
+      // (M,boot -> launcher runs it). Skip the dir refresh; we're rebooting.
+      this._rebootAfterWrite = false
+      this.runAfterWriteFilename = null
+      command.dispatch(channel, 'rawPush', ['\x04', channel.targetDevice, [], command.tabUID])
+      return
+    }
     this.listDir(cmd.match(reg)[1], tabUID)
+    if (this.runAfterWriteFilename)
+      this.runOnTarget(this.runAfterWriteFilename)
   }
   newScript (path){
     this.contextMenu.oninput({
@@ -700,6 +1183,18 @@ class DeviceFiles {
   }
   remove (filename){
     this.contextMenu.close()
+
+    if (this._serialRuntimeRunning()) {   // serial: delete at the REPL (classic path)
+      this._quitToRepl().then(() => this.remove(filename))
+      return
+    }
+    if (isRuntime()) {
+      this.ensureProgramMode()
+        .then(() => runtimeFiles.del(filename))
+        .then(() => this.listDir('/', command.tabUID))
+        .catch((e) => notification.send(`${Msg['PageFiles']}: ${e.message || e}`))
+      return
+    }
 
     let cmd = rosetta.rm.cmd(filename)
 
@@ -734,12 +1229,20 @@ class DeviceFiles {
   runOnTarget (filename){
     this.contextMenu.close()
 
+    if (isRuntime()) {
+      // The runtime re-execs blocks.py in place (running mode).
+      runtimeFiles.run()
+      notification.send(`${Msg['PageFiles']}: RUN`)
+      return
+    }
+
     let cmd = rosetta.exec.cmd(filename)
+    let callback = this.runAfterWriteFilename === filename ? '_ranEditorOnTarget' : '_ranOnTarget'
 
     command.dispatch(channel, 'push', [
       cmd,
       channel.targetDevice,
-      ['files', 'device', '_ranOnTarget'],
+      ['files', 'device', callback],
       command.tabUID
     ])
   }

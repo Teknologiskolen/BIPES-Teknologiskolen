@@ -530,10 +530,10 @@ Blockly.Python['mqtt_disconnect'] = function(block) {
 // EasyMQTT --------------------------------------------------------------------
 /// EasyMQTT Init
 Blockly.Python['easymqtt_init'] = function(block) {
-  var server = bipes.page.dashboard.easyMQTT.host;
+  var server = bipes.page.dashboard.easyMQTT.host || "YOUR_MQTT_BROKER_HOST";
   var port = '1883';
-  var user = 'bipes';
-  var pass = bipes.page.dashboard.easyMQTT.password;
+  var user = bipes.page.dashboard.easyMQTT.deviceUser || "YOUR_DEVICE_MQTT_USER";
+  var pass = bipes.page.dashboard.easyMQTT.devicePassword || "YOUR_DEVICE_MQTT_PASSWORD";
   var session = bipes.page.dashboard.easyMQTT.session;
 
   Blockly.Python.definitions_['import_umqtt.robust'] = 'import umqtt.robust';
@@ -643,18 +643,229 @@ Blockly.Python['mqtt_add_to_buffer'] = function(block) {
   return code;
 };
 
-// Bluetooth REPL --------------------------------------------------------------
-Blockly.Python['bluetooth_repl_setup'] = function(block) {
-  Blockly.Python.definitions_['import_bluetoot_repl'] = 'import ble_uart_repl';
-  var code = '\n';
+// Bluetooth (runtime) ---------------------------------------------------------
+Blockly.Python['bluetooth_runtime_start'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var t = Blockly.Python.valueToCode(block, 'name', Blockly.Python.ORDER_ATOMIC) || '""';
+  var code = 'bipes_runtime.run(globals(), bluetooth=' + t + ')\n';
   return code;
 };
 
-Blockly.Python['bluetooth_repl_start'] = function(block) {
-  Blockly.Python.definitions_['import_bluetoot_repl'] = 'import ble_uart_repl';
-  var t = Blockly.Python.valueToCode(block, 'name', Blockly.Python.ORDER_ATOMIC);
-  var code = 'ble_uart_repl.start(' + t + ')\n';
+// Runtime: start over USB / Serial --------------------------------------------
+Blockly.Python['runtime_start'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return 'bipes_runtime.run(globals())\n';
+};
+
+// Runtime: start over WiFi using /secrets.json --------------------------------
+Blockly.Python['runtime_start_wifi_secrets'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return 'bipes_runtime.run(globals(), wifi=True)\n';
+};
+
+// Runtime: define an async function -------------------------------------------
+Blockly.Python['runtime_async_function'] = function(block) {
+  var name = block.getFieldValue('NAME') || 'loop';
+  var branch = Blockly.Python.statementToCode(block, 'STACK');
+  if (!branch)
+    branch = Blockly.Python.INDENT + 'pass\n';
+  return 'async def ' + name + '():\n' + branch + '\n';
+};
+
+// Runtime: cooperative wait (yields; does not block the event loop) ------------
+Blockly.Python['runtime_wait'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var ms = Blockly.Python.valueToCode(block, 'MS', Blockly.Python.ORDER_NONE) || '1000';
+  return 'await bipes_runtime.wait(' + ms + ')\n';
+};
+
+// Runtime: await another async function ----------------------------------------
+Blockly.Python['runtime_await'] = function(block) {
+  var name = block.getFieldValue('NAME') || 'my_task';
+  return 'await ' + name + '()\n';
+};
+
+// Runtime: publish telemetry to the dashboard ---------------------------------
+Blockly.Python['runtime_send'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var name = block.getFieldValue('NAME');
+  var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
+  return 'bipes_runtime.send("' + name + '", ' + value + ')\n';
+};
+
+// WiFi connected? (status) ----------------------------------------------------
+Blockly.Python['wifi_is_connected'] = function(block) {
+  Blockly.Python.definitions_['import_network'] = 'import network';
+  return ['network.WLAN(network.STA_IF).isconnected()', Blockly.Python.ORDER_ATOMIC];
+};
+
+// ============================================================================
+// Runtime EVENT blocks codegen. The runtime wires top-level functions named
+// on_start / on_stop / on_connect / on_disconnect / on_message / loop, so these
+// blocks just emit those functions (and run() picks them up).
+// ============================================================================
+
+// Shared: emit a `def <name>(<params>):` with a body + a `global ...` line for any
+// module variables the body uses, so a variable_set inside the handler writes the
+// module-level variable instead of a hidden local (same trick the procedure blocks
+// and mqtt_set_callback use).
+function runtimeHandler(block, name, params, ownVars, inputName) {
+  var workspace = block.workspace;
+  var globals = [];
+  var own = ownVars || [];
+  var variables = Blockly.Variables.allUsedVarModels(workspace) || [];
+  for (var i = 0, variable; variable = variables[i]; i++) {
+    var vn = Blockly.Python.nameDB_.getName(variable.name, Blockly.VARIABLE_CATEGORY_NAME);
+    if (own.indexOf(vn) == -1)
+      globals.push(vn);
+  }
+  var devVarList = Blockly.Variables.allDeveloperVariables(workspace);
+  for (var i = 0; i < devVarList.length; i++)
+    globals.push(Blockly.Python.nameDB_.getName(devVarList[i], Blockly.Names.DEVELOPER_VARIABLE_TYPE));
+  var globalsLine = globals.length ? Blockly.Python.INDENT + 'global ' + globals.join(', ') + '\n' : '';
+  var body = Blockly.Python.statementToCode(block, inputName || 'do');
+  if (!body)
+    body = Blockly.Python.INDENT + 'pass\n';
+  return 'def ' + name + '(' + params + '):\n' + globalsLine + body + '\n';
+}
+
+// Combined "program" blocks: emit the def for each event section that has blocks
+// in it (skip empties so the program stays clean), then the caller appends the
+// matching bipes_runtime.run(...) start call. `withConnect` adds on_connect /
+// on_disconnect (wireless transports only).
+function runtimeProgramScaffold(block, withConnect) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var nonEmpty = function(input) {
+    var b = Blockly.Python.statementToCode(block, input);
+    return b && b.trim().length;
+  };
+  var code = '';
+  if (nonEmpty('ON_START'))
+    code += runtimeHandler(block, 'on_start', '', [], 'ON_START');
+  if (withConnect && nonEmpty('ON_CONNECT'))
+    code += runtimeHandler(block, 'on_connect', '', [], 'ON_CONNECT');
+  if (withConnect && nonEmpty('ON_DISCONNECT'))
+    code += runtimeHandler(block, 'on_disconnect', '', [], 'ON_DISCONNECT');
+  if (nonEmpty('ON_MESSAGE')) {
+    var nameVar = Blockly.Python.nameDB_.getName(block.getFieldValue('MSG_NAME'), Blockly.VARIABLE_CATEGORY_NAME);
+    var valueVar = Blockly.Python.nameDB_.getName(block.getFieldValue('MSG_VALUE'), Blockly.VARIABLE_CATEGORY_NAME);
+    code += runtimeHandler(block, 'on_message', nameVar + ', ' + valueVar, [nameVar, valueVar], 'ON_MESSAGE');
+  }
+  if (nonEmpty('ON_STOP'))
+    code += runtimeHandler(block, 'on_stop', '', [], 'ON_STOP');
   return code;
+}
+
+Blockly.Python['runtime_program_serial'] = function(block) {
+  return runtimeProgramScaffold(block, false) + 'bipes_runtime.run(globals())\n';
+};
+
+Blockly.Python['runtime_program_bluetooth'] = function(block) {
+  var esc = function(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); };
+  var name = esc(block.getFieldValue('BLE_NAME') || 'Pico-BIPES');
+  return runtimeProgramScaffold(block, true) +
+         'bipes_runtime.run(globals(), bluetooth="' + name + '")\n';
+};
+
+Blockly.Python['runtime_program_wifi'] = function(block) {
+  var defs = runtimeProgramScaffold(block, true);
+  if (block.getFieldValue('CREDS') !== 'FIELDS')
+    return defs + 'bipes_runtime.run(globals(), wifi=True)\n';   // creds from /secrets.json
+  // Fields mode: build the literal wifi config (same shape as runtime_start_wifi_literal),
+  // pulling the auto-filled MQTT credentials from the block's hidden `data`.
+  var esc = function(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); };
+  var ssid = esc(block.getFieldValue('SSID') || '');
+  var pw = esc(block.getFieldValue('PW') || '');
+  var host = esc(block.getFieldValue('HOST') || '');
+  var useTls = block.getFieldValue('SSL') !== 'PLAIN';
+  var port = parseInt(block.getFieldValue('PORT')) || (useTls ? 8883 : 1883);
+  var creds = {};
+  try { creds = JSON.parse(block.data || '{}'); } catch (e) {}
+  var user = esc(creds.user || '');
+  var password = esc(creds.password || '');
+  var prefix = esc(creds.prefix || '');
+  var cfg = '{"ssid": "' + ssid + '", "pw": "' + pw + '", "host": "' + host + '", "port": ' + port +
+            ', "ssl": ' + (useTls ? 'True' : 'False') +
+            ', "user": "' + user + '", "password": "' + password + '", "prefix": "' + prefix + '"}';
+  return defs + 'bipes_runtime.run(globals(), wifi=' + cfg + ')\n';
+};
+
+Blockly.Python['runtime_on_start'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return runtimeHandler(block, 'on_start', '');
+};
+
+Blockly.Python['runtime_on_stop'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return runtimeHandler(block, 'on_stop', '');
+};
+
+Blockly.Python['runtime_on_connect'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return runtimeHandler(block, 'on_connect', '');
+};
+
+Blockly.Python['runtime_on_disconnect'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  return runtimeHandler(block, 'on_disconnect', '');
+};
+
+Blockly.Python['runtime_on_message'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var nameVar = Blockly.Python.nameDB_.getName(block.getFieldValue('NAME_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  var valueVar = Blockly.Python.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  return runtimeHandler(block, 'on_message', nameVar + ', ' + valueVar, [nameVar, valueVar]);
+};
+
+// Raw line out over the connection.
+Blockly.Python['runtime_serial_send'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var text = Blockly.Python.valueToCode(block, 'TEXT', Blockly.Python.ORDER_NONE) || '""';
+  return 'bipes_runtime.serial_send(' + text + ')\n';
+};
+
+// Start over WiFi. WiFi name/password/host come from the visible fields; the MQTT
+// credentials come from the block's hidden `data` (auto-filled on add) and are
+// injected here so they never appear as editable fields.
+Blockly.Python['runtime_start_wifi_literal'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var esc = function(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); };
+  var ssid = esc(block.getFieldValue('SSID') || '');
+  var pw = esc(block.getFieldValue('PW') || '');
+  var host = esc(block.getFieldValue('HOST') || '');
+  var useTls = block.getFieldValue('SSL') !== 'PLAIN';   // default (incl. legacy blocks) = TLS
+  var port = parseInt(block.getFieldValue('PORT')) || (useTls ? 8883 : 1883);
+  var creds = {};
+  try { creds = JSON.parse(block.data || '{}'); } catch (e) {}
+  var user = esc(creds.user || '');
+  var password = esc(creds.password || '');
+  var prefix = esc(creds.prefix || '');
+  var cfg = '{"ssid": "' + ssid + '", "pw": "' + pw + '", "host": "' + host + '", "port": ' + port +
+            ', "ssl": ' + (useTls ? 'True' : 'False') +
+            ', "user": "' + user + '", "password": "' + password + '", "prefix": "' + prefix + '"}';
+  return 'bipes_runtime.run(globals(), wifi=' + cfg + ')\n';
+};
+
+// Subscribe to an extra MQTT topic (messages -> on_message).
+Blockly.Python['runtime_subscribe'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var topic = Blockly.Python.valueToCode(block, 'TOPIC', Blockly.Python.ORDER_NONE) || '""';
+  return 'bipes_runtime.subscribe(' + topic + ')\n';
+};
+
+// Publish to an extra MQTT topic.
+Blockly.Python['runtime_publish'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var topic = Blockly.Python.valueToCode(block, 'TOPIC', Blockly.Python.ORDER_NONE) || '""';
+  var value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '0';
+  return 'bipes_runtime.publish(' + topic + ', ' + value + ')\n';
+};
+
+// Trigger an OTA update from a URL.
+Blockly.Python['runtime_ota_update'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
+  var url = Blockly.Python.valueToCode(block, 'URL', Blockly.Python.ORDER_NONE) || '""';
+  return 'bipes_runtime.ota(' + url + ')\n';
 };
 
 

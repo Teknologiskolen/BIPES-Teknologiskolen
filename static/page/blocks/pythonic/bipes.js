@@ -23,9 +23,17 @@ Blockly.Python['localstorage_store'] = function(block) {
 
 // Try catch
 Blockly.Python['try_catch'] = function(block) {
-  var statements_main_code = Blockly.Python.statementToCode(block, 'main_code');
-  var statements_catch_code = Blockly.Python.statementToCode(block, 'catch_code');
-  // TODO: Assemble Python into code variable.
-  var code = 'try:\n' + statements_main_code + '\nexcept:\n' + statements_catch_code;
+  // Default empty bodies to `pass` so an empty try/except isn't a syntax error.
+  var statements_main_code = Blockly.Python.statementToCode(block, 'main_code') || Blockly.Python.INDENT + 'pass\n';
+  var statements_catch_code = Blockly.Python.statementToCode(block, 'catch_code') || Blockly.Python.INDENT + 'pass\n';
+  var code = 'try:\n' + statements_main_code + 'except:\n' + statements_catch_code;
   return code;
+};
+
+// try / except <chosen exception type>.
+Blockly.Python['try_except'] = function(block) {
+  var tryBody = Blockly.Python.statementToCode(block, 'TRY') || Blockly.Python.INDENT + 'pass\n';
+  var excBody = Blockly.Python.statementToCode(block, 'EXCEPT') || Blockly.Python.INDENT + 'pass\n';
+  var exc = block.getFieldValue('EXC');
+  return 'try:\n' + tryBody + 'except ' + exc + ':\n' + excBody;
 };

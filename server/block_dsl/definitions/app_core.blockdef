@@ -1,0 +1,46 @@
+// Generic application core (app_core.py): a reusable State Machine that any project
+// drives. Knows nothing about hardware — it only tracks a state name (string) and the
+// rules between states, so projects (alarm clock, sand robot, ...) share ONE flow core.
+// This .blockdef is the source of truth.
+
+module app_core
+import "app_core"
+url "https://github.com/bipes"
+
+category "App Core" color=290 {
+
+    class StateMachine as singleton named "sm" {
+
+        block __init__ tooltip="Create the state machine with a starting state name." {
+            param start type=String default="idle"
+        }
+
+        // G3 - data-driven (a transition table)
+        block add_rule tooltip="Add a rule: in <state>, on <event>, go to <next state>." {
+            param state type=String default="idle"
+            param event type=String default="ok"
+            param next_state type=String default="idle"
+        }
+        block feed tooltip="Apply the matching rule for an event (G3 table-driven)." {
+            param event type=String default="ok"
+        }
+
+        // G2 - explicit
+        block go tooltip="Go straight to a state (G2 explicit)." {
+            param name type=String default="idle"
+        }
+
+        // queries (pure)
+        block state kind=value tooltip="The current state name."
+        block is_state kind=value tooltip="True if the machine is in this state." {
+            param name type=String default="idle"
+        }
+        block entered kind=value tooltip="True only on the first frame after entering this state (entry actions / clear)." {
+            param name type=String default="idle"
+        }
+        block changed kind=value tooltip="True on the first frame after ANY state change."
+
+        // frame bookkeeping
+        block tick tooltip="Call once at the END of the loop so entered()/changed() work next frame."
+    }
+}

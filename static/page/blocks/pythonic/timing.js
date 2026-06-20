@@ -170,6 +170,56 @@ Blockly.Python['timer'] = function(block) {
 };
 
 
+Blockly.Python['second_core'] = function(block) {
+  var INDENT = Blockly.Python.INDENT;
+  var statements_name = Blockly.Python.statementToCode(block, 'statements');
+
+  // Bring outer variables into scope inside the thread function (same approach
+  // as the Timer block); always include the stop flag.
+  var globals = ['_core1_running'];
+  var workspace = block.workspace;
+  var variables = Blockly.Variables.allUsedVarModels(workspace) || [];
+  for (var i = 0, variable; (variable = variables[i]); i++) {
+    var varName = variable.name;
+    if (block.getVars().indexOf(varName) == -1) {
+      globals.push(Blockly.Python.nameDB_.getName(varName,
+          Blockly.VARIABLE_CATEGORY_NAME));
+    }
+  }
+
+  // The body lives inside `while True:` -> `if _core1_running:`, so indent it
+  // two levels deeper than statementToCode already produced.
+  var body = (statements_name && statements_name.trim().length)
+    ? statements_name.replace(/^(?=.)/gm, INDENT + INDENT)
+    : INDENT + INDENT + INDENT + 'pass\n';
+
+  Blockly.Python.definitions_['import_thread'] = 'import _thread';
+  Blockly.Python.definitions_['import_gc_thread'] = 'import gc';
+  Blockly.Python.definitions_['import_time_thread'] = 'import time';
+  // The thread is started ONCE and kept alive (RP2040 cannot reliably restart a
+  // thread that has exited). The body only runs while _core1_running is True, so
+  // it can be paused and resumed.
+  Blockly.Python.definitions_['second_core_flags'] = '_core1_running = False\n_core1_thread = False';
+  Blockly.Python.definitions_['second_core_task'] =
+    `\n# Worker on the second core. Kept alive; body runs only while active.\n# The 1 ms yield each pass hands CPU to the main core so the REPL / Bluetooth\n# stay responsive (a tight loop here would starve them).\ndef _core1_task():\n${INDENT}global ${globals.join(', ')}\n${INDENT}while True:\n${INDENT}${INDENT}if _core1_running:\n${body}${INDENT}${INDENT}${INDENT}time.sleep_ms(1)\n${INDENT}${INDENT}else:\n${INDENT}${INDENT}${INDENT}time.sleep_ms(50)\n`;
+  // Helper so start works even when called from inside a function (e.g. a
+  // dashboard handler) — a bare assignment there would be a local variable.
+  Blockly.Python.definitions_['second_core_start'] =
+    `\ndef _core1_start():\n${INDENT}global _core1_running, _core1_thread\n${INDENT}_core1_running = True\n${INDENT}if not _core1_thread:\n${INDENT}${INDENT}_core1_thread = True\n${INDENT}${INDENT}gc.collect()\n${INDENT}${INDENT}_thread.start_new_thread(_core1_task, ())\n`;
+
+  var code = '_core1_start()\n';
+  return code
+};
+
+Blockly.Python['stop_second_core'] = function(block) {
+  Blockly.Python.definitions_['second_core_flags'] = '_core1_running = False\n_core1_thread = False';
+  Blockly.Python.definitions_['second_core_stop'] =
+    `\ndef _core1_stop():\n${Blockly.Python.INDENT}global _core1_running\n${Blockly.Python.INDENT}_core1_running = False\n`;
+  var code = '_core1_stop()\n';
+  return code
+};
+
+
 Blockly.Python['stop_timer'] = function(block) {
   Blockly.Python.definitions_['import_timer'] = 'from machine import Timer';
 

@@ -148,7 +148,15 @@ function interpretLink (inited, root){
     handleLink.apply(root.blocks,[navigation, state, root, 'blocks'])
     return
   }
-  handleLink.apply(root[params.get('page')],[navigation, state, root, params.get('page')])
+  const targetPage = params.get('page')
+  const targetNav = DOM.get(`a#${targetPage}`, navigation.$.panels)
+
+  if (!root.hasOwnProperty(targetPage) || !targetNav) {
+    handleLink.apply(root.blocks,[navigation, state, root, 'blocks'])
+    return
+  }
+
+  handleLink.apply(root[targetPage],[navigation, state, root, targetPage])
   handleResize()
 }
 
@@ -213,6 +221,12 @@ class Navigation {
       bipes.page[module].section = DOM.get(`section#${module}`)
       bipes.page[module].nav = a
     }
+
+    // Keep Messages as the final normal page item for every visible role.
+    let notification = DOM.get('a#notification', this.$.panels)
+    if (notification)
+      this.$.panels.appendChild(notification)
+
     onpopstate = () => {interpretLink(true, bipes.page)}
     onresize = () => {handleResize()}
 
@@ -231,6 +245,7 @@ class Navigation {
       new DOM('button', {
         className: new URL(location.href).searchParams.get('theme') === 'dark' ? 'status-icon on' : 'status-icon',
         id:'theme',
+        innerText:Msg['Mode'],
         title:Msg['ChangeTheme']
       }).onclick(this, () => {
         let _url = new URL(location.href)
@@ -252,7 +267,10 @@ class Navigation {
     .append(_languages)
     .onevent('change', this, () => {
       let _url = new URL(location.href)
-      _url.pathname = `${_url.pathname.match('^(.*)/ide')[1]}/ide-${this.$.languageDropdown.value}`
+      let lang = this.$.languageDropdown.value
+      let base = _url.pathname.match('^(.*)/ide')[1]
+      _url.pathname = `${base}/ide`
+      _url.searchParams.set('lang', lang)
       location.href = `${_url}`
     })
     new DOM(DOM.get('div#status-bar #extra')).append([

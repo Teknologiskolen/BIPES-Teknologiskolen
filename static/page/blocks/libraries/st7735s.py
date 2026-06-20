@@ -1,215 +1,1 @@
-"""ST7735S TFT Display Driver for MicroPython (128x160, SPI, 16-bit color)"""
-
-import time
-
-
-class ST7735S:
-    def __init__(self, spi, dc, rst, cs, width=160, height=128):
-        self.spi = spi
-        self.dc = dc
-        self.rst = rst
-        self.cs = cs
-        self.width = width
-        self.height = height
-        self.line_buffer = bytearray(self.width * 2)
-        self.init_display()
-
-    def write_cmd(self, cmd):
-        self.cs.value(0)
-        self.dc.value(0)
-        self.spi.write(bytearray([cmd]))
-        self.cs.value(1)
-
-    def write_data(self, data):
-        self.cs.value(0)
-        self.dc.value(1)
-        self.spi.write(data)
-        self.cs.value(1)
-
-    def init_display(self):
-        self.rst.value(1)
-        time.sleep(0.01)
-        self.rst.value(0)
-        time.sleep(0.01)
-        self.rst.value(1)
-        time.sleep(0.12)
-
-        self.write_cmd(0x01)  # Software reset
-        time.sleep(0.15)
-
-        self.write_cmd(0x11)  # Sleep out
-        time.sleep(0.05)
-
-        self.write_cmd(0x3A)  # Color mode
-        self.write_data(bytearray([0x05]))  # 16-bit color
-
-        self.write_cmd(0x36)  # Memory access control (rotation)
-        self.write_data(bytearray([0x60]))  # Landscape mode
-
-        self.write_cmd(0x20)  # Inversion off
-        self.write_cmd(0x13)  # Normal display mode
-
-        self.write_cmd(0x29)  # Display on
-        time.sleep(0.05)
-
-        print("ST7735S display initialized (160x128)")
-
-    def set_window(self, x0, y0, x1, y1):
-        self.write_cmd(0x2A)
-        self.write_data(bytearray([0x00, x0, 0x00, x1]))
-        self.write_cmd(0x2B)
-        self.write_data(bytearray([0x00, y0, 0x00, y1]))
-        self.write_cmd(0x2C)
-
-    def fill(self, color):
-        self.set_window(0, 0, self.width - 1, self.height - 1)
-        for i in range(0, self.width * 2, 2):
-            self.line_buffer[i] = color >> 8
-            self.line_buffer[i + 1] = color & 0xFF
-        self.cs.value(0)
-        self.dc.value(1)
-        for _ in range(self.height):
-            self.spi.write(self.line_buffer)
-        self.cs.value(1)
-
-    def fill_rect(self, x, y, w, h, color):
-        if x < 0 or y < 0 or x + w > self.width or y + h > self.height:
-            return
-        self.set_window(x, y, x + w - 1, y + h - 1)
-        line_buf = bytearray(w * 2)
-        for i in range(0, w * 2, 2):
-            line_buf[i] = color >> 8
-            line_buf[i + 1] = color & 0xFF
-        self.cs.value(0)
-        self.dc.value(1)
-        for _ in range(h):
-            self.spi.write(line_buf)
-        self.cs.value(1)
-
-    def pixel(self, x, y, color):
-        if x < 0 or y < 0 or x >= self.width or y >= self.height:
-            return
-        self.set_window(x, y, x, y)
-        self.write_data(bytearray([color >> 8, color & 0xFF]))
-
-    def hline(self, x, y, w, color):
-        self.fill_rect(x, y, w, 1, color)
-
-    def vline(self, x, y, h, color):
-        self.fill_rect(x, y, 1, h, color)
-
-    def rect(self, x, y, w, h, color):
-        self.hline(x, y, w, color)
-        self.hline(x, y + h - 1, w, color)
-        self.vline(x, y, h, color)
-        self.vline(x + w - 1, y, h, color)
-
-    def line(self, x0, y0, x1, y1, color):
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx - dy
-        while True:
-            self.pixel(x0, y0, color)
-            if x0 == x1 and y0 == y1:
-                break
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x0 += sx
-            if e2 < dx:
-                err += dx
-                y0 += sy
-
-    def text(self, string, x, y, color, size=1):
-        for i, char in enumerate(string):
-            self.draw_char(char, x + i * 8 * size, y, color, size)
-
-    def draw_char(self, c, x, y, color, size=1):
-        font = self.get_font_data(ord(c))
-        for col in range(8):
-            for row in range(8):
-                if font[row] & (1 << (7 - col)):
-                    if size == 1:
-                        self.pixel(x + col, y + row, color)
-                    else:
-                        self.fill_rect(x + col * size, y + row * size, size, size, color)
-
-    def get_font_data(self, char_code):
-        if 48 <= char_code <= 57:
-            fonts = {
-                48: [0x3C, 0x66, 0x6E, 0x76, 0x66, 0x66, 0x3C, 0x00],
-                49: [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7E, 0x00],
-                50: [0x3C, 0x66, 0x06, 0x0C, 0x18, 0x30, 0x7E, 0x00],
-                51: [0x3C, 0x66, 0x06, 0x1C, 0x06, 0x66, 0x3C, 0x00],
-                52: [0x0C, 0x1C, 0x2C, 0x4C, 0x7E, 0x0C, 0x0C, 0x00],
-                53: [0x7E, 0x60, 0x7C, 0x06, 0x06, 0x66, 0x3C, 0x00],
-                54: [0x3C, 0x60, 0x60, 0x7C, 0x66, 0x66, 0x3C, 0x00],
-                55: [0x7E, 0x06, 0x0C, 0x18, 0x30, 0x30, 0x30, 0x00],
-                56: [0x3C, 0x66, 0x66, 0x3C, 0x66, 0x66, 0x3C, 0x00],
-                57: [0x3C, 0x66, 0x66, 0x3E, 0x06, 0x06, 0x3C, 0x00],
-            }
-            return fonts[char_code]
-        elif 65 <= char_code <= 90:
-            fonts = {
-                65: [0x18, 0x3C, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x00],
-                66: [0x7C, 0x66, 0x66, 0x7C, 0x66, 0x66, 0x7C, 0x00],
-                67: [0x3C, 0x66, 0x60, 0x60, 0x60, 0x66, 0x3C, 0x00],
-                68: [0x78, 0x6C, 0x66, 0x66, 0x66, 0x6C, 0x78, 0x00],
-                69: [0x7E, 0x60, 0x60, 0x7C, 0x60, 0x60, 0x7E, 0x00],
-                70: [0x7E, 0x60, 0x60, 0x7C, 0x60, 0x60, 0x60, 0x00],
-                71: [0x3C, 0x66, 0x60, 0x6E, 0x66, 0x66, 0x3C, 0x00],
-                72: [0x66, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x00],
-                73: [0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
-                74: [0x1E, 0x0C, 0x0C, 0x0C, 0x0C, 0x6C, 0x38, 0x00],
-                75: [0x66, 0x6C, 0x78, 0x70, 0x78, 0x6C, 0x66, 0x00],
-                76: [0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x7E, 0x00],
-                77: [0x63, 0x77, 0x7F, 0x6B, 0x63, 0x63, 0x63, 0x00],
-                78: [0x66, 0x76, 0x7E, 0x7E, 0x6E, 0x66, 0x66, 0x00],
-                79: [0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],
-                80: [0x7C, 0x66, 0x66, 0x7C, 0x60, 0x60, 0x60, 0x00],
-                81: [0x3C, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x0E, 0x00],
-                82: [0x7C, 0x66, 0x66, 0x7C, 0x6C, 0x66, 0x63, 0x00],
-                83: [0x3C, 0x66, 0x60, 0x3C, 0x06, 0x66, 0x3C, 0x00],
-                84: [0x7E, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00],
-                85: [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],
-                86: [0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x18, 0x00],
-                87: [0x63, 0x63, 0x63, 0x6B, 0x7F, 0x77, 0x63, 0x00],
-                88: [0x66, 0x66, 0x3C, 0x18, 0x3C, 0x66, 0x66, 0x00],
-                89: [0x66, 0x66, 0x66, 0x3C, 0x18, 0x18, 0x18, 0x00],
-                90: [0x7E, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7E, 0x00],
-            }
-            return fonts.get(char_code, [0xFF] * 8)
-        else:
-            fonts = {
-                32: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-                33: [0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00],
-                43: [0x00, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x00, 0x00],
-                45: [0x00, 0x00, 0x00, 0x7E, 0x00, 0x00, 0x00, 0x00],
-                46: [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00],
-                47: [0x00, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x00, 0x00],
-                58: [0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00, 0x00],
-                63: [0x3C, 0x66, 0x06, 0x0C, 0x18, 0x00, 0x18, 0x00],
-                94: [0x18, 0x3C, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00],
-            }
-            return fonts.get(char_code, [0xFF] * 8)
-
-
-def color565(r, g, b):
-    """Convert RGB888 to RGB565 color format."""
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
-
-
-# Color constants
-BLACK = color565(0, 0, 0)
-WHITE = color565(255, 255, 255)
-RED = color565(255, 0, 0)
-GREEN = color565(0, 255, 0)
-BLUE = color565(0, 0, 255)
-YELLOW = color565(255, 255, 0)
-CYAN = color565(0, 255, 255)
-MAGENTA = color565(255, 0, 255)
-ORANGE = color565(255, 165, 0)
-GRAY = color565(128, 128, 128)
-
+"""ST7735S TFT Display Driver for MicroPython (128x160, SPI, 16-bit color)"""import timeclass ST7735S:    def __init__(self, spi, dc, rst, cs, width=160, height=128):        self.spi = spi        self.dc = dc        self.rst = rst        self.cs = cs        self.width = width        self.height = height        self.line_buffer = bytearray(self.width * 2)        self.init_display()    def write_cmd(self, cmd):        self.cs.value(0)        self.dc.value(0)        self.spi.write(bytearray([cmd]))        self.cs.value(1)    def write_data(self, data):        self.cs.value(0)        self.dc.value(1)        self.spi.write(data)        self.cs.value(1)    def init_display(self):        self.rst.value(1)        time.sleep(0.01)        self.rst.value(0)        time.sleep(0.01)        self.rst.value(1)        time.sleep(0.12)        self.write_cmd(0x01)  # Software reset        time.sleep(0.15)        self.write_cmd(0x11)  # Sleep out        time.sleep(0.05)        self.write_cmd(0x3A)  # Color mode        self.write_data(bytearray([0x05]))  # 16-bit color        self.write_cmd(0x36)  # Memory access control (rotation)        self.write_data(bytearray([0x60]))  # Landscape mode        self.write_cmd(0x20)  # Inversion off        self.write_cmd(0x13)  # Normal display mode        self.write_cmd(0x29)  # Display on        time.sleep(0.05)        print("ST7735S display initialized (160x128)")    def set_window(self, x0, y0, x1, y1):        self.write_cmd(0x2A)        self.write_data(bytearray([0x00, x0, 0x00, x1]))        self.write_cmd(0x2B)        self.write_data(bytearray([0x00, y0, 0x00, y1]))        self.write_cmd(0x2C)    def fill(self, color):        self.set_window(0, 0, self.width - 1, self.height - 1)        for i in range(0, self.width * 2, 2):            self.line_buffer[i] = color >> 8            self.line_buffer[i + 1] = color & 0xFF        self.cs.value(0)        self.dc.value(1)        for _ in range(self.height):            self.spi.write(self.line_buffer)        self.cs.value(1)    def fill_rect(self, x, y, w, h, color):        if x < 0 or y < 0 or x + w > self.width or y + h > self.height:            return        self.set_window(x, y, x + w - 1, y + h - 1)        line_buf = bytearray(w * 2)        for i in range(0, w * 2, 2):            line_buf[i] = color >> 8            line_buf[i + 1] = color & 0xFF        self.cs.value(0)        self.dc.value(1)        for _ in range(h):            self.spi.write(line_buf)        self.cs.value(1)    def pixel(self, x, y, color):        if x < 0 or y < 0 or x >= self.width or y >= self.height:            return        self.set_window(x, y, x, y)        self.write_data(bytearray([color >> 8, color & 0xFF]))    def hline(self, x, y, w, color):        self.fill_rect(x, y, w, 1, color)    def vline(self, x, y, h, color):        self.fill_rect(x, y, 1, h, color)    def rect(self, x, y, w, h, color):        self.hline(x, y, w, color)        self.hline(x, y + h - 1, w, color)        self.vline(x, y, h, color)        self.vline(x + w - 1, y, h, color)    def line(self, x0, y0, x1, y1, color):        dx = abs(x1 - x0)        dy = abs(y1 - y0)        sx = 1 if x0 < x1 else -1        sy = 1 if y0 < y1 else -1        err = dx - dy        while True:            self.pixel(x0, y0, color)            if x0 == x1 and y0 == y1:                break            e2 = 2 * err            if e2 > -dy:                err -= dy                x0 += sx            if e2 < dx:                err += dx                y0 += sy    def text(self, string, x, y, color, size=1):        for i, char in enumerate(string):            self.draw_char(char, x + i * 8 * size, y, color, size)    def draw_char(self, c, x, y, color, size=1):        font = self.get_font_data(ord(c))        for col in range(8):            for row in range(8):                if font[row] & (1 << (7 - col)):                    if size == 1:                        self.pixel(x + col, y + row, color)                    else:                        self.fill_rect(x + col * size, y + row * size, size, size, color)    def get_font_data(self, char_code):        if 48 <= char_code <= 57:            fonts = {                48: [0x3C, 0x66, 0x6E, 0x76, 0x66, 0x66, 0x3C, 0x00],                49: [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7E, 0x00],                50: [0x3C, 0x66, 0x06, 0x0C, 0x18, 0x30, 0x7E, 0x00],                51: [0x3C, 0x66, 0x06, 0x1C, 0x06, 0x66, 0x3C, 0x00],                52: [0x0C, 0x1C, 0x2C, 0x4C, 0x7E, 0x0C, 0x0C, 0x00],                53: [0x7E, 0x60, 0x7C, 0x06, 0x06, 0x66, 0x3C, 0x00],                54: [0x3C, 0x60, 0x60, 0x7C, 0x66, 0x66, 0x3C, 0x00],                55: [0x7E, 0x06, 0x0C, 0x18, 0x30, 0x30, 0x30, 0x00],                56: [0x3C, 0x66, 0x66, 0x3C, 0x66, 0x66, 0x3C, 0x00],                57: [0x3C, 0x66, 0x66, 0x3E, 0x06, 0x06, 0x3C, 0x00],            }            return fonts[char_code]        elif 65 <= char_code <= 90:            fonts = {                65: [0x18, 0x3C, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x00],                66: [0x7C, 0x66, 0x66, 0x7C, 0x66, 0x66, 0x7C, 0x00],                67: [0x3C, 0x66, 0x60, 0x60, 0x60, 0x66, 0x3C, 0x00],                68: [0x78, 0x6C, 0x66, 0x66, 0x66, 0x6C, 0x78, 0x00],                69: [0x7E, 0x60, 0x60, 0x7C, 0x60, 0x60, 0x7E, 0x00],                70: [0x7E, 0x60, 0x60, 0x7C, 0x60, 0x60, 0x60, 0x00],                71: [0x3C, 0x66, 0x60, 0x6E, 0x66, 0x66, 0x3C, 0x00],                72: [0x66, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x00],                73: [0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],                74: [0x1E, 0x0C, 0x0C, 0x0C, 0x0C, 0x6C, 0x38, 0x00],                75: [0x66, 0x6C, 0x78, 0x70, 0x78, 0x6C, 0x66, 0x00],                76: [0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x7E, 0x00],                77: [0x63, 0x77, 0x7F, 0x6B, 0x63, 0x63, 0x63, 0x00],                78: [0x66, 0x76, 0x7E, 0x7E, 0x6E, 0x66, 0x66, 0x00],                79: [0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],                80: [0x7C, 0x66, 0x66, 0x7C, 0x60, 0x60, 0x60, 0x00],                81: [0x3C, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x0E, 0x00],                82: [0x7C, 0x66, 0x66, 0x7C, 0x6C, 0x66, 0x63, 0x00],                83: [0x3C, 0x66, 0x60, 0x3C, 0x06, 0x66, 0x3C, 0x00],                84: [0x7E, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00],                85: [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],                86: [0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x18, 0x00],                87: [0x63, 0x63, 0x63, 0x6B, 0x7F, 0x77, 0x63, 0x00],                88: [0x66, 0x66, 0x3C, 0x18, 0x3C, 0x66, 0x66, 0x00],                89: [0x66, 0x66, 0x66, 0x3C, 0x18, 0x18, 0x18, 0x00],                90: [0x7E, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7E, 0x00],            }            return fonts.get(char_code, [0xFF] * 8)        else:            fonts = {                32: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],                33: [0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00],                43: [0x00, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x00, 0x00],                45: [0x00, 0x00, 0x00, 0x7E, 0x00, 0x00, 0x00, 0x00],                46: [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00],                47: [0x00, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x00, 0x00],                58: [0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00, 0x00],                63: [0x3C, 0x66, 0x06, 0x0C, 0x18, 0x00, 0x18, 0x00],                94: [0x18, 0x3C, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00],            }            return fonts.get(char_code, [0xFF] * 8)def color565(r, g, b):    """Convert RGB888 to RGB565 color format."""    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)# Color constantsBLACK = color565(0, 0, 0)WHITE = color565(255, 255, 255)RED = color565(255, 0, 0)GREEN = color565(0, 255, 0)BLUE = color565(0, 0, 255)YELLOW = color565(255, 255, 0)CYAN = color565(0, 255, 255)MAGENTA = color565(255, 0, 255)ORANGE = color565(255, 165, 0)GRAY = color565(128, 128, 128)

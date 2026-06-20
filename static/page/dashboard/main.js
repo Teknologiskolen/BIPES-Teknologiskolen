@@ -8,11 +8,16 @@ import {navigation} from '../../base/navigation.js'
 
 import {project} from '../project/main.js'
 import {Actions} from './action.js'
-import {plugins} from './plugins.js'
+import {plugins, triggerImageSourceFeedsFromChunk} from './plugins.js'
 
 import {dataStorage} from './datastorage.js'
+// EasyMQTT is retired; easyMQTT is kept only as an alias for the easymqtt_* network
+// blocks (see `this.easyMQTT` below). No broker connection is made.
 import {easyMQTT} from './easymqtt.js'
-import {databaseMQTT} from './easymqtt.js'
+
+function dashboardMainMsg (key, fallback){
+  return (window.Msg && Msg[key]) || fallback
+}
 
 /* Create dashboard with graphs, plugins and buttons */
 class Dashboard {
@@ -42,6 +47,20 @@ class Dashboard {
 
     $.section = new DOM(DOM.get('section#dashboard'))
       .append([$.dashboard, $.contextMenu])
+
+    // Run-mode guard: the dashboard only shows live data while the device's program
+    // is RUNNING. When a connected runtime device is STOPPED (program mode), show a
+    // banner with a Run button instead of silently dead widgets.
+    $.modeBannerRun = new DOM('button', {innerText:Msg['StartExecution'] || 'Run', className:'master'})
+      .onclick(this, () => { try { window.bipes.page.files.device.startExecution() } catch (e) {} })
+    $.modeBanner = new DOM('div', {className:'dashboard-mode-banner'})
+      .append([
+        new DOM('span', {innerText:Msg['DashboardDeviceStopped'] ||
+          'Device is stopped — no live data. Press Run to start the program. '}),
+        $.modeBannerRun
+      ])
+    $.modeBanner.$.style.display = 'none'
+    $.section.append($.modeBanner)
 
 		$.add = new DOM('button', {
 			className:'icon',
@@ -111,8 +130,20 @@ class Dashboard {
     this.select(Object.keys(this.tree)[0])
 
 		dataStorage.init(this.grid)
-		databaseMQTT.init(this.grid)
+    this.modeInterval = setInterval(() => this._updateModeBanner(), 500)
     this.inited = true
+  }
+  // Show the "device stopped" banner when the active device is a runtime in program
+  // mode (stopped). Hidden in run mode, or when no runtime device is connected.
+  _updateModeBanner (){
+    let ch = window.bipes && window.bipes.channel
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let uid = ch && ch.targetDevice
+    let isRuntime = uid && ch.runtimeUids && ch.runtimeUids.has(uid)
+    let mode = (isRuntime && dev && dev.runtimeMode) ? dev.runtimeMode(uid) : undefined
+    let show = !!(isRuntime && mode === 'program')
+    if (this.$.modeBanner)
+      this.$.modeBanner.$.style.display = show ? '' : 'none'
   }
   /*
    * On page hidden, deinit the page.
@@ -125,7 +156,9 @@ class Dashboard {
     this.$.tabs.removeChilds()
 
 		dataStorage.deinit()
-		databaseMQTT.deinit()
+    clearInterval(this.modeInterval)
+    if (this.$.modeBanner)
+      this.$.modeBanner.$.style.display = 'none'
     this.inited = false
   }
   /*
@@ -133,7 +166,9 @@ class Dashboard {
    * @param {string} chunk - Incoming data.
    */
   write (chunk){
-    dataStorage.write(chunk, this.storagemanager.bridgeEasyMQTT.status)
+    triggerImageSourceFeedsFromChunk(chunk)
+    // Push telemetry to the local widgets and the timestamped localStorage log.
+    dataStorage.write(chunk)
   }
   /*
    * On load a project, load the page's scope of the project.
@@ -349,6 +384,15 @@ class DashboardGrid {
 		this.editiding
 		this.editingProp  // Store original position and current from plugin(string)
 		this.isGrabbing = [false, undefined]
+    this.responsiveLayoutPending = false
+    this.responsiveContentObserver = new MutationObserver(() => {
+      this.scheduleResponsiveLayout()
+    })
+    this.responsiveResizeObserver = typeof ResizeObserver == 'function'
+      ? new ResizeObserver(() => {
+        this.scheduleResponsiveLayout()
+      })
+      : undefined
 
     // Hold data points to push to charts.
     this.chartBuffer
@@ -425,18 +469,24 @@ class DashboardGrid {
    * Init grid.
    */
   init (){
-    this.chartBuffer = {EasyMQTT:{}, Console:{}}
+    this.chartBuffer = {Console:{}}
     this.chartBufferInverval = setInterval(()=>{this.chartWatcher()}, 250)
 
     this.ref = this.parent.tree[this.parent.currentSID].grid
     this.restore()
+    this.observeResponsiveItems()
+    this.responsiveContentObserver.observe(this.$.container.$, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    })
+    this.scheduleResponsiveLayout()
   }
   /**
    * Deinit grid.
    */
 	deinit (){
 	  clearInterval(this.chartBufferInverval)
-	  delete this.chartBuffer.EasyMQTT
 	  delete this.chartBuffer.Console
 	  this.chartBuffer = undefined
 
@@ -448,6 +498,9 @@ class DashboardGrid {
 
     this.muuri.remove(this.muuri.getItems(), {removeElements: true})
     this.ref = undefined
+    this.responsiveContentObserver.disconnect()
+    if (this.responsiveResizeObserver)
+      this.responsiveResizeObserver.disconnect()
 	}
   /**
    * Restore itens.
@@ -498,6 +551,10 @@ class DashboardGrid {
    * @param {Object} data - Object to be included.
    */
 	include (data){
+    // Normalize each widget on load/add: fills defaults and migrates legacy
+    // EasyMQTT source/target to Standard (Console), so existing gauges/widgets
+    // start tracking live telemetry without the user reopening their settings.
+    try { Actions.normalizeSetup(data) } catch (e) {}
     let _$ = {
       grab: new DOM('div', {
         id:'grab',
@@ -515,6 +572,109 @@ class DashboardGrid {
       silk: new DOM('div', {className:'silk'})
     }
     plugins.include(this, data, _$)
+    this.observeResponsiveItems()
+    this.scheduleResponsiveLayout()
+  }
+  isResponsiveItem (element){
+    return element.classList.contains('chart') ||
+      element.classList.contains('switch') ||
+      element.classList.contains('three-state-switch') ||
+      element.classList.contains('button') ||
+      element.classList.contains('range') ||
+      element.classList.contains('gauge') ||
+      element.classList.contains('ml-classifier') ||
+      element.classList.contains('vision-processor')
+  }
+  observeResponsiveItems (){
+    if (!this.responsiveResizeObserver)
+      return
+
+    this.responsiveResizeObserver.disconnect()
+    if (!this.muuri)
+      return
+
+    this.muuri.getItems().forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+
+      let content = element.firstElementChild
+      if (content)
+        this.responsiveResizeObserver.observe(content)
+    })
+  }
+  measureResponsiveItemHeight (element){
+    let content = element.firstElementChild
+    if (!content)
+      return undefined
+
+    let baseHeight = Math.ceil(element.getBoundingClientRect().height)
+    let contentHeightStyle = content.style.height
+
+    element.classList.add('responsive-measuring')
+    content.style.height = 'auto'
+
+    let nextHeight = Math.max(
+      baseHeight,
+      Math.ceil(
+        Math.max(
+          content.scrollHeight,
+          content.getBoundingClientRect().height
+        )
+      )
+    )
+
+    content.style.height = contentHeightStyle
+    element.classList.remove('responsive-measuring')
+
+    return nextHeight
+  }
+  applyResponsiveItemHeights (){
+    if (!this.muuri)
+      return
+
+    let items = this.muuri.getItems()
+    let changed = false
+
+    items.forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+      element.style.removeProperty('height')
+    })
+
+    items.forEach((item) => {
+      let element = item.getElement()
+      if (!element || element.id == 'editing' || !this.isResponsiveItem(element))
+        return
+
+      let nextHeight = this.measureResponsiveItemHeight(element)
+      if (nextHeight == undefined)
+        return
+
+      let baseHeight = Math.ceil(element.getBoundingClientRect().height)
+
+      if (Math.abs(nextHeight - baseHeight) <= 1)
+        return
+
+      element.style.height = `${nextHeight}px`
+      changed = true
+    })
+
+    if (changed)
+      this.muuri.refreshItems().layout()
+
+    this.observeResponsiveItems()
+  }
+  scheduleResponsiveLayout (){
+    if (this.responsiveLayoutPending || !this.ref)
+      return
+
+    this.responsiveLayoutPending = true
+    requestAnimationFrame(() => {
+      this.responsiveLayoutPending = false
+      this.applyResponsiveItemHeights()
+    })
   }
   /*
    * Remove a plugin.
@@ -540,6 +700,7 @@ class DashboardGrid {
 				this.ref.splice(index,1)
 			}
 		})
+    this.observeResponsiveItems()
 		// Changed locally, save project then dispatch modified
 		this.parent.commit()
 	  if (this.editing)
@@ -711,6 +872,7 @@ class DashboardGrid {
 
 
     this.muuri.refreshItems().layout()
+    this.scheduleResponsiveLayout()
   }
   /** Store current muuri positions to project */
   storeLayout (){
@@ -760,10 +922,10 @@ class DashboardGrid {
   chartWatcher (){
     if (this.chartBuffer === undefined)
       return
-    for(const target of ['EasyMQTT', 'Console']){
+    for(const target of ['Console']){
       for (const topic in this.chartBuffer[target]){
         this.charts.forEach ((chart) => {
-          if (chart.source === target && chart.topic == topic) {
+          if (chart.topic == topic) {
             if (this.chartBuffer[target][topic].refresh)
               this.ref.forEach(plugin => {
                 if (plugin.sid === chart.sid)
@@ -807,7 +969,9 @@ class DashboardGrid {
    */
   gaugesPush (topic, data, source) {
     this.gauges.forEach ((gauge) => {
-      if (gauge.topic == topic && gauge.source == source){
+      // Single source now (Standard) — match by topic only, so a gauge updates
+      // regardless of whatever source value it was saved with.
+      if (gauge.topic == topic){
         gauge.update(data)
       }
     })
@@ -815,16 +979,29 @@ class DashboardGrid {
 }
 
 
+const DASHBOARD_WIDGET_ICONS = {
+  'chart':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="15" x2="5" y2="8"/><line x1="9" y1="15" x2="9" y2="5"/><line x1="13" y1="15" x2="13" y2="10"/><line x1="17" y1="15" x2="17" y2="7"/><line x1="3" y1="15" x2="19" y2="15"/></svg>',
+  'switch':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="16" height="6" rx="3"/><circle cx="13" cy="10" r="2" fill="currentColor" opacity="0.5"/></svg>',
+  'threeStateSwitch': '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="16" height="6" rx="3"/><circle cx="10" cy="10" r="2" fill="currentColor" opacity="0.5"/><circle cx="5" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>',
+  'button':           '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="7" width="14" height="7" rx="3"/></svg>',
+  'range':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="10" x2="18" y2="10"/><circle cx="11" cy="10" r="3" fill="currentColor" opacity="0.3"/></svg>',
+  'gauge':            '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 14.5A8 8 0 1 1 16.5 14.5"/><line x1="10" y1="10" x2="14" y2="6.5"/><circle cx="10" cy="10" r="1.5" fill="currentColor" opacity="0.5"/></svg>',
+  'coordinate':       '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="16" x2="4" y2="4"/><line x1="4" y1="16" x2="17" y2="16"/><polyline points="4,12 7,8 11,11 15,6"/></svg>',
+  'drawing':          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3.5-1L16 6.5l-2.5-2.5L4 14.5z"/><line x1="13.5" y1="4" x2="16" y2="6.5"/></svg>'
+}
+
 class DashboardAddMenu {
   constructor (dom, grid, button){
     this.grid = grid
     this.plugins = {
-      chart:'Chart',
-      switch: 'Switch',
-      range:'Range',
-      gauge:'Gauge',
-      coordinate:'Coordinate',
-      drawing:'Drawing'
+      chart:dashboardMainMsg('DashboardWidgetChart', 'Chart'),
+      switch:dashboardMainMsg('DashboardWidgetSwitch', 'Switch'),
+      threeStateSwitch:dashboardMainMsg('DashboardWidgetThreeStateSwitch', 'Three-state switch'),
+      button:dashboardMainMsg('DashboardWidgetButton', 'Button'),
+      range:dashboardMainMsg('DashboardWidgetRange', 'Range'),
+      gauge:dashboardMainMsg('DashboardWidgetGauge', 'Gauge'),
+      coordinate:dashboardMainMsg('DashboardWidgetCoordinate', 'Coordinate'),
+      drawing:dashboardMainMsg('DashboardWidgetDrawing', 'Drawing')
     }
     let $ = this.$ = {}
     $.addMenu = dom
@@ -832,17 +1009,17 @@ class DashboardAddMenu {
     $.plugins = []
 
     for (const plugin in this.plugins) {
-      $.plugins.push(new DOM('button', {
-          value: plugin,
-          id:`${plugin}`,
-          className:'icon',
-          innerText: this.plugins[plugin]
-        })
-        .onclick(grid, grid.add, [plugin]))
+      let btn = new DOM('button', { value: plugin, id: plugin, className: 'dashboard-add-btn' })
+      btn.$.innerHTML = `${DASHBOARD_WIDGET_ICONS[plugin] || ''}<span>${this.plugins[plugin]}</span>`
+      $.plugins.push(btn.onclick(grid, grid.add, [plugin]))
     }
 
-    $.wrapper = new DOM('div')
-      .append($.plugins)
+    let title = new DOM('h2', {
+      className: 'dashboard-add-title',
+      innerText: (window.Msg && Msg['DashboardAddWidget']) || 'Add widget'
+    })
+    $.wrapper = new DOM('div', {className: 'dashboard-add-card'})
+      .append([title, new DOM('div', {className: 'dashboard-add-grid'}).append($.plugins)])
     $.addMenu.append($.wrapper)
 
     button.onclick(this, this.open)
@@ -859,12 +1036,10 @@ class DashboardAddMenu {
 
 class DataStorageManager {
   constructor (dom, grid_ref, button, parent){
+    this.guestMode = !document.getElementById('user-info')
     this.datalake = []
-    this.datalakeMQTT = []
     this.parent = parent
 	  this.name = 'storagemanager'
-
-	  this.bridgeEasyMQTT = new BridgeEasyMQTT()
 
     let $ = this.$ = {}
     $.storageManager = dom
@@ -878,10 +1053,10 @@ class DataStorageManager {
     $.uploadLabel = new DOM('label', {
 			  className:'button icon notext',
 			  id:'upload',
-			  title:'Upload CSV',
+			  title:dashboardMainMsg('DashboardUploadCSV', 'Upload CSV'),
 			  htmlFor:'uploadCSV'
 		  })
-    $.h2 = new DOM ('h2',   {innerText: 'Console (localStorage)'})
+    $.h2 = new DOM ('h2',   {innerText: dashboardMainMsg('DashboardConsoleLocalStorage', 'Console (localStorage)')})
     $.title = new DOM ('div', {className: 'header'})
       .append([
         $.h2,
@@ -890,76 +1065,16 @@ class DataStorageManager {
       ])
     $.container = new DOM('span', {className:'list'})
 
-    $.mqttH2 = new DOM('h2', {innerText: 'EasyMQTT'})
-    $.mqttInput = new DOM('input', {
-      placeholder:Msg['Session'],
-      id:'mqttSession',
-      value:easyMQTT.session
-    }).onevent('change', this, this.changeMQTTSession)
-    $.mqttTitle = new DOM ('div', {className: 'header'})
-      .append([
-        $.mqttH2,
-        $.mqttInput
-      ])
-    $.containerMQTT = new DOM ('span', {className:'list'})
-
     $.wrapper = new DOM('div')
       .append([
-        $.mqttTitle,
-        $.containerMQTT,
         $.title,
-        this.bridgeEasyMQTT.$.container,
         $.container
       ])
 
     $.storageManager.append($.wrapper)
     this.ref = grid_ref
 
-    // Status shortcut
-    $.statusMQTT = new DOM('div')
-    $.statusMQTT.innerText = easyMQTT.session
-    $.statusMQTTButton = new DOM('button', {
-        className:'status-icon',
-        id:'mqtt',
-        title:Msg['MQTTSession']
-      })
-      .append($.statusMQTT)
-      .onclick(this, () => {
-        this.parent.nav.click()
-        this.open()
-        $.mqttInput.$.focus()
-      })
-
-    new DOM(DOM.get('div#status-bar #globals')).append([
-      $.statusMQTTButton
-    ])
-
-    command.add([this.parent, this], {
-      changedMQTTSession: this._changedMQTTSession
-    })
     button.onclick(this, this.open)
-  }
-  /** Change easyMQTT session*/
-  changeMQTTSession (){
-    let session = this.$.mqttInput.value
-    session = session == '' ? Tool.SID() : session
-    session = /[0-9]/.test(session[0]) ?
-      `${Tool.randomChar()}${session.substring(1)}` : session
-    session = session.substring(0,16)
-
-    command.dispatch([this.parent, this], 'changedMQTTSession', [session])
-    storage.set('mqtt_session', session)
-  }
-  /** Changed easyMQTT session*/
-  _changedMQTTSession (session){
-
-    easyMQTT.session = session
-    this.$.statusMQTT.innerText = easyMQTT.session
-    this.$.mqttInput.value = easyMQTT.session
-
-    databaseMQTT.reinit()
-    this.deinit()
-    this.restore()
   }
   close (e) {
     if (e.target.id == 'storageManager'){
@@ -979,16 +1094,6 @@ class DataStorageManager {
   restore(){
 		storage.keys(/datastorage:(.*)/)
 		  .forEach(key => {this.include(key)})
-
-    if (!navigation.isLocal) {
-		  databaseMQTT.do(`${easyMQTT.session}/ls`)
-		    .then(obj => {
-		      if (obj.hasOwnProperty(easyMQTT.session))
-		        obj[easyMQTT.session].forEach(topic => {
-		          this.includeMQTT(topic.topic)
-		        })
-		    })
-      }
   }
   include (sid){
 		let remove = new DOM('button', {
@@ -1020,45 +1125,11 @@ class DataStorageManager {
 		let $ = this.$
 		$.container.append (data)
   }
-  includeMQTT (topic){
-		let remove = new DOM('button', {
-			  className:'icon notext',
-			  id:'remove',
-			  title:Msg['DeleteData']
-			})
-		let download = new DOM('button', {
-		    className: 'icon notext',
-		    id:'download',
-		    title:Msg['DownloadCSV']
-		  })
-		  .onclick(this, this.downloadMQTT, [topic])
-		let wrapper = new DOM('div').append([
-		    download,
-		    remove
-		  ])
-		let data = new DOM('div', {
-		    id:topic,
-		    innerText:topic}
-		  )
-			.append([
-				wrapper
-			])
-		this.datalakeMQTT.push(data)
-
-		remove.onclick(this, this.removeMQTT, [topic, data])
-
-		let $ = this.$
-		$.containerMQTT.append (data)
-  }
   deinit (){
     this.datalake.forEach ((item) => {
       item.$.remove()
     })
     this.datalake = []
-    this.datalakeMQTT.forEach ((item) => {
-      item.$.remove()
-    })
-    this.datalakeMQTT = []
   }
   remove (id, dom) {
     dom.$.remove()
@@ -1082,67 +1153,17 @@ class DataStorageManager {
       })
     }
   }
-  removeMQTT (topic){
-		databaseMQTT.do(`${easyMQTT.session}/${topic.replaceAll('/','$')}/rm`)
-	  .then(obj => {
-	    if (obj.hasOwnProperty(easyMQTT.session)){
-
-		    this.datalakeMQTT.forEach((item, index) => {
-		      databaseMQTT.remove(topic)
-			    if (item.$.id == topic) {
-				    item.$.remove()
-				    this.datalakeMQTT.splice(index,1)
-			    }
-		    })
-        if (this.ref != undefined) {
-          this.ref.charts.forEach ((chart) => {
-            if (chart.topic == topic && chart.source == 'EasyMQTT') {
-              this.ref.ref.forEach(plugin => {
-                if (plugin.sid === chart.sid)
-                  plugins.regen(this.ref.charts, plugin)
-              })
-            }
-          })
-        }
-	    }
-	  })
-  }
+  // Export a topic's stored time-series as CSV. Each row is "timestamp,value(s)"
+  // (timestamp = epoch ms), preceded by a BIPES header + a column-name line, so it
+  // opens cleanly in Excel / pandas for statistics.
   exportCSV (sid){
-    return storage.fetch(`datastorage:${sid}`)
-      .replaceAll('],[','\r\n')
-      .replace(']]','')
-      .replace('[[',`"BIPES","Dashboard"\r\n"Data:","${sid}"\r\n"Timestamp:","${String(+new Date())}"\r\n`)
-  }
-  organizeJSON (session, topic, obj){
-    let data = [],
-      json = {}
-    json.session = {
-      name:session,
-      timestamp:+new Date()
-    }
-    obj.forEach(item => {data.push(item.data)})
-    json.session.topic = {
-      name:topic,
-      data:data
-    }
-    return JSON.stringify(json, null, 2)
-  }
-  downloadMQTT (topic){
-    databaseMQTT.do(`${easyMQTT.session}/${topic.replaceAll('/','$')}/grep`)
-      .then(obj => {
-		    if (obj.hasOwnProperty(easyMQTT.session)){
-          let json = this.organizeJSON(easyMQTT.session, topic, obj[easyMQTT.session])
-          let data = "data:application/json;charset=utf-8," +
-            encodeURIComponent(json)
-          let element = document.createElement('a')
-          element.setAttribute('href', data)
-          element.setAttribute('download', `${easyMQTT.session}_${topic}.bipes.json`)
-          element.style.display = 'none'
-          document.body.appendChild(element)
-          element.click ()
-          document.body.removeChild(element)
-        }
-      })
+    let rows = JSON.parse(storage.fetch(`datastorage:${sid}`) || '[]')
+    let maxValueCols = rows.reduce((m, r) => Math.max(m, r.length - 1), 0)
+    let valueHeaders = Array.from({length: maxValueCols},
+                                  (_, i) => maxValueCols > 1 ? `"value${i + 1}"` : '"value"')
+    let header = `"BIPES","Dashboard"\r\n"Data:","${sid}"\r\n"Exported:","${String(+new Date())}"\r\n` +
+                 `"timestamp",${valueHeaders.join(',')}\r\n`
+    return header + rows.map((r) => r.join(',')).join('\r\n')
   }
   download (sid){
     let csv = this.exportCSV(sid)
@@ -1212,43 +1233,6 @@ class DataStorageManager {
       }
     }
   }
-  /** Called when MQTT connection is established */
-  onConnect (){
-    this.$.statusMQTTButton.classList.add('on')
-    this.$.statusMQTTButton.classList.remove('off')
-    this.$.mqttH2.classList.add('on')
-    this.$.mqttH2.classList.remove('off')
-  }
-  /** Called when MQTT connection lost */
-  onConnectionLost (){
-    this.$.statusMQTTButton.classList.remove('on')
-    this.$.statusMQTTButton.classList.add('off')
-    this.$.mqttH2.classList.remove('on')
-    this.$.mqttH2.classList.add('off')
-  }
-}
-
-/** Allow to bridge incoming comma divided data to EasyMQTT,
- * instead of storing in localStorage
-.*/
-class BridgeEasyMQTT {
-  constructor (){
-    this.status = false
-
-    let $ = this.$ = {};
-
-    [$.input, $.container] = DOM.prototypeCheckSwitch({
-      id:'bridgeEasyMQTT',
-      className:'bridgeEasyMQTT',
-      innerText:Msg['BridgeDataToEasyMQTT']
-    })
-    $.input.onevent('change', this, this.switch)
-  }
-  switch (){
-    this.status = !this.status
-  }
 }
 
 export let dashboard = new Dashboard()
-
-

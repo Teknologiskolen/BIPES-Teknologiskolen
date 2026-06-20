@@ -1,8 +1,8 @@
 # %{NET}
-<category name="%{NET}">
+<category name="%{NET}" colour="200">
 
 # Status&Configure
-<category name="Status and Configure">
+<category name="%{CAT_STATUS_CONFIGURE}">
 
 # wifi_client_connect
 <block type="wifi_client_connect">
@@ -20,7 +20,6 @@
 
 # net_ap_mode
 <block type="net_ap_mode">
-  <field name="NAME">Configure Access Point Mode</field>
   <value name="wifi_essid">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -37,12 +36,26 @@
 <block type="wifi_client_scan_networks"></block>
 
 # net_ifconfig
-<block type="net_ifconfig">
-  <field name="NET_IFCONFIG">Wifi current IP</field>
-</block>
+<block type="net_ifconfig"></block>
 
 # net_wiznet5k_init
-<block type="net_wiznet5k_init"></block>
+<block type="net_wiznet5k_init">
+  <value name="spi">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="cs">
+    <shadow type="math_number">
+      <field name="NUM">17</field>
+    </shadow>
+  </value>
+  <value name="rst">
+    <shadow type="math_number">
+      <field name="NUM">20</field>
+    </shadow>
+  </value>
+</block>
 
 # net_wiznet5k_isconnected
 <block type="net_wiznet5k_isconnected"></block>
@@ -51,15 +64,42 @@
 <block type="net_wiznet5k_regs"></block>
 
 # net_wiznet5k_ifconfig
-<block type="net_wiznet5k_ifconfig"></block>
+<block type="net_wiznet5k_ifconfig">
+  <value name="ip">
+    <shadow type="text">
+      <field name="TEXT">192.168.0.2</field>
+    </shadow>
+  </value>
+  <value name="subnet">
+    <shadow type="text">
+      <field name="TEXT">255.255.255.0</field>
+    </shadow>
+  </value>
+  <value name="gw">
+    <shadow type="text">
+      <field name="TEXT">192.168.0.1</field>
+    </shadow>
+  </value>
+  <value name="dns">
+    <shadow type="text">
+      <field name="TEXT">8.8.8.8</field>
+    </shadow>
+  </value>
+</block>
 
 # HTTP Client
-<category name="HTTP Client">
+<category name="HTTP Client" colour="200">
 <label text="HTTP (web) Client"></label>
 <label text="GET Method"></label>
 
 # net_get_request
-<block type="net_get_request"></block>
+<block type="net_get_request">
+  <value name="URL">
+    <shadow type="text">
+      <field name="TEXT">http://</field>
+    </shadow>
+  </value>
+</block>
 
 # net_get_request&text
 <block type="net_get_request">
@@ -176,8 +216,16 @@
 
 # net_post_request
 <block type="net_post_request">
-  <field name="NET_POST_REQUEST_URL">Make HTTP POST Request URL</field>
-  <field name="NET_POST_REQUEST_DATA">Data</field>
+  <value name="URL">
+    <shadow type="text">
+      <field name="TEXT">http://</field>
+    </shadow>
+  </value>
+  <value name="data">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
 </block>
 
 # net_post_request_json
@@ -214,7 +262,13 @@
 </block>
 
 # net_http_server_send_response_jpg
-<block type="net_http_server_send_response_jpg"></block>
+<block type="net_http_server_send_response_jpg">
+  <value name="html">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
+</block>
 
 # net_http_server_close
 <block type="net_http_server_close"></block>
@@ -270,7 +324,7 @@
 </block>
 
 # NTP Time
-<category name="NTP Time">
+<category name="%{CAT_NTP_TIME}">
 <label text="Network Time Protocol (NTP)"></label>
 <label text="Adjusts RTC using Internet"></label>
 <button text="Load example: ntp" callbackKey="loadExample"></button>
@@ -332,7 +386,6 @@
 
 # mqtt_init
 <block type="mqtt_init">
-  <field name="BLOCK_MQTT_INIT">Start MQTT Client</field>
   <value name="server">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -357,18 +410,15 @@
 
 # mqtt_add_to_buffer
 <block type="mqtt_add_to_buffer">
-  <field name="BLOCK_MQTT_ADD_TO_BUFFER">Add data to MQTT Buffer</field>
   <value name="fieldname">
     <shadow type="text">
       <field name="TEXT"></field>
     </shadow>
   </value>
-  <field name="MQTT_VALUE">Value</field>
 </block>
 
 # mqtt_publish_buffer
 <block type="mqtt_publish_buffer">
-  <field name="BLOCK_MQTT_PUBLISH">Publish Buffer to MQTT Topic</field>
   <value name="topic">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -378,7 +428,6 @@
 
 # mqtt_publish_payload
 <block type="mqtt_publish_payload">
-  <field name="BLOCK_MQTT_PUBLISH">Publish Payload to MQTT Topic</field>
   <value name="topic">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -393,13 +442,10 @@
 
 # mqtt_set_callback
 <block type="mqtt_set_callback">
-  <field name="BLOCK_MQTT_SET_CALLBACK">Set Callback to MQTT Messages</field>
-  <field name="MQTT_CALLBACK">Callback Function</field>
 </block>
 
 # mqtt_subscribe
 <block type="mqtt_subscribe">
-  <field name="BLOCK_MQTT_SUBSCRIBE">Subscribe to MQTT Topic</field>
   <value name="topic">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -409,16 +455,13 @@
 
 # mqtt_check_msg
 <block type="mqtt_check_msg">
-  <field name="BLOCK_MQTT_CHECK_MSG">Check for MQTT Server messages</field>
 </block>
 # mqtt_wait_msg
 <block type="mqtt_wait_msg">
-  <field name="BLOCK_MQTT_WAIT_MSG">Wait for MQTT Server messages</field>
 </block>
 
 # mqtt_disconnect
 <block type="mqtt_disconnect">
-  <field name="BLOCK_MQTT_DISCONNECT">Disconnect MQTT Client</field>
 </block>
 
 # EasyMQTT
@@ -465,43 +508,124 @@
 
 # easymqtt_disconnect
 <block type="easymqtt_disconnect">
-  <field name="BLOCK_EASYMQTT_DISCONNECT">EasyMQTT Stop</field>
 </block>
 
-# Bluetooth REPL
-<category name="Bluetooth REPL">
-<label text="Bluetooth REPL"></label>
-<label text="This block allows terminal/console access using bluetooth."></label>
-<label text="Library: https://github.com/micropython/micropython/tree/master/examples/bluetooth"></label>
-<label text="You need to install 3 files to use:"></label>
+# Connectivity
+<category name="%{CAT_CONNECTIVITY}">
+<button text="%{INSTALL_LIBRARY}: runtime_launcher" callbackKey="installPyLib"></button>
+<button text="%{INSTALL_LIBRARY}: bipes_runtime" callbackKey="installPyLib"></button>
 <button text="%{INSTALL_LIBRARY}: ble_advertising" callbackKey="installPyLib"></button>
 <button text="%{INSTALL_LIBRARY}: ble_uart_peripheral" callbackKey="installPyLib"></button>
-<button text="%{INSTALL_LIBRARY}: ble_uart_repl" callbackKey="installPyLib"></button>
-<label text="Web Bluetooth REPL"></label>
-<label text="Usage:"></label>
-<label text="1. Install the 3 files above"></label>
-<label text="2. Start Web Bluetooth REPL"></label>
-<label text="3. Pair the ESP32 with your device /"></label>
-<label text="4. Go to https://bipes.net.br/beta2/ui/"></label>
-<label text="5. Select the bluetooth option and Connect (Web Bluetooth)"></label>
+<button text="%{INSTALL_LIBRARY}: umqtt_simple" callbackKey="installPyLib"></button>
 
-# bluetooth_repl_setup
-<block type="bluetooth_repl_setup">
+# runtime_start
+<block type="runtime_start"></block>
+
+# runtime_send
+<block type="runtime_send">
+    <value name="VALUE">
+    <shadow type="math_number">
+     <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
+# runtime_program_serial
+<block type="runtime_program_serial"></block>
+
+# runtime_program_bluetooth
+<block type="runtime_program_bluetooth"></block>
+
+# runtime_program_wifi
+<block type="runtime_program_wifi"></block>
+
+# wifi_is_connected
+<block type="wifi_is_connected"></block>
+
+# runtime_start_wifi_literal
+<block type="runtime_start_wifi_literal"></block>
+
+# runtime_on_start
+<block type="runtime_on_start"></block>
+
+# runtime_on_stop
+<block type="runtime_on_stop"></block>
+
+# runtime_on_connect
+<block type="runtime_on_connect"></block>
+
+# runtime_on_disconnect
+<block type="runtime_on_disconnect"></block>
+
+# runtime_on_message
+<block type="runtime_on_message"></block>
+
+# runtime_serial_send
+<block type="runtime_serial_send">
+  <value name="TEXT">
+    <shadow type="text">
+      <field name="TEXT">hello</field>
+    </shadow>
+  </value>
+</block>
+
+# runtime_subscribe
+<block type="runtime_subscribe">
+  <value name="TOPIC">
+    <shadow type="text">
+      <field name="TEXT">sensor</field>
+    </shadow>
+  </value>
+</block>
+
+# runtime_publish
+<block type="runtime_publish">
+  <value name="TOPIC">
+    <shadow type="text">
+      <field name="TEXT">sensor</field>
+    </shadow>
+  </value>
+  <value name="VALUE">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
+# runtime_ota_update
+<block type="runtime_ota_update">
+  <value name="URL">
+    <shadow type="text">
+      <field name="TEXT">http://192.168.0.10/blocks.py</field>
+    </shadow>
+  </value>
+</block>
+
+# runtime_start_wifi_secrets
+<block type="runtime_start_wifi_secrets"></block>
+
+# bluetooth_runtime_start
+<block type="bluetooth_runtime_start">
   <value name="name">
     <shadow type="text">
-      <field name="TEXT">BIPES-BLE</field>
+      <field name="TEXT">PicoW-Test</field>
     </shadow>
   </value>
 </block>
 
-# bluetooth_repl_start
-<block type="bluetooth_repl_start">
-    <value name="name">
-    <shadow type="text">
-     <field name="TEXT">BIPES-BLE</field>
-    </shadow>
-  </value>
-</block>
+# Radio communication
+<category name="%{CAT_RADIO_COMMUNICATION}" colour="230">
+
+# Bluetooth
+<category name="Bluetooth" colour="210">
+<label text="Bluetooth (BLE)"></label>
+<button text="%{INSTALL_LIBRARY}: ble_advertising" callbackKey="installPyLib"></button>
+<button text="%{INSTALL_LIBRARY}: ble_uart_peripheral" callbackKey="installPyLib"></button>
+
+# WiFi
+<category name="WiFi" colour="170">
+<label text="WiFi (Internet / MQTT)"></label>
+<button text="%{INSTALL_LIBRARY}: umqtt_simple" callbackKey="installPyLib"></button>
 
 # WebREPL
 <category name="WebREPL">
@@ -522,13 +646,46 @@
 <button text="%{DOCUMENTATION}: esp32_can" callbackKey="loadDoc"></button>
 
 # esp32_can_init
-<block type="esp32_can_init"></block>
+<block type="esp32_can_init">
+  <value name="mode">
+    <shadow type="text">
+      <field name="TEXT">NORMAL</field>
+    </shadow>
+  </value>
+  <value name="baudrate">
+    <shadow type="text">
+      <field name="TEXT">500000</field>
+    </shadow>
+  </value>
+  <value name="extframe">
+    <shadow type="text">
+      <field name="TEXT">False</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_filter
-<block type="esp32_can_filter"></block>
+<block type="esp32_can_filter">
+  <value name="filter">
+    <shadow type="text">
+      <field name="TEXT">0</field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_send
-<block type="esp32_can_send"></block>
+<block type="esp32_can_send">
+  <value name="id">
+    <shadow type="text">
+      <field name="TEXT">0</field>
+    </shadow>
+  </value>
+  <value name="data">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
+</block>
 
 # esp32_can_recv
 <block type="esp32_can_recv"></block>

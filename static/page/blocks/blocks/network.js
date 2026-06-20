@@ -14,8 +14,9 @@ Blockly.Blocks['wifi_client_connect'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["wifi_key"]), "WIFI_CLIENT_NET_KEY");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
- this.setTooltip("Connect to a Wifi network");
+    this.setInputsInline(true);
+    this.setColour(200);
+ this.setTooltip("Connect to a WiFi network");
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -25,8 +26,9 @@ Blockly.Blocks['wifi_client_scan_networks'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldLabelSerializable(Msg["wifi_scan"]), "NET_SCAN_WIFI");
     this.setOutput(true, null);
-    this.setColour(230);
- this.setTooltip("Scan wifi networks");
+    this.setInputsInline(true);
+    this.setColour(200);
+ this.setTooltip("Scan WiFi networks");
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
@@ -45,7 +47,8 @@ Blockly.Blocks['net_ap_mode'] = {
         .appendField(new Blockly.FieldLabelSerializable("Network password"), "NET_NETWORK_KEY");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(200);
  this.setTooltip("Configure Access Point Mode");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -55,17 +58,18 @@ Blockly.Blocks['net_ap_mode'] = {
 Blockly.Blocks['net_ifconfig'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField(new Blockly.FieldLabelSerializable("Wifi current IP"), "NET_IFCONFIG");
+        .appendField(new Blockly.FieldLabelSerializable(Msg["wifi_current_ip"]), "NET_IFCONFIG");
     this.setOutput(true, null);
-    this.setColour(230);
- this.setTooltip("Wifi current IP");
+    this.setInputsInline(true);
+    this.setColour(170);
+ this.setTooltip("Current WiFi IP address");
  this.setHelpUrl("http://www.bipes.net.br");
   }
 };
 
 Blockly.Blocks['net_wiznet5k_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Init WizNet5000");
 
@@ -89,6 +93,7 @@ Blockly.Blocks['net_wiznet5k_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -96,11 +101,12 @@ Blockly.Blocks['net_wiznet5k_init'] = {
 
 Blockly.Blocks['net_wiznet5k_isconnected'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Check if Ethernet is Connected");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -109,11 +115,12 @@ Blockly.Blocks['net_wiznet5k_isconnected'] = {
 
 Blockly.Blocks['net_wiznet5k_regs'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Dump Ethernet Registers");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -121,7 +128,7 @@ Blockly.Blocks['net_wiznet5k_regs'] = {
 
 Blockly.Blocks['net_wiznet5k_ifconfig'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(200);
     this.appendDummyInput()
         .appendField("Configure WizNet5000");
 
@@ -150,6 +157,7 @@ Blockly.Blocks['net_wiznet5k_ifconfig'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -166,7 +174,8 @@ Blockly.Blocks['net_get_request'] = {
         .setCheck("String")
         .appendField(new Blockly.FieldLabelSerializable("URL"), "BLOCK_NET_GET");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP GET Request");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -179,7 +188,8 @@ Blockly.Blocks['http_get_status'] = {
         .appendField(Msg["net_http_get_status"])
         .appendField(new Blockly.FieldVariable("request"), "request");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Status code of the HTTP GET request");
  this.setHelpUrl("bipes.net.br");
   }
@@ -191,7 +201,8 @@ Blockly.Blocks['http_get_content'] = {
         .appendField(Msg["net_http_get_content"])
         .appendField(new Blockly.FieldVariable("request"), "request");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Content of HTTP GET request");
  this.setHelpUrl("bipes.net.br");
   }
@@ -201,13 +212,14 @@ Blockly.Blocks['net_post_request'] = {
   init: function() {
     this.appendValueInput("URL")
         .setCheck("String")
-        .appendField(new Blockly.FieldLabelSerializable("Make HTTP POST Request URL"), "NET_POST_REQUEST_URL");
+        .appendField(new Blockly.FieldLabelSerializable(Msg["net_http_post_url"]), "NET_POST_REQUEST_URL");
     this.appendValueInput("data")
         .setCheck("String")
         .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField(new Blockly.FieldLabelSerializable("Data"), "NET_POST_REQUEST_DATA");
+        .appendField(new Blockly.FieldLabelSerializable(Msg["net_http_post_data"]), "NET_POST_REQUEST_DATA");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP POST Request");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -217,13 +229,14 @@ Blockly.Blocks['net_post_request_json'] = {
   init: function() {
     this.appendValueInput("URL")
         .setCheck("String")
-        .appendField(new Blockly.FieldLabelSerializable("Make HTTP POST Request URL"), "NET_POST_REQUEST_URL");
+        .appendField(new Blockly.FieldLabelSerializable(Msg["net_http_post_url"]), "NET_POST_REQUEST_URL");
     this.appendValueInput("data")
         .setCheck("String")
         .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField(new Blockly.FieldLabelSerializable("JSON Data"), "NET_POST_REQUEST_DATA");
+        .appendField(new Blockly.FieldLabelSerializable(Msg["net_http_post_json_data"]), "NET_POST_REQUEST_DATA");
     this.setOutput(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(210);
  this.setTooltip("Make HTTP POST Request with JSON data");
  this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -233,7 +246,7 @@ Blockly.Blocks['net_post_request_json'] = {
 
 Blockly.Blocks['net_http_server_start'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_start"]);
 
@@ -244,6 +257,7 @@ Blockly.Blocks['net_http_server_start'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -251,12 +265,13 @@ Blockly.Blocks['net_http_server_start'] = {
 
 Blockly.Blocks['net_http_server_accept'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_wait"]);
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -264,11 +279,12 @@ Blockly.Blocks['net_http_server_accept'] = {
 
 Blockly.Blocks['net_http_server_requested_page'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_requested_page"]);
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -276,7 +292,7 @@ Blockly.Blocks['net_http_server_requested_page'] = {
 
 Blockly.Blocks['net_http_server_send_response'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_send_response"]);
 
@@ -287,13 +303,14 @@ Blockly.Blocks['net_http_server_send_response'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_http_server_send_response_jpg'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField(Msg["net_http_server_send_response"]);
 
@@ -304,6 +321,7 @@ Blockly.Blocks['net_http_server_send_response_jpg'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -312,11 +330,12 @@ Blockly.Blocks['net_http_server_send_response_jpg'] = {
 
 Blockly.Blocks['net_http_server_close'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(215);
     this.appendDummyInput()
         .appendField("Close HTTP Web Server");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -324,7 +343,7 @@ Blockly.Blocks['net_http_server_close'] = {
 // EMAIL -----------------------------------------------------------------------
 Blockly.Blocks['umail_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(185);
     this.appendDummyInput()
         .appendField("Init uMail Email Sender");
 
@@ -350,13 +369,14 @@ Blockly.Blocks['umail_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['umail_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(185);
     this.appendDummyInput()
         .appendField("Send email");
 
@@ -377,6 +397,7 @@ Blockly.Blocks['umail_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -384,7 +405,7 @@ Blockly.Blocks['umail_send'] = {
 // NTP Time --------------------------------------------------------------------
 Blockly.Blocks['net_ntp_sync'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(195);
     this.appendDummyInput()
         .appendField(Msg["ntp_sync"]);
 
@@ -398,6 +419,7 @@ Blockly.Blocks['net_ntp_sync'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -405,7 +427,7 @@ Blockly.Blocks['net_ntp_sync'] = {
 // TCP/IP Socket ---------------------------------------------------------------
 Blockly.Blocks['net_socket_connect'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("TCP/IP Socket Connect");
 
@@ -421,13 +443,14 @@ Blockly.Blocks['net_socket_connect'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_socket_receive'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Receive");
 
@@ -437,13 +460,14 @@ Blockly.Blocks['net_socket_receive'] = {
         .appendField("Bytes to receive:");
 
     this.setOutput(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
 
 Blockly.Blocks['net_socket_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Send");
 
@@ -454,6 +478,7 @@ Blockly.Blocks['net_socket_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -461,12 +486,13 @@ Blockly.Blocks['net_socket_send'] = {
 
 Blockly.Blocks['net_socket_close'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(225);
     this.appendDummyInput()
         .appendField("Socket Close");
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -496,7 +522,8 @@ Blockly.Blocks['mqtt_init'] = {
         .appendField(new Blockly.FieldLabelSerializable("Password"), "MQTT_PASSWORD");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Start MQTT Client");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -516,7 +543,8 @@ Blockly.Blocks['mqtt_add_to_buffer'] = {
         .appendField(new Blockly.FieldLabelSerializable("Value"), "MQTT_VALUE");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Add Data to MQTT Buffer");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -540,8 +568,8 @@ Blockly.Blocks['mqtt_publish_buffer'] = {
         ]), 'MQTT_QOS');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Publish Buffer to MQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -568,8 +596,8 @@ Blockly.Blocks['mqtt_publish_payload'] = {
         ]), 'MQTT_QOS');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Publish Payload to MQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -586,7 +614,8 @@ Blockly.Blocks['mqtt_subscribe'] = {
         .appendField(new Blockly.FieldLabelSerializable("Topic"), "MQTT_TOPIC");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Subscribe to MQTT Topic");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -611,8 +640,8 @@ Blockly.Blocks['mqtt_set_callback'] = {
         .appendField('do');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(235);
+    this.setInputsInline(true);
     this.setTooltip("Callback function must have topic and msg parameters");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -625,7 +654,8 @@ Blockly.Blocks['mqtt_check_msg'] = {
         .appendField(new Blockly.FieldLabelSerializable("Check MQTT Server for pending messages"), "BLOCK_MQTT_CHECK_Msg");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Check if the server has any pending messages. Non-blocking method. Subscription messages will be passed to the callback.");
      this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -638,7 +668,8 @@ Blockly.Blocks['mqtt_wait_msg'] = {
         .appendField(new Blockly.FieldLabelSerializable("Wait for MQTT Server messages"), "BLOCK_MQTT_WAIT_Msg");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Wait for server sending any message. Blocking method. Subscription messages will be passed to the callback.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -651,7 +682,8 @@ Blockly.Blocks['mqtt_disconnect'] = {
         .appendField(new Blockly.FieldLabelSerializable("Disconnect MQTT Client"), "BLOCK_MQTT_DISCONNECT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(235);
     this.setTooltip("Disconnect the MQTT Client from Server.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -668,7 +700,8 @@ Blockly.Blocks['easymqtt_init'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["easymqtt_start"]), "BLOCK_EASYMQTT_INIT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Start EasyMQTT Client");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -689,7 +722,8 @@ Blockly.Blocks['easymqtt_publish_data'] = {
         .appendField(new Blockly.FieldLabelSerializable(Msg["data"]), "EASYMQTT_PAYLOAD");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Publish Data to EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -705,7 +739,7 @@ Blockly.Blocks['easymqtt_publish_axis'] = {
         this.updateShape_();
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(230);
+        this.setColour(238);
         this.setMutator(new Blockly.Mutator(["easymqtt_publish_axis_item"]));
         this.setTooltip("The data will be stored in the browser, organized by topic, see the 'Databoard' tab.");
     },
@@ -761,7 +795,7 @@ Blockly.Blocks['easymqtt_publish_axis'] = {
 };
 Blockly.Blocks['easymqtt_publish_axis_container'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(238);
         this.appendDummyInput().appendField("dataset");
         this.appendStatementInput("STACK");
         this.setTooltip("Dataset composed by multiple axis, the first axis is 'x'.");
@@ -770,7 +804,7 @@ Blockly.Blocks['easymqtt_publish_axis_container'] = {
 };
 Blockly.Blocks['easymqtt_publish_axis_item'] = {
     init: function () {
-        this.setColour(230);
+        this.setColour(238);
         this.appendDummyInput().appendField("axis");
         this.setPreviousStatement(!0);
         this.setNextStatement(!0);
@@ -799,8 +833,8 @@ Blockly.Blocks['easymqtt_subscribe'] = {
         .appendField('do');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
-    this.setInputsInline(false);
+    this.setColour(238);
+    this.setInputsInline(true);
     this.setTooltip("Subscribe to a topic and define what to do when data is received from EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -819,7 +853,8 @@ Blockly.Blocks['easymqtt_receive_data'] = {
         ]), 'EASYMQTT_WAIT');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Receive Data from EasyMQTT Server");
     this.setHelpUrl("http://www.bipes.net.br");
   }
@@ -832,48 +867,384 @@ Blockly.Blocks['easymqtt_disconnect'] = {
         .appendField(new Blockly.FieldLabelSerializable("EasyMQTT Stop"), "BLOCK_EASYMQTT_DISCONNECT");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setInputsInline(true);
+    this.setColour(238);
     this.setTooltip("Disconnect the EasyMQTT Client from Server.");
     this.setHelpUrl("http://www.bipes.net.br");
   }
 };
 
-// Bluetooth REPL --------------------------------------------------------------
-Blockly.Blocks['bluetooth_repl_setup'] = {
+// Bluetooth (runtime) ---------------------------------------------------------
+Blockly.Blocks['bluetooth_runtime_start'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField("Setup Web Bluetooth REPL");
+        .appendField(Msg["runtime_start_bluetooth"]);
 
     this.appendValueInput("name")
-        .setCheck("String")
-        .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField("Bluetooth name:");
-
+        .setCheck("String");
 
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
- this.setTooltip("Setup Web Bluetooth REPL");
- this.setHelpUrl("www.bipes.net.br");
+    this.setInputsInline(true);
+    this.setColour(210);
+    this.setTooltip("Run this program as a Bluetooth (BLE) runtime device: it stays connected for live control, telemetry and file management. Place it at the end of your program.");
+    this.setHelpUrl("http://www.bipes.net.br");
   }
 };
 
-
-Blockly.Blocks['bluetooth_repl_start'] = {
+// Runtime: start the program over USB / Serial (Bluetooth and WiFi have their own
+// start blocks now). -----------------------------------------------------------
+Blockly.Blocks['runtime_start'] = {
   init: function() {
-    this.appendDummyInput()
-        .appendField("Start Web Bluetooth REPL");
-
-    this.appendValueInput("name")
-        .setCheck("String")
-        .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField("Bluetooth name:");
-
+    this.appendDummyInput().appendField("Start program over USB / Serial");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
- this.setTooltip("Start REPL over Web Bluetooth");
- this.setHelpUrl("www.bipes.net.br");
+    this.setInputsInline(true);
+    this.setColour(135);
+    this.setTooltip("Run this program as a connected runtime device over USB/serial. The dashboard can then control it and read telemetry. Place at the end of your program. For wireless use the Bluetooth or WiFi start blocks.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runtime: start over WiFi using credentials from the device's /secrets.json. ---
+Blockly.Blocks['runtime_start_wifi_secrets'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_start_wifi_secrets"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(170);
+    this.setTooltip("Run this program over WiFi + MQTT, reading WiFi/broker credentials from the device's /secrets.json (set once on the Device page). No passwords in your program — use this for anything real. Place at the end of your program.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runtime: define an async function (cooperative) -----------------------------
+// Like a normal "define function" block, but generates `async def`, so you can
+// pause inside it with the cooperative "wait" block without blocking the device.
+// Name it "loop" to have the runtime run it continuously.
+Blockly.Blocks['runtime_async_function'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("async function")
+        .appendField(new Blockly.FieldTextInput("loop"), "NAME");
+    this.appendStatementInput("STACK")
+        .setCheck(null)
+        .appendField("do");
+    this.setColour(290);
+    this.setTooltip("Define an async function. Use 'wait' blocks inside to pause WITHOUT blocking the device (serial / Bluetooth / WiFi stay live). Name it 'loop' and the runtime runs it forever.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runtime: cooperative wait (yields to the event loop, does NOT block) ---------
+Blockly.Blocks['runtime_wait'] = {
+  init: function() {
+    this.appendValueInput("MS")
+        .setCheck("Number")
+        .appendField("wait");
+    this.appendDummyInput()
+        .appendField("ms");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(290);
+    this.setTooltip("Pause inside an async function WITHOUT blocking the device. Use this instead of the normal delay block in a runtime loop.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runtime: await another async function ----------------------------------------
+Blockly.Blocks['runtime_await'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("await")
+        .appendField(new Blockly.FieldTextInput("my_task"), "NAME")
+        .appendField("()");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(290);
+    this.setTooltip("Call another async function and wait for it to finish. Only valid inside an async function.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runtime: publish a telemetry value to the dashboard -------------------------
+Blockly.Blocks['runtime_send'] = {
+  init: function() {
+    this.appendValueInput("VALUE")
+        .appendField("Send to dashboard")
+        .appendField(new Blockly.FieldTextInput("Name"), "NAME")
+        .appendField("=");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(250);
+    this.setTooltip("Publish a value to the dashboard. A gauge or chart bound to this name updates live. Works the same over serial, Bluetooth and WiFi.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// WiFi connected? (status, no credentials) ------------------------------------
+Blockly.Blocks['wifi_is_connected'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["wifi_connected_status"]);
+    this.setOutput(true, "Boolean");
+    this.setColour(170);
+    this.setTooltip("True when the device is connected to WiFi.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// ============================================================================
+// Runtime EVENT blocks — the explicit comms model. The program reacts to events
+// itself (no hidden auto-dispatch). These are transport-agnostic: the same
+// on_message / on_connect logic runs over USB, Bluetooth or WiFi.
+// ============================================================================
+
+// Runs once when the program starts.
+Blockly.Blocks['runtime_on_start'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_on_start"]);
+    this.appendStatementInput("do").setCheck(null).appendField(Msg["runtime_do"]);
+    this.setColour(250);
+    this.setTooltip("Runs once when the program starts. Put one-time setup here (e.g. turn the LED off, configure a sensor).");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runs once when the program is stopped (Stop / watchdog / exit) — safe state.
+Blockly.Blocks['runtime_on_stop'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_on_stop"]);
+    this.appendStatementInput("do").setCheck(null).appendField(Msg["runtime_do"]);
+    this.setColour(250);
+    this.setTooltip("Runs once when the program is stopped (Stop button, watchdog, or exit). Put your safe state here, e.g. stop the motors.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runs when a client (the browser) connects over Bluetooth/WiFi.
+Blockly.Blocks['runtime_on_connect'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_on_connect"]);
+    this.appendStatementInput("do").setCheck(null).appendField(Msg["runtime_do"]);
+    this.setColour(250);
+    this.setTooltip("Runs when a client (the browser) connects — e.g. over Bluetooth. The program keeps running across connects.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runs when the client disconnects (program keeps running).
+Blockly.Blocks['runtime_on_disconnect'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_on_disconnect"]);
+    this.appendStatementInput("do").setCheck(null).appendField(Msg["runtime_do"]);
+    this.setColour(250);
+    this.setTooltip("Runs when the client disconnects (e.g. browser closed or out of Bluetooth range). The program keeps running.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Runs for every incoming command — the student checks the name and branches.
+Blockly.Blocks['runtime_on_message'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(Msg["runtime_on_message"])
+        .appendField(new Blockly.FieldVariable("Name"), "NAME_VAR")
+        .appendField(",")
+        .appendField(new Blockly.FieldVariable("Value"), "VALUE_VAR");
+    this.appendStatementInput("do").setCheck(null).appendField(Msg["runtime_do"]);
+    this.setColour(250);
+    this.setTooltip("Runs for every command received (dashboard switch/button, or a peer). 'name' is the command and 'value' its value. Check the name and call your functions. Same over serial, Bluetooth and WiFi.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Send a raw line of text over the connection (debug / serial I/O).
+Blockly.Blocks['runtime_serial_send'] = {
+  init: function() {
+    this.appendValueInput("TEXT").appendField(Msg["runtime_serial_send"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(250);
+    this.setTooltip("Send a raw line of text over the connection (shows in the terminal). For dashboard gauges/charts use 'Send to dashboard' instead.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Start over WiFi. The student enters only their WiFi name/password (+ broker host);
+// the MQTT credentials are fetched automatically and stored on the block's hidden
+// `data` (never shown as editable fields), then injected into the generated code.
+Blockly.Blocks['runtime_start_wifi_literal'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_start_wifi"]);
+    this.appendDummyInput()
+        .appendField(Msg["runtime_wifi_name"]).appendField(new Blockly.FieldTextInput("SSID"), "SSID");
+    this.appendDummyInput()
+        .appendField(Msg["runtime_wifi_password"]).appendField(new Blockly.FieldTextInput(""), "PW");
+    this.appendDummyInput()
+        .appendField(Msg["runtime_broker_host"]).appendField(new Blockly.FieldTextInput("192.168.0.10"), "HOST");
+    this.appendDummyInput()
+        .appendField(Msg["runtime_broker_port"]).appendField(new Blockly.FieldTextInput("8883"), "PORT");
+    this.appendDummyInput()
+        .appendField(Msg["runtime_security"]).appendField(new Blockly.FieldDropdown([
+          [Msg["runtime_tls_encrypted"], "TLS"],
+          [Msg["runtime_plain_no_tls"], "PLAIN"]
+        ]), "SSL");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(170);
+    this.setTooltip("Connect over WiFi and the BIPES dashboard. Enter your WiFi name/password (and the broker host if it isn't this server). Keep security on TLS so the device credentials are encrypted (port 8883); only use 'plain' for a local lab broker without TLS (port 1883). The MQTT credentials are added automatically when you're logged in — you don't see or type them. Place at the end of your program.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// ============================================================================
+// Combined "program" blocks. One block per transport holds the WHOLE event
+// scaffold (on start / on message / on stop, plus on connect / on disconnect for
+// the wireless ones) AND starts the runtime — so a pupil drags ONE block instead
+// of wiring five separate hats + a start block. Colours match each transport's
+// toolbox category (serial 135 / bluetooth 210 / wifi 170).
+// ============================================================================
+
+// Append the shared event sections (on start / [on connect / on disconnect] /
+// on message(name,value) / on stop) to a combined program block.
+function appendRuntimeEventSections (block, withConnect) {
+  block.appendStatementInput("ON_START").setCheck(null).appendField(Msg["runtime_on_start"]);
+  if (withConnect) {
+    block.appendStatementInput("ON_CONNECT").setCheck(null).appendField(Msg["runtime_on_connect"]);
+    block.appendStatementInput("ON_DISCONNECT").setCheck(null).appendField(Msg["runtime_on_disconnect"]);
+  }
+  block.appendDummyInput("MSG_HEADER")
+      .appendField(Msg["runtime_on_message"])
+      .appendField(new Blockly.FieldVariable("Name"), "MSG_NAME")
+      .appendField(",")
+      .appendField(new Blockly.FieldVariable("Value"), "MSG_VALUE");
+  block.appendStatementInput("ON_MESSAGE").setCheck(null).appendField(Msg["runtime_do"]);
+  block.appendStatementInput("ON_STOP").setCheck(null).appendField(Msg["runtime_on_stop"]);
+}
+
+// Serial: on start / on message / on stop + start over USB. -------------------
+Blockly.Blocks['runtime_program_serial'] = {
+  init: function() {
+    this.appendDummyInput().appendField("Run program over USB / Serial");
+    appendRuntimeEventSections(this, false);
+    this.setColour(135);
+    this.setTooltip("A whole program over USB/serial in one block: 'on start' runs once at boot, 'on message' for each dashboard/command, 'on stop' for a safe state. The dashboard controls it and reads telemetry — no separate start block needed.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Bluetooth: full scaffold (+ connect/disconnect) + start over BLE. -----------
+Blockly.Blocks['runtime_program_bluetooth'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(Msg["runtime_program_bluetooth"])
+        .appendField(new Blockly.FieldTextInput("Pico-BIPES"), "BLE_NAME");
+    appendRuntimeEventSections(this, true);
+    this.setColour(210);
+    this.setTooltip("A whole program over Bluetooth (BLE) in one block. Stays connected for live control, telemetry and file management. 'on connect'/'on disconnect' fire as the browser joins/leaves — the program keeps running.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// WiFi: full scaffold (+ connect/disconnect) + start over WiFi, with a dropdown
+// to take credentials from /secrets.json OR from fields typed on the block. ---
+Blockly.Blocks['runtime_program_wifi'] = {
+  init: function() {
+    this.appendDummyInput().appendField(Msg["runtime_program_wifi"]);
+    this.appendDummyInput()
+        .appendField(Msg["runtime_credentials"])
+        .appendField(new Blockly.FieldDropdown([
+          [Msg["runtime_credentials_secrets"], "SECRETS"],
+          [Msg["runtime_credentials_enter"], "FIELDS"]
+        ], this.onCredsChange_.bind(this)), "CREDS");
+    appendRuntimeEventSections(this, true);
+    this.setColour(170);
+    this.setTooltip("A whole program over WiFi + the dashboard in one block. Credentials 'from secrets.json' = set once on the Device page, nothing in your program (use for anything real). 'enter here' = type WiFi name/password + broker for a lab (MQTT credentials are added automatically). 'on connect'/'on disconnect' fire as the browser joins/leaves.");
+    this.setHelpUrl("http://www.bipes.net.br");
+    this.useFields_ = false;
+  },
+  // Dropdown validator: show/hide the credential fields.
+  onCredsChange_: function(value) {
+    this.updateShape_(value === 'FIELDS');
+    return value;
+  },
+  // Add/remove the WiFi credential rows (placed above 'on start').
+  updateShape_: function(useFields) {
+    this.useFields_ = !!useFields;
+    var has = !!this.getInput('WIFI_SSID');
+    if (useFields && !has) {
+      this.appendDummyInput('WIFI_SSID').appendField(Msg["runtime_wifi_name"]).appendField(new Blockly.FieldTextInput("SSID"), "SSID");
+      this.appendDummyInput('WIFI_PW').appendField(Msg["runtime_wifi_password"]).appendField(new Blockly.FieldTextInput(""), "PW");
+      this.appendDummyInput('WIFI_HOST').appendField(Msg["runtime_broker_host"]).appendField(new Blockly.FieldTextInput("192.168.0.10"), "HOST");
+      this.appendDummyInput('WIFI_PORT').appendField(Msg["runtime_broker_port"]).appendField(new Blockly.FieldTextInput("8883"), "PORT");
+      this.appendDummyInput('WIFI_SSL').appendField(Msg["runtime_security"]).appendField(new Blockly.FieldDropdown([
+        [Msg["runtime_tls_encrypted"], "TLS"], [Msg["runtime_plain_no_tls"], "PLAIN"]
+      ]), "SSL");
+      this.moveInputBefore('WIFI_SSID', 'ON_START');
+      this.moveInputBefore('WIFI_PW', 'ON_START');
+      this.moveInputBefore('WIFI_HOST', 'ON_START');
+      this.moveInputBefore('WIFI_PORT', 'ON_START');
+      this.moveInputBefore('WIFI_SSL', 'ON_START');
+    } else if (!useFields && has) {
+      this.removeInput('WIFI_SSID');
+      this.removeInput('WIFI_PW');
+      this.removeInput('WIFI_HOST');
+      this.removeInput('WIFI_PORT');
+      this.removeInput('WIFI_SSL');
+    }
+  },
+  mutationToDom: function() {
+    var c = Blockly.utils.xml.createElement('mutation');
+    c.setAttribute('fields', this.useFields_ ? '1' : '0');
+    return c;
+  },
+  domToMutation: function(xml) {
+    this.updateShape_(xml.getAttribute('fields') === '1');
+  }
+};
+
+// Subscribe to an extra MQTT topic (WiFi); messages arrive in on_message.
+Blockly.Blocks['runtime_subscribe'] = {
+  init: function() {
+    this.appendValueInput("TOPIC").setCheck("String").appendField(Msg["runtime_subscribe_topic"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(170);
+    this.setTooltip("WiFi only: subscribe to an extra MQTT topic (relative to this device's session). Incoming messages arrive in 'on message' with name = the topic.");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Publish to an extra MQTT topic (WiFi).
+Blockly.Blocks['runtime_publish'] = {
+  init: function() {
+    this.appendValueInput("TOPIC").setCheck("String").appendField(Msg["runtime_publish_topic"]);
+    this.appendValueInput("VALUE").appendField(Msg["runtime_publish_value"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(170);
+    this.setTooltip("WiFi only: publish a value to an extra MQTT topic (relative to this device's session).");
+    this.setHelpUrl("http://www.bipes.net.br");
+  }
+};
+
+// Trigger an over-the-air program update from a URL.
+Blockly.Blocks['runtime_ota_update'] = {
+  init: function() {
+    this.appendValueInput("URL").setCheck("String").appendField(Msg["runtime_ota_update"]);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setInputsInline(true);
+    this.setColour(170);
+    this.setTooltip("Download new program code over HTTP from the URL, save it as blocks.py and reboot into it. The device must be on WiFi.");
+    this.setHelpUrl("http://www.bipes.net.br");
   }
 };
 
@@ -885,7 +1256,8 @@ Blockly.Blocks['webrepl_setup'] = {
         .appendField("WebREPL Setup");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(248);
  this.setTooltip("Configure WebREPL");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -898,7 +1270,8 @@ Blockly.Blocks['webrepl_start'] = {
         .appendField("Start WebREPL");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(0);
+    this.setInputsInline(true);
+    this.setColour(248);
  this.setTooltip("Start WebREPL Server");
  this.setHelpUrl("www.bipes.net.br");
   }
@@ -907,7 +1280,7 @@ Blockly.Blocks['webrepl_start'] = {
 //https://github.com/nos86/micropython/blob/esp32-can-driver-v3/docs/library/machine.CAN.rst
 Blockly.Blocks['esp32_can_init'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Init ESP32 CAN Bus Controller");
 
@@ -928,6 +1301,7 @@ Blockly.Blocks['esp32_can_init'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -936,7 +1310,7 @@ Blockly.Blocks['esp32_can_init'] = {
 
 Blockly.Blocks['esp32_can_filter'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Set CAN Filter");
 
@@ -947,6 +1321,7 @@ Blockly.Blocks['esp32_can_filter'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -954,7 +1329,7 @@ Blockly.Blocks['esp32_can_filter'] = {
 
 Blockly.Blocks['esp32_can_send'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Send CAN Frame");
 
@@ -970,6 +1345,7 @@ Blockly.Blocks['esp32_can_send'] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -977,12 +1353,12 @@ Blockly.Blocks['esp32_can_send'] = {
 
 Blockly.Blocks['esp32_can_recv'] = {
   init: function() {
-    this.setColour(135);
+    this.setColour(10);
     this.appendDummyInput()
         .appendField("Receive CAN Frame");
 
     this.setOutput(true);
-
+    this.setInputsInline(true);
     this.setTooltip('');
   }
 };
@@ -1001,10 +1377,10 @@ Blockly.Blocks['google_spreadsheet'] = {
     this.appendStatementInput("cells_values")
         .setCheck(null)
         .appendField("Cells");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(120);
+    this.setColour(130);
  this.setTooltip("");
  this.setHelpUrl("");
   }
@@ -1015,10 +1391,10 @@ Blockly.Blocks['cell_value'] = {
     this.appendValueInput("value")
         .setCheck(null)
         .appendField("Cell");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(230);
+    this.setColour(130);
  this.setTooltip("");
  this.setHelpUrl("");
   }

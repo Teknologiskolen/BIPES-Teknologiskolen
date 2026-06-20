@@ -15,16 +15,16 @@ Blockly.Blocks['control_pid.__init__'] = {
     this.appendDummyInput()
         .appendField("update every")
         .appendField(new Blockly.FieldNumber(2, 0, Infinity, 1), "SAMPLETIME")
-        .appendField(new Blockly.FieldDropdown([["seconds","s"], ["miliseconds","ms"], ["microseconds","us"], ["nanoseconds","ns"], ["cpu ticks","cpu"]]), "SCALE");
+        .appendField(new Blockly.FieldDropdown([["seconds","s"], ["milliseconds","ms"], ["microseconds","us"], ["nanoseconds","ns"], ["cpu ticks","cpu"]]), "SCALE");
     this.appendValueInput("SETPOINT")
         .setCheck("Number")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("setpoint");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour('#7b49ad');
-    this.setTooltip("Init PID controler, set 'update every' to zero for non realtime simulation or with non fixed intervals");
+    this.setTooltip("Initialize the PID controller. Set 'update every' to zero for non-real-time simulation or non-fixed intervals.");
     this.setHelpUrl("https://micropython-simple-pid.readthedocs.io/");
   },
   check (gains, sampletime) {
@@ -43,7 +43,7 @@ Blockly.Blocks['control_pid.compute'] = {
         .appendField("compute PID #")
         .appendField(new Blockly.FieldNumber(0, 0, 9, 1), "ID")
         .appendField("with");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#7b49ad');
     this.setTooltip("Returns PID control action computed with current system value.");
@@ -61,7 +61,7 @@ Blockly.Blocks['control_pid.compute_not_realtime'] = {
     this.appendValueInput("DT")
     .setAlign(Blockly.ALIGN_RIGHT)
     .appendField("timestep (s)");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#7b49ad');
     this.setTooltip("Returns PID control action computed with current system value and timestep (not realtime).");
@@ -98,6 +98,7 @@ Blockly.Blocks['control_pid.setpoint'] = {
         .appendField("PID #")
         .appendField(new Blockly.FieldNumber(0, 0, 9, 1), "ID")
         .appendField("setpoint");
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour('#7b49ad');
@@ -112,7 +113,7 @@ Blockly.Blocks['control_pid.auto_mode'] = {
         .appendField(new Blockly.FieldNumber(0, 0, 9, 1), "ID")
         .appendField("enable")
         .appendField(new Blockly.FieldCheckbox(true), "ENABLE");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour('#7b49ad');
@@ -131,11 +132,11 @@ Blockly.Blocks['control_pid.output_limits'] = {
         .appendField(new Blockly.FieldNumber(0), "LOWER")
         .appendField("to")
         .appendField(new Blockly.FieldNumber(100), "UPPER");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour('#7b49ad');
-    this.setTooltip("Set PID controller lower and upper bonds");
+    this.setTooltip("Set the PID controller's lower and upper bounds");
     this.setHelpUrl("https://micropython-simple-pid.readthedocs.io/en/latest/#auto-mode");
   }
 };
@@ -146,7 +147,7 @@ Blockly.Blocks['control_pid.vars'] = {
         .appendField(new Blockly.FieldNumber(0, 0, 9, 1), "ID")
         .appendField(".")
         .appendField(new Blockly.FieldDropdown([["Kp gain","Kp"], ["Ki gain","Ki"], ["Kd gain","Kd"], ["tunings (Kp, Ki, Kd)","tunings"], ["last time","_last_time"], ["setpoint","setpoint"], ["output limits (lower, upper)","output_limits"], ["auto mode","auto_mode"], ["power components","components"]]), "VARS");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#7b49ad');
     this.setTooltip("Returns PID controller values, \"auto mode\" returns a boolean if the controller is on or off and \"power components\" Kp, Ki and Kd contribution to the output.");
@@ -166,7 +167,7 @@ Blockly.Blocks['simulate_water_boiler'] = {
         .setCheck(null)
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("power input");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#666666');
     this.setTooltip("Simulate Water Boiler temperature with power input, returns water temperature. Runs at precision of milliseconds. Uses 20ºC as room temperature.");
@@ -187,7 +188,7 @@ Blockly.Blocks['simulate_water_boiler'] = {
         .setCheck(null)
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("power input");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#666666');
     this.setTooltip("Simulate Water Boiler temperature with power input, returns water temperature. Runs at precision of milliseconds. Uses 20ºC as room temperature.");
@@ -227,10 +228,10 @@ Blockly.Blocks['simulate_dcmotor.sim'] = {
     this.appendValueInput("LOAD")
         .setAlign(Blockly.ALIGN_RIGHT)
         .appendField("load (Nm)");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#666666');
-    this.setTooltip("Simulate a DC Motor voltage as input at non realtime, returns speed in RPM.");
+    this.setTooltip("Simulate a DC motor with voltage as input in non-real time; returns speed in RPM.");
     this.setHelpUrl("https://github.com/JorgeGMarques/micropython-simple-pid/blob/master/examples/dc_motor/dc_motor_pid.py");
   }
 };
@@ -242,10 +243,10 @@ Blockly.Blocks['simulate_dcmotor.vars'] = {
         .appendField(new Blockly.FieldNumber(0, 0, 9), "ID")
         .appendField(".")
         .appendField(new Blockly.FieldDropdown([["Va(V)","va"], ["Ia(A)","ia"], ["omega(RPM)","omega"], ["theta(kgm²)","theta"], ["static friction (Nm)","STATIC_FRICTION"], ["Bemf(V)","bemf"], ["torque (Nm)","Te"], ["Load torque (Nm)","Tl"], ["last time","_last_time"]]), "VARS");
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setOutput(true, null);
     this.setColour('#666666');
-    this.setTooltip("Returns a internal variables of the DC Motor simulation.");
+    this.setTooltip("Returns an internal variable from the DC motor simulation.");
     this.setHelpUrl("https://github.com/JorgeGMarques/micropython-simple-pid/blob/master/examples/water_boiler/water_boiler.py");
   }
 };

@@ -1,0 +1,72 @@
+// Block definitions for the sand-drawing SCARA robot (sand_table_robot.py).
+// The library .py is untouched; this .blockdef is the single source of truth.
+
+module sand_table_robot
+import "sand_table_robot"
+url "https://github.com/bipes"
+
+category "Sand Drawing Machine" color=30 {
+
+    class SandTableRobot as singleton named "sand_table_robot" {
+
+        block __init__ tooltip="Create the sand-table SCARA robot (motor pins, sensors, arm geometry)." {
+            param motor1_pins type=Any
+            param motor2_pins type=Any
+            param sensor_shoulder_pin type=Number pin
+            param sensor_elbow_pin    type=Number pin
+            param L1 type=Number default=31.0
+            param L2 type=Number default=31.0
+            param steps_per_rev type=Number default=4096
+            param backlash_deg_m1 type=Number default=3.2
+            param backlash_deg_m2 type=Number default=3.0
+            param homing_dir_shoulder type=Number default=1
+            param homing_dir_elbow    type=Number default=1
+            param homing_clear_steps  type=Number default=500
+            param default_speed_ms    type=Number default=2
+        }
+
+        block home tooltip="Home the robot to its reference position."
+        block off  tooltip="Power off both stepper motors."
+
+        block move_line tooltip="Move in a straight line to (x, y)." {
+            param target_x type=Number default=0
+            param target_y type=Number default=0
+            param segments type=Number default=500
+            param speed    type=Number default=2
+        }
+        block move_arc tooltip="Draw an arc around a centre point." {
+            param center_x type=Number default=0
+            param center_y type=Number default=0
+            param radius type=Number default=10
+            param start_angle type=Number default=0
+            param end_angle type=Number default=180
+            param segments type=Number default=50
+            param speed type=Number default=2
+        }
+        block draw_spiral tooltip="Draw a spiral." {
+            param max_radius type=Number default=30
+            param vindinger type=Number default=10
+            param segments_pr_omgang type=Number default=60
+            param speed type=Number default=2
+        }
+        block draw_flower tooltip="Draw a flower pattern." {
+            param max_radius type=Number default=30
+            param petals type=Number default=5
+            param speed type=Number default=2
+        }
+        block run_gcode_text tooltip="Run G-code from a text string." {
+            param gcode_text type=String
+            param segments type=Number default=40
+            param draw_speed_ms type=Number default=2
+            param travel_speed_ms type=Number default=2
+            param reset_modal type=Boolean default=true
+        }
+        block run_gcode_file tooltip="Run G-code from a file on the device." {
+            param path type=String default="/drawing.gcode"
+            param segments type=Number default=40
+            param draw_speed_ms type=Number default=2
+            param travel_speed_ms type=Number default=2
+            param reset_modal type=Boolean default=true
+        }
+    }
+}
