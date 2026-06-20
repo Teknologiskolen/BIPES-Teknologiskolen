@@ -340,7 +340,7 @@ class ClassesPage {
     }
 
     showCreateClassModal() {
-        this.$.createClassModal.style.display = 'block';
+        this.$.createClassModal.style.display = 'flex';
     }
 
     async handleCreateClass(e) {
@@ -539,7 +539,7 @@ class ClassesPage {
     }
 
     showAddStudentModal() {
-        this.$.addStudentModal.style.display = 'block';
+        this.$.addStudentModal.style.display = 'flex';   // flex => centered (see .modal CSS)
 
         const searchInput = this.$.container.$.querySelector('#student-search');
         const searchResults = this.$.container.$.querySelector('#student-search-results');
