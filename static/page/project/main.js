@@ -866,6 +866,10 @@ class Project {
     $.shareClass = new DOM('select').onevent('change', this, this._onChangeClass)
 
     // Embed
+    // Block chain picker: a project can hold several independent top-level block chains;
+    // choosing one embeds just that snippet (?block=<index>), which auto-locks pan/zoom.
+    $.embedBlock = new DOM('select').onevent('change', this, this._refreshEmbed)
+    $.embedBlockLabel = new DOM('label', {innerText:(Msg['EmbedBlocks']||'Blocks')+' '}).append([$.embedBlock])
     $.embedW = new DOM('input', {className:'embed-num', value:'100%'}).onevent('input', this, this._refreshEmbed)
     $.embedH = new DOM('input', {className:'embed-num', value:'360'}).onevent('input', this, this._refreshEmbed)
     $.embedLock = new DOM('input', {type:'checkbox'}).onevent('change', this, this._refreshEmbed)
@@ -878,6 +882,7 @@ class Project {
     $.embedSection = new DOM('fieldset', {className:'embed-section'}).append([
       new DOM('legend', {innerText:Msg['EmbedTitle']||'Embed'}),
       new DOM('div', {className:'embed-opts'}).append([
+        $.embedBlockLabel,
         new DOM('label', {innerText:(Msg['EmbedWidth']||'Width')+' '}).append([$.embedW]),
         new DOM('label', {innerText:(Msg['EmbedHeight']||'Height')+' '}).append([$.embedH]),
         new DOM('label', {className:'embed-lock'}).append([$.embedLock, new DOM('span', {innerText:' '+(Msg['EmbedLock']||'Lock (no pan/zoom)')})])
@@ -933,17 +938,48 @@ class Project {
     this.$.shareLinkRow.$.hidden = !shared.public
     this.$.embedSection.$.hidden = !shared.public
     this.$.shareUnshare.$.hidden = !isShared
-    if (shared.public) this._refreshEmbed()
+    if (shared.public) { this._populateEmbedBlocks(); this._refreshEmbed() }
   }
-  _embedSrc (shareUid, lock){
-    return window.location.origin + '/embed?uid=' + encodeURIComponent(shareUid) + (lock ? '&lock=1' : '')
+  // Fill the "Blocks" dropdown from the project's top-level block chains, so a teacher
+  // can embed the whole project or just one chain (?block=<index>). Hidden when there's
+  // 0–1 chain (nothing to choose).
+  _populateEmbedBlocks (){
+    const sel = this.$.embedBlock
+    if (!sel) return
+    const prev = sel.value
+    sel.$.innerHTML = ''
+    sel.$.appendChild(new DOM('option', {value:'', innerText:Msg['EmbedAllBlocks']||'All blocks'}).$)
+    const types = []
+    try {
+      const xml = this.projects[this._shareUid]?.blocks?.xml || ''
+      if (xml) {
+        const root = new DOMParser().parseFromString(xml, 'text/xml').documentElement
+        if (root) Array.prototype.slice.call(root.children).forEach((c) => {
+          if (c.tagName && c.tagName.toLowerCase() === 'block')
+            types.push(c.getAttribute('type') || 'block')
+        })
+      }
+    } catch (e) {}
+    types.forEach((t, i) =>
+      sel.$.appendChild(new DOM('option', {value:String(i), innerText:'#'+i+' — '+t}).$))
+    if (prev !== '' && Number(prev) < types.length) sel.$.value = prev
+    if (this.$.embedBlockLabel)
+      this.$.embedBlockLabel.$.style.display = types.length > 1 ? '' : 'none'
+  }
+  _embedSrc (shareUid, lock, block){
+    let url = window.location.origin + '/embed?uid=' + encodeURIComponent(shareUid)
+    if (block !== undefined && block !== null && block !== '')
+      url += '&block=' + encodeURIComponent(block)   // single chain (auto-locks in embed.js)
+    if (lock) url += '&lock=1'
+    return url
   }
   _refreshEmbed (){
     const shared = this.projects[this._shareUid]?.project?.shared
     if (!shared?.uid) return
     const w = (this.$.embedW.value || '100%').trim()
     const h = (this.$.embedH.value || '360').trim()
-    const src = this._embedSrc(shared.uid, this.$.embedLock.$.checked)
+    const block = this.$.embedBlock ? this.$.embedBlock.value : ''
+    const src = this._embedSrc(shared.uid, this.$.embedLock.$.checked, block)
     // Copyable code/link stay clean; only the live preview iframe gets a cache-buster
     // so it actually reloads when the uid/lock changes or blocks were re-pushed.
     this.$.embedCode.$.value = '<iframe src="' + src + '" width="' + w + '" height="' + h + '" style="border:1px solid #ccc"></iframe>'

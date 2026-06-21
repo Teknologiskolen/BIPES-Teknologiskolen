@@ -103,6 +103,8 @@ var Msg = {
   'SharePubliclyLabel':'Anyone with the link can view',
   'ShareClassNone':'No class',
   'EmbedTitle':'Embed',
+  'EmbedBlocks':'Blocks',
+  'EmbedAllBlocks':'All blocks',
   'EmbedWidth':'Width',
   'EmbedHeight':'Height',
   'EmbedLock':'Lock (no pan/zoom)',
