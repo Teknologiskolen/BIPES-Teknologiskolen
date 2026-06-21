@@ -122,6 +122,19 @@ body.dark  .share-dialog { background: #2b2b2b; color: #fff; }
 .share-x { margin-left: auto; border: none; background: none; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
 .share-body { display: flex; flex-direction: column; gap: .8rem; margin-top: .9rem; }
 .share-row { display: flex; align-items: center; gap: .5rem; }
+/* The global stylesheet hides raw checkboxes (input[type=checkbox]{display:none}) in
+   favour of custom toggles; re-show them inside the dialog so the "Share publicly"
+   toggle and the embed Lock box are visible and clickable. */
+.share-dialog input[type="checkbox"] {
+  display: inline-block;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  cursor: pointer;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+  accent-color: #4499cc;
+}
 .share-link-row { display: flex; gap: .4rem; }
 .share-link-row[hidden], .embed-section[hidden], .share-btn[hidden] { display: none; }
 .share-field, .embed-code, .embed-num, .share-dialog select {

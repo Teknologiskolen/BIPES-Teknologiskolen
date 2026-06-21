@@ -275,7 +275,6 @@ class ClassesPage {
             <!-- Create Class Modal -->
             <div id="create-class-modal" class="modal" style="display: none;">
                 <div class="modal-content">
-                    <span class="close">&times;</span>
                     <h2>${t('createNewClassTitle')}</h2>
                     <form id="create-class-form">
                         <div class="form-group">
@@ -294,7 +293,6 @@ class ClassesPage {
             <!-- Add Student Modal -->
             <div id="add-student-modal" class="modal" style="display: none;">
                 <div class="modal-content">
-                    <span class="close">&times;</span>
                     <h2>${t('addStudentToClass')}</h2>
                     <div class="form-group">
                         <label for="student-search">${t('searchStudentByName')}</label>
@@ -328,10 +326,13 @@ class ClassesPage {
         this.$.createClassBtn.addEventListener('click', () => this.showCreateClassModal());
         this.$.createClassForm.addEventListener('submit', (e) => this.handleCreateClass(e));
 
-        // Close modals
-        this.$.container.$.querySelectorAll('.modal .close').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.target.closest('.modal').style.display = 'none';
+        // Close modals by clicking outside the content — the system's close pattern
+        // (no × button). Clicking the dimmed backdrop (the .modal itself) dismisses it;
+        // clicks inside .modal-content don't reach this handler.
+        this.$.container.$.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal)
+                    modal.style.display = 'none';
             });
         });
 

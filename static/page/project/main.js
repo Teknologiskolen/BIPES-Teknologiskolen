@@ -835,8 +835,8 @@ class Project {
   _buildShareDialog (){
     if (this.$.shareDialog) return   // built once, reused
     const $ = this.$
-    const closeBtn = new DOM('button', {className:'share-x', innerText:'×', title:Msg['Close']||'Close'})
-      .onclick(this, this.closeShareDialog)
+    // No × button — the system closes pop-ups by clicking outside (handled by the
+    // overlay onclick below).
     $.shareName = new DOM('span', {className:'share-name'})
 
     // Public toggle + link
@@ -888,7 +888,7 @@ class Project {
     ])
     const dialog = new DOM('div', {className:'share-dialog'}).append([
       new DOM('div', {className:'share-head'}).append([
-        new DOM('h2', {innerText:Msg['ShareAndEmbed']||'Share & embed'}), $.shareName, closeBtn
+        new DOM('h2', {innerText:Msg['ShareAndEmbed']||'Share & embed'}), $.shareName
       ]),
       body
     ])
