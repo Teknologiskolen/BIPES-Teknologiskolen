@@ -162,7 +162,9 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
     '</xml>'
 
   if (uid) {
-    fetch('/api/projects/shared/' + encodeURIComponent(uid))
+    // no-store so an edited+re-shared project shows its latest blocks instead of a
+    // browser-cached copy of the shared JSON.
+    fetch('/api/projects/shared/' + encodeURIComponent(uid), { cache: 'no-store' })
       .then(function (r) { return r.json() })
       .then(function (d) {
         if (d && d.xml) render(d.xml)

@@ -805,15 +805,25 @@ class Project {
   // ---- Share & Embed dialog (teacher) -------------------------------------
   // One focused surface for public sharing, class sharing, and embedding, replacing
   // the long flat context menu. Reuses updateShareSettings()/unshare() for the API.
-  openShareDialog (uid){
+  async openShareDialog (uid){
     this.contextMenu.close()
     if (!this.projects[uid] || !this.projects[uid].project) return
     this._shareUid = uid
     this._buildShareDialog()
+    this._embedFrameLogical = null      // force the preview iframe to (re)load fresh
     this._renderShareDialog()
     this.$.shareDialog.$.hidden = false
     // Load classes then refresh the dropdown selection.
     this._loadShareClasses().then(() => this._renderShareDialog())
+    // The server snapshots block XML only at share time, so an already-shared project
+    // shows STALE blocks in the embed after further edits. Re-push the current blocks
+    // (no setting change) so the preview + live embed reflect the latest edits.
+    const sh = this.projects[uid].project.shared
+    if (sh && sh.uid) {
+      await this.updateShareSettings(uid, {})
+      this._embedFrameLogical = null
+      this._renderShareDialog()
+    }
   }
   closeShareDialog (){
     if (this.$.shareDialog) this.$.shareDialog.$.hidden = true
@@ -928,9 +938,15 @@ class Project {
     const w = (this.$.embedW.value || '100%').trim()
     const h = (this.$.embedH.value || '360').trim()
     const src = this._embedSrc(shared.uid, this.$.embedLock.$.checked)
+    // Copyable code/link stay clean; only the live preview iframe gets a cache-buster
+    // so it actually reloads when the uid/lock changes or blocks were re-pushed.
     this.$.embedCode.$.value = '<iframe src="' + src + '" width="' + w + '" height="' + h + '" style="border:1px solid #ccc"></iframe>'
     this.$.embedPreview.$.href = src
-    if (this.$.embedFrame.$.getAttribute('src') !== src) this.$.embedFrame.$.src = src
+    if (this._embedFrameLogical !== src) {
+      this._embedFrameLogical = src
+      this._embedNonce = (this._embedNonce || 0) + 1
+      this.$.embedFrame.$.src = src + '&_=' + this._embedNonce   // _embedSrc always has ?uid=
+    }
     this.$.embedFrame.$.style.height = (/^\d+$/.test(h) ? h+'px' : '220px')
   }
   async _onTogglePublic (){
@@ -1140,6 +1156,11 @@ class Project {
         public: !!obj.shared_public,
         classId: obj.shared_class_id || null
       }
+      // Keep the in-memory project authoritative even when it isn't the open tab:
+      // `update()`/`_update()` only sync `this.projects[uid]` for the CURRENT tab, so
+      // without this a non-current project keeps a stale share uid -> re-toggling mints
+      // duplicate shares and unshare appears to "stay shared".
+      this.projects[uid].project = proj
       if (this.hasOwnProperty('shared')) {
         if (proj.shared.public) {
           this.shared.upsert({
@@ -1369,6 +1390,9 @@ class Project {
       }
       if (this.hasOwnProperty('shared') && previousSharedUid)
         this.shared.remove(previousSharedUid)
+      // Sync in-memory state (see updateShareSettings) so a non-current project really
+      // reflects "no longer shared" instead of re-rendering its stale shared state.
+      this.projects[uid].project = _proj
       let _obj = {name:_proj.name, shared:_proj.shared, lastEdited:_proj.lastEdited}
       command.dispatch(this, 'lazyUpdate', [uid, _obj])
       this.update({project:_proj}, uid)
