@@ -417,8 +417,12 @@ class DOM {
   static lazyUpdate (dom, uid, props, param){
     param = param == undefined ? 'innerText' : param
     let element = DOM.get(`[data-uid='${uid}']`, dom)
+    if (!element)   // card not in the DOM (e.g. removed, or not rendered yet)
+      return
     for (const key in props){
-      DOM.get(`#${key}`, element)[param] = props[key]
+      let field = DOM.get(`#${key}`, element)
+      if (field)
+        field[param] = props[key]
     }
   }
 }

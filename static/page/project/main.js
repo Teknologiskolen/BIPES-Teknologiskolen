@@ -229,14 +229,20 @@ class Project {
     )
   }
   remove (uid){
+    let obj = this.projects[uid]
+    // Stale card / already removed — nothing to do (avoids "undefined.project").
+    if (!obj || !obj.project) {
+      this.contextMenu.close()
+      return
+    }
+
     // Create project if no project will be left
     if (Object.keys(this.projects).length == 1)
       this.select(this.new())
 
-    let obj = this.projects[uid]
     // Unshare if shared
-    let shared = obj.project.shared
-    if (shared.hasOwnProperty('uid') && shared.uid !== '')
+    let shared = obj.project.shared || {}
+    if (shared.uid)
       this.unshare(uid, true)
 
     command.dispatch(this, 'remove', [uid])
@@ -903,11 +909,15 @@ class Project {
     this.$.shareName.$.textContent = item.project.name || ''
     this.$.sharePublic.$.checked = shared.public
     this.$.shareClass.$.value = shared.classId ? String(shared.classId) : ''
-    this.$.shareLink.$.value = isShared ? this._embedSrc(shared.uid, false) : ''
-    this.$.shareLinkRow.$.hidden = !isShared
-    this.$.embedSection.$.hidden = !isShared
+    // The /embed view-link and embed code only work for PUBLIC projects — the public
+    // endpoint 403s on class-only shares (those are consumed in-app by enrolled students,
+    // not via a public link). So gate the link + embed section on `public`, not on
+    // "is shared at all". Unshare stays available for any share (public or class).
+    this.$.shareLink.$.value = shared.public ? this._embedSrc(shared.uid, false) : ''
+    this.$.shareLinkRow.$.hidden = !shared.public
+    this.$.embedSection.$.hidden = !shared.public
     this.$.shareUnshare.$.hidden = !isShared
-    if (isShared) this._refreshEmbed()
+    if (shared.public) this._refreshEmbed()
   }
   _embedSrc (shareUid, lock){
     return window.location.origin + '/embed?uid=' + encodeURIComponent(shareUid) + (lock ? '&lock=1' : '')
@@ -1083,9 +1093,23 @@ class Project {
     }
   }
   async updateShareSettings (uid, patch){
-    const item = this.projects[uid]
+    let item = this.projects[uid]
     if (!item || !item.project)
       return
+
+    // Sharing a project that isn't the currently-open one leaves only its metadata in
+    // memory (no `.blocks`). Saving that would wipe the project's blocks server-side and
+    // make the embed show "no blocks". Hydrate the full project (with blocks) from its
+    // localStorage copy first.
+    if (!item.blocks && storage.has(`project-${uid}`)) {
+      try {
+        const full = JSON.parse(storage.fetch(`project-${uid}`))
+        if (full && full.blocks) {
+          item = full
+          this.projects[uid] = full
+        }
+      } catch (e) {}
+    }
 
     let shared = {
       uid: item.project.shared?.uid || '',
