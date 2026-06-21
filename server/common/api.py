@@ -29,7 +29,9 @@ def _share_list_query(user, from_ts=None, limit=None):
             WHERE p.teacher_id IS NOT NULL
               AND p.shared_public = TRUE
               AND p.share_uid IS NOT NULL
+              AND p.teacher_id <> %s
         """
+        params.append(user['user_id'])
     else:
         sql = """
             SELECT DISTINCT p.share_uid,

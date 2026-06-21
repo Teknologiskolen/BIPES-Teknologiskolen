@@ -1167,17 +1167,12 @@ class Project {
       // without this a non-current project keeps a stale share uid -> re-toggling mints
       // duplicate shares and unshare appears to "stay shared".
       this.projects[uid].project = proj
+      // "Shared projects" lists OTHER people's shared projects, not your own — your own
+      // already appear under "Your projects" with their #share-id badge. So never add
+      // this project here; defensively remove any stale own-entry instead.
       if (this.hasOwnProperty('shared')) {
-        if (proj.shared.public) {
-          this.shared.upsert({
-            uid: proj.shared.uid,
-            name: proj.name,
-            author: proj.author,
-            lastEdited: proj.lastEdited
-          })
-        } else if (previousSharedUid) {
-          this.shared.remove(previousSharedUid)
-        }
+        this.shared.remove(proj.shared.uid)
+        if (previousSharedUid) this.shared.remove(previousSharedUid)
       }
       let _obj = {name:proj.name, shared:proj.shared, lastEdited:proj.lastEdited}
       command.dispatch(this, 'lazyUpdate', [uid, _obj])
