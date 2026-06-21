@@ -711,6 +711,19 @@ class Project {
       }
     }
 
+    // Read the share id from the badge's CURRENT text at click time, not from this
+    // render-time localStorage snapshot: (re)sharing changes the id and refreshes the
+    // badge via lazyUpdate, but a captured snapshot would stay stale (often '') and
+    // copyShareId() would then silently no-op.
+    let uidBadge = new DOM('div', {
+      id:'sharedUID',
+      innerText:item.project.shared.uid,
+      title: Msg['CopyShareId'] || 'Click to copy share id'
+    }).onclick(this, function (e) {
+      if (e) e.stopPropagation()      // copy, don't also open the project
+      this.copyShareId((uidBadge.$.innerText || '').trim())
+    })
+
     return new DOM('button', {className:_shared_class, uid: uid})
       .append([
         new DOM('div', {className:'row'}).append([
@@ -718,14 +731,7 @@ class Project {
             id:'name',
             innerText: item.project.name
           }),
-          new DOM('div', {
-            id:'sharedUID',
-            innerText:item.project.shared.uid,
-            title: Msg['CopyShareId'] || 'Click to copy share id'
-          }).onclick(this, function (e) {
-            if (e) e.stopPropagation()      // copy, don't also open the project
-            this.copyShareId(item.project.shared.uid)
-          })
+          uidBadge
         ]),
         new DOM('div', {className:'row'}).append(rowItems)
      ])
