@@ -187,18 +187,21 @@ def create_app(database="postgresql"):
     @app.after_request
     def add_security_headers(response):
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
-        response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
-        # Defense-in-depth CSP. Limited to directives that do NOT affect how the Blockly
-        # IDE loads its own scripts/styles/images, so it cannot break the app: block
-        # plugins (object-src), <base>-tag hijacking (base-uri), and framing
-        # (frame-ancestors, mirroring X-Frame-Options). setdefault leaves the /embed
-        # routes' own permissive `frame-ancestors *` policy intact. A strict script-src
-        # is deliberately omitted — it needs Content-Security-Policy-Report-Only tuning
-        # against Blockly before it can be enforced without breaking the editor.
-        response.headers.setdefault(
-            'Content-Security-Policy',
-            "object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+        # The /embed routes must be framable by EXTERNAL lesson sites. For them, allow
+        # framing (CSP frame-ancestors *) and do NOT send X-Frame-Options — SAMEORIGIN
+        # would block cross-origin framing even with the permissive CSP. Everything else
+        # keeps SAMEORIGIN + a restrictive CSP. The CSP is limited to directives that do
+        # NOT affect how the Blockly IDE loads its own assets (a strict script-src is
+        # omitted — it needs report-only tuning against Blockly first).
+        if request.path == '/embed' or request.path.startswith('/embed/'):
+            response.headers['Content-Security-Policy'] = 'frame-ancestors *'
+            response.headers.pop('X-Frame-Options', None)
+        else:
+            response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+            response.headers.setdefault(
+                'Content-Security-Policy',
+                "object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         if request.path.startswith('/static/') and request.path.endswith('.js'):
             response.headers['Cache-Control'] = 'no-store'
         response = auth_module.finalize_auth_response(response)

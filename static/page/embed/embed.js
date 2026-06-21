@@ -88,8 +88,18 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
     var apply = function () {
       try {
         Blockly.svgResize(workspace)
-        if (workspace.zoomToFit) workspace.zoomToFit()
-        if (workspace.scrollCenter) workspace.scrollCenter()
+        // zoomToFit()/scrollCenter() refuse to move a non-movable (locked) workspace and
+        // log "Tried to move a non-movable workspace". Temporarily report the workspace
+        // as movable so we can position the content ONCE, then restore the lock — the
+        // user still can't pan/zoom, but the blocks get fitted + centered without warnings.
+        var savedIsMovable = workspace.isMovable
+        workspace.isMovable = function () { return true }
+        try {
+          if (workspace.zoomToFit) workspace.zoomToFit()
+          if (workspace.scrollCenter) workspace.scrollCenter()
+        } finally {
+          workspace.isMovable = savedIsMovable
+        }
       } catch (e) {}
     }
     apply()
