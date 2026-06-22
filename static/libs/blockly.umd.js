@@ -2007,4 +2007,4 @@ return $.Blockly;
 }));
 
 
-//# sourceMappingURL=blockly_compressed.js.map
+// sourceMappingURL=blockly_compressed.js.map

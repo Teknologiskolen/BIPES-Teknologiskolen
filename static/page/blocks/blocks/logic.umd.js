@@ -204,4 +204,4 @@ return $.Blockly.Blocks;
 }));
 
 
-//# sourceMappingURL=blocks_compressed.js.map
+// sourceMappingURL=blocks_compressed.js.map
