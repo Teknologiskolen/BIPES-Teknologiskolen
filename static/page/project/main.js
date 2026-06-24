@@ -201,6 +201,18 @@ class Project {
         project = obj == undefined ? this._emptyProject() :
                   obj instanceof Object ? obj : JSON.parse(obj)
 
+    // A freshly-imported project gets a NEW uid the server doesn't know. If the file was a
+    // metadata-only "_serverOnly" stub (its data lived on the server it was exported from),
+    // keeping that flag would make select() fetch the new uid and 404, leaving a broken
+    // project. Strip it so the file imports as a local project, and warn if it actually
+    // carried no data so the user isn't surprised by an empty import.
+    if (obj != undefined && project && project._serverOnly) {
+      delete project._serverOnly
+      let hasContent = project.blocks || project.data || project.files || project.dashboard
+      if (!hasContent)
+        notification.send(`${Msg['PageProject']}: ${Msg['ImportedStubNoData'] || 'this file is a metadata-only export (no blocks/data) — imported as an empty project'}`)
+    }
+
     storage.set(`project-${uid}`, JSON.stringify(project))
     command.dispatch(this, 'new', [uid, project])
     // Select brand new project
@@ -1390,8 +1402,30 @@ class Project {
    * Download a project to the computer
    * @param {string} uid - Project uid
    */
-  download (uid){
+  async download (uid){
     let proj = JSON.parse(storage.fetch(`project-${uid}`))
+    // If only metadata is cached (a server-only project whose data hasn't been opened in
+    // this browser), fetch the full data first so the exported file is SELF-CONTAINED.
+    // Exporting the bare stub would write a file with no blocks/data that can't be
+    // restored by importing it (this is how the old metadata-only exports happened).
+    if (this.serverMode && proj?._serverOnly) {
+      try {
+        const response = await fetch(`/api/projects/${uid}`, { credentials: 'include' })
+        const data = await response.json()
+        if (response.ok && data.data) {
+          proj = data.data
+          delete proj._serverOnly
+        } else {
+          notification.send(`${Msg['PageProject']}: ${Msg['ProjectExportNoData'] || 'could not load this project’s data from the server — export aborted'}`)
+          this.contextMenu.close()
+          return
+        }
+      } catch (e) {
+        notification.send(`${Msg['PageProject']}: ${Msg['ProjectExportNoData'] || 'could not load this project’s data from the server — export aborted'}`)
+        this.contextMenu.close()
+        return
+      }
+    }
     if (proj?.project) {
       proj.project.shared = {
         uid:'',

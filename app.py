@@ -15,7 +15,7 @@ from server.common import auth as auth_module
 from server.common import security as security_module
 
 app_name = 'BIPES'
-app_version = '3.0.90'
+app_version = '3.0.91'
 
 
 def ensure_postgres_auth_schema(app):
