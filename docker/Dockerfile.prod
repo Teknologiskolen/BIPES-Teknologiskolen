@@ -19,6 +19,15 @@ COPY . .
 # Create logs directory
 RUN mkdir -p /app/logs
 
+# Run as a non-root user. The web container is the internet-facing application code
+# (behind nginx) and the most likely RCE target; dropping root limits the blast radius of
+# any code-exec or container-escape bug. gunicorn binds 5000 (unprivileged) and the app
+# only reads /app and writes /app/logs plus the request-time generated assets under
+# /app/static and /app/templates, so an unprivileged user that owns /app suffices.
+RUN useradd --system --create-home --uid 10001 appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 # Expose port
 EXPOSE 5000
 

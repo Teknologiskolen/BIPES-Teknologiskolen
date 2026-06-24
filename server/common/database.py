@@ -6,6 +6,23 @@ from flask import g, current_app
 def uid(len):
     return str(uuid.uuid4()).replace('-','')[:len]
 
+# SQL identifier guard. table_name / columns / where-column get interpolated into the
+# query string (psycopg's sql.Identifier only wraps the TABLE; the SQLite branch and
+# update() interpolate everything raw). Every current caller passes hard-coded literals,
+# so this never rejects legitimate use — it's a backstop so a future caller can't turn
+# these helpers into a SQL-injection sink by passing a request-derived name.
+_IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+def _ident(name):
+    if not isinstance(name, str) or not _IDENT_RE.match(name):
+        raise ValueError('Invalid SQL identifier: %r' % (name,))
+    return name
+
+def _idents(names):
+    for _n in names:
+        _ident(_n)
+    return names
+
 # Get db instance
 def get_db(__db):
     if current_app.config['DATABASE'] == 'sqlite':
@@ -98,6 +115,7 @@ def has_table(__db, table_name):
 
 # Get data from database
 def select(__db, table_name, columns, *args):
+    _ident(table_name); _idents(columns)
     db = get_db(__db)
     str_c = ', '.join(columns)
 
@@ -125,6 +143,7 @@ def select(__db, table_name, columns, *args):
 
 # Fetch data from database
 def fetch(__db, table_name, columns, where):
+    _ident(table_name); _idents(columns); _ident(where[0])
     db = get_db(__db)
 
     str_c = ', '.join(columns)
@@ -144,6 +163,7 @@ def fetch(__db, table_name, columns, where):
 
 # Insert new data to database
 def insert(__db, table_name, columns, values):
+    _ident(table_name); _idents(columns)
     db = get_db(__db)
 
     str_c = ', '.join(columns)
@@ -165,6 +185,7 @@ def insert(__db, table_name, columns, values):
 
 # Remove data if values match
 def delete(__db, table_name, columns, values):
+    _ident(table_name); _idents(columns)
     db = get_db(__db)
 
     str_c = ', '.join(columns)
@@ -187,6 +208,7 @@ def delete(__db, table_name, columns, values):
 
 # Update data to database
 def update(__db, table_name, columns, values):
+    _ident(table_name); _idents(columns)
     db = get_db(__db)
 
     str_c1 = ', '.join(columns[-2:])

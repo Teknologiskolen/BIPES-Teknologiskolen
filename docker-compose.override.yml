@@ -15,6 +15,10 @@
 #   docker compose -f docker-compose.yml up -d
 services:
   web:
+    # Dev convenience: run as root so `docker compose watch` file-sync isn't blocked by
+    # the unprivileged appuser baked into Dockerfile.prod. Production (no override) runs
+    # as that non-root user — see docker-compose.prod.yml.
+    user: "root"
     develop:
       watch:
         - action: sync

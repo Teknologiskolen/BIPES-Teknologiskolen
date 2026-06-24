@@ -131,19 +131,27 @@ def ensure_server_bridge_client(app=None):
     conf = _config()
     role_name = "bipes-server-bridge"
 
+    # Tighten the broker's DEFAULT ACL to deny on every axis. `dynsec init` leaves
+    # publishClientReceive + unsubscribe at ALLOW, so message delivery would be
+    # default-open and cross-tenant isolation would rest on the subscribe-deny alone. With
+    # all four denied, a client can only ever receive/subscribe within the explicit
+    # per-session ACLs minted by create_device_client / create_browser_client.
+    for _acl_type in ("publishClientSend", "publishClientReceive", "subscribe", "unsubscribe"):
+        _run_dynsec("setDefaultACLAccess", _acl_type, "deny", check=False)
+
     _ensure_role(role_name)
     _add_acl(role_name, "publishClientSend", "+/devices/+/commands/#", 20)
     _add_acl(role_name, "publishClientSend", "+/devices/+/telemetry/#", 10)
     _add_acl(role_name, "publishClientReceive", "+/devices/+/telemetry/#", 20)
     _add_acl(role_name, "subscribePattern", "+/devices/+/telemetry/#", 20)
     _add_acl(role_name, "unsubscribePattern", "+/devices/+/telemetry/#", 20)
-    # The bridge is the trusted server-side storage client: it subscribes to "+/#"
-    # to persist ALL session traffic (device telemetry for the online dot + legacy
-    # EasyMQTT topics). Without a matching broad subscribe/receive ACL the broker
-    # denies the "+/#" subscription and nothing is ever stored. "+/#" never matches
-    # $SYS, so this stays scoped to application sessions.
-    _add_acl(role_name, "subscribePattern", "+/#", 5)
-    _add_acl(role_name, "publishClientReceive", "+/#", 5)
+    # The broad "+/#" subscribe/receive grant has been REMOVED. Flask is publish-only now
+    # (the legacy EasyMQTT "+/#" subscriber is gone), so the bridge must not be able to see
+    # every user's traffic — if MOSQUITTO_PASSWORD leaked it would otherwise expose all
+    # device telemetry/commands across all sessions. Actively strip the old ACLs in case an
+    # earlier version granted them on this broker (no-op on a fresh install).
+    _run_dynsec("removeRoleACL", role_name, "subscribePattern", "+/#", check=False)
+    _run_dynsec("removeRoleACL", role_name, "publishClientReceive", "+/#", check=False)
     _ensure_client(conf.server_username, conf.server_password)
     _assign_role(conf.server_username, role_name, 20)
 
@@ -199,6 +207,20 @@ def rotate_device_password(username):
 
 def delete_device(username, device_uid):
     role_name = f"bipes-device-{device_uid}"
+    _run_dynsec("deleteClient", username, check=False)
+    _run_dynsec("deleteRole", role_name, check=False)
+
+
+def delete_browser_client(session):
+    """Remove the per-session browser MQTT client + role (called on logout).
+
+    Browser clients used to accumulate forever (one ui-<session> client/role per teacher
+    session, never deleted), growing the dynsec store and leaving a usable credential
+    until the next /browser-credentials rotation. Deleting on logout bounds both. The same
+    ui-<session> is simply re-created on the next login, so this is safe to call eagerly.
+    """
+    username = f"ui-{session}"
+    role_name = f"bipes-ui-{session}"
     _run_dynsec("deleteClient", username, check=False)
     _run_dynsec("deleteRole", role_name, check=False)
 

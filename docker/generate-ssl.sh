@@ -13,11 +13,21 @@ echo "⚠️  This is for DEVELOPMENT/TESTING only!"
 echo "⚠️  For production, use Let's Encrypt or proper CA certificates"
 echo ""
 
+# Subject/SAN host. Override for a real IP/domain test:  CERT_HOST=1.2.3.4 ./generate-ssl.sh
+# A Subject Alternative Name is REQUIRED — modern TLS clients ignore the legacy CN and
+# reject a cert with no SAN outright, so the old CN=localhost-only cert failed validation.
+CERT_HOST="${CERT_HOST:-localhost}"
+case "$CERT_HOST" in
+    *[0-9].[0-9]*[0-9]) SAN="IP:$CERT_HOST,DNS:localhost,IP:127.0.0.1" ;;   # looks like an IP
+    *)                  SAN="DNS:$CERT_HOST,DNS:localhost,IP:127.0.0.1" ;;
+esac
+
 # Generate private key and certificate
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout "$SSL_DIR/key.pem" \
     -out "$SSL_DIR/cert.pem" \
-    -subj "/C=DK/ST=Denmark/L=Copenhagen/O=BIPES/OU=Development/CN=localhost"
+    -subj "/C=DK/ST=Denmark/L=Copenhagen/O=BIPES/OU=Development/CN=$CERT_HOST" \
+    -addext "subjectAltName=$SAN"
 
 chmod 600 "$SSL_DIR/key.pem"
 chmod 644 "$SSL_DIR/cert.pem"

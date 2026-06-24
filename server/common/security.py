@@ -129,9 +129,11 @@ def server_error(exc=None, message='Internal server error'):
 
 
 def get_client_ip():
-    forwarded_for = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
+    # ProxyFix(x_for=1) already rewrites request.remote_addr to the client IP taken from
+    # the RIGHT-most (trusted) X-Forwarded-For hop that our own nginx appends. Do NOT read
+    # the raw header's LEFT-most value: nginx appends the real IP to whatever the client
+    # sent, so the left-most entry is attacker-controlled and would let anyone forge the
+    # IP recorded in auth_events. Use the proxy-resolved address instead.
     return request.remote_addr
 
 

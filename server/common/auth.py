@@ -23,6 +23,11 @@ _SESSION_COOKIE_NAME = "bipes_session"
 _DEFAULT_SESSION_LIFETIME = 60 * 60
 _DEFAULT_SESSION_ROTATE_INTERVAL = 15 * 60
 _DEFAULT_SESSION_ABSOLUTE_LIFETIME = 12 * 60 * 60
+# Hard upper bound on an accepted password. Argon2 pre-hashes the ENTIRE input, so a
+# multi-megabyte password burns CPU + 64 MB of RAM per attempt — a cheap DoS on the
+# 1-vCPU/2 GB box. Enforced on every hashing path (login, change-password, dummy verify),
+# not only at registration. 128 chars comfortably covers any real passphrase.
+PASSWORD_MAX_LENGTH = 128
 
 
 #------------------------------------------------------------------------
@@ -110,7 +115,9 @@ def dummy_password_verify(password: str) -> None:
     try:
         if _DUMMY_PASSWORD_HASH is None:
             _DUMMY_PASSWORD_HASH = hash_password("bipes-timing-equaliser")
-        _argon2_hasher().verify(_DUMMY_PASSWORD_HASH, _pepper_password(password or ""))
+        # Cap the input here too so the not-found branch can't be used to force an
+        # unbounded Argon2 pre-hash (defence in depth — handlers also reject early).
+        _argon2_hasher().verify(_DUMMY_PASSWORD_HASH, _pepper_password((password or "")[:PASSWORD_MAX_LENGTH]))
     except Exception:
         pass
 

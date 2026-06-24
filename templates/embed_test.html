@@ -39,7 +39,7 @@
   <p class="note">Embed code (paste into your lesson):</p>
   <pre id="snippet">—</pre>
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
     document.getElementById('go').addEventListener('click', function () {
       var uid = document.getElementById('uid').value.trim()
       var chain = document.getElementById('chain').value.trim()

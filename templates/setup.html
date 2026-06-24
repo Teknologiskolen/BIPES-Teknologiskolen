@@ -63,10 +63,10 @@
         <div id="globals"></div>
     </div>
 
-    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script nonce="{{ csp_nonce }}">window.Blockly = window.Blockly || { Msg: {} };</script>
     <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
-    <script>window.bipesUserType = "{{ user_type }}";</script>
+    <script nonce="{{ csp_nonce }}">window.bipesUserType = "{{ user_type }}";</script>
     <script src="/static/auth/setup.js"></script>
 </body>
 </html>

@@ -29,7 +29,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-bipes}
       POSTGRES_USER: ${POSTGRES_USER:-bipes_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -96,11 +96,11 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=${POSTGRES_DB:-bipes}
       - POSTGRES_USER=${POSTGRES_USER:-bipes_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - MOSQUITTO_HOST=broker
       - MOSQUITTO_PORT=1883
       - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME:-bipes-server}
-      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD:-changeme}
+      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD:?Set MOSQUITTO_PASSWORD in .env}
       - MOSQUITTO_DYNSEC_ENABLED=${MOSQUITTO_DYNSEC_ENABLED:-true}
       - MOSQUITTO_DYNSEC_ADMIN_USERNAME=${MOSQUITTO_DYNSEC_ADMIN_USERNAME:-admin}
       - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}

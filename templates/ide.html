@@ -9,7 +9,7 @@
   <link rel="manifest" href="static/media/manifest.webmanifest">
   <meta name="theme-color" content="#fff">
   <script src="./static/base/csrf.js?v={{ app_version }}"></script>
-		  <script>
+		  <script nonce="{{ csp_nonce }}">
 		    const swBlockedHosts = new Set(['localhost', '127.0.0.1', '::1'])
 		    const canRegisterServiceWorker =
 		      'serviceWorker' in navigator &&
@@ -86,7 +86,7 @@
   <div id='globals'></div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
   function guestIdeUrl() {
     var url = new URL(window.location.href);
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script type="{{import_type}}" src="./static/libs/bipes.umd.js?v={{ app_version }}"></script>
 {% if import_type == "text/javascript" -%}
-<script>
+<script nonce="{{ csp_nonce }}">
   Bipes()
 </script>
 {% endif %}

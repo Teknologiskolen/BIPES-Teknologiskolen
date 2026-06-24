@@ -235,6 +235,13 @@ deploy-check:
 		exit 1; \
 	fi
 	@printf "✅ Environment file found\n"
+	@if grep -qE '^(FLASK_SECRET_KEY|PASSWORD_PEPPER|POSTGRES_PASSWORD|MOSQUITTO_PASSWORD|MOSQUITTO_DYNSEC_ADMIN_PASSWORD)=(change-this|changeme)' .env; then \
+		printf "$(RED)Error: .env still contains placeholder secrets (change-this.../changeme)!$(NC)\n"; \
+		printf "Replace EVERY change-this-* value with a real secret, e.g. generate one with:\n"; \
+		printf "  openssl rand -base64 32\n"; \
+		exit 1; \
+	fi
+	@printf "✅ No placeholder secrets in .env\n"
 
 deploy-ssl:
 	@if [ ! -f docker/ssl/cert.pem ] || [ ! -f docker/ssl/key.pem ]; then \

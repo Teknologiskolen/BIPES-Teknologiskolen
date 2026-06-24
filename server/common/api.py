@@ -131,7 +131,7 @@ def _upsert_share(user, obj):
 
     if row is None:
         timestamp = auth.get_timestamp()
-        share_uid = dbase.uid(12)
+        share_uid = dbase.uid(32)   # 128-bit: unguessable so the public share endpoint can't be enumerated
         share_token = dbase.uid(18)
         sql = dbase._s("""
             INSERT INTO projects
@@ -159,7 +159,7 @@ def _upsert_share(user, obj):
             return jsonify({'error': 'Unauthorized'}), 403
 
         if not share_uid:
-            share_uid = dbase.uid(12)
+            share_uid = dbase.uid(32)   # 128-bit: unguessable so the public share endpoint can't be enumerated
         if not share_token:
             share_token = dbase.uid(18)
 

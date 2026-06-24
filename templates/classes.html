@@ -17,7 +17,7 @@
     </div>
 
     <!-- Theme/language preferences (persisted, shared with the other auth pages) -->
-    <script>window.Blockly = window.Blockly || { Msg: {} };</script>
+    <script nonce="{{ csp_nonce }}">window.Blockly = window.Blockly || { Msg: {} };</script>
     <script src="/static/msg/{{ lang }}.js"></script>
     <script src="/static/auth/preferences.js"></script>
 

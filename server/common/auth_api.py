@@ -50,40 +50,55 @@ def teacher_login():
             security.log_auth_event('teacher_login_invalid_request', 'teacher', email or None)
             return jsonify({'error': 'Email and password are required'}), 400
 
-        # Fetch teacher by email
-        teacher_data = dbase.fetch(_db, 'teachers',
-            ['teacher_id', 'password_hash', 'full_name', 'is_active', 'password_changed'],
-            ['email', email])
+        email_key = email.lower()[:100]
 
-        if teacher_data[2] is None:
-            # Spend the same Argon2 time as a real account so response timing can't be
-            # used to tell a registered email from an unregistered one.
-            auth.dummy_password_verify(password)
-            security.log_auth_event('teacher_login_failed', 'teacher', email, {'reason': 'unknown_email'})
+        # Reject over-long passwords BEFORE any Argon2 work (a multi-MB password is a cheap
+        # CPU/memory DoS). Use the generic invalid-credentials response so it leaks nothing.
+        if len(password) > auth.PASSWORD_MAX_LENGTH:
+            security.log_auth_event('teacher_login_failed', 'teacher', email_key, {'reason': 'password_too_long'})
             return jsonify({'error': 'Invalid email or password'}), 401
 
-        teacher_id, password_hash, full_name, is_active, password_changed = teacher_data[2]
-
-        # Check if account is active
-        if not is_active:
-            security.log_auth_event('teacher_login_denied', 'teacher', teacher_id, {'reason': 'inactive'})
-            return jsonify({'error': 'Account is disabled'}), 403
-
-        # Per-account lockout: refuse if this account has too many recent failures
-        # (bounds distributed guessing across IPs). Checked AFTER resolving the account
-        # so it keys on teacher_id, and only for known emails (can't lock a stranger out).
-        retry = security.login_failure_lock('teacher_login_failed', teacher_id)
+        # Per-account lockout keyed on the SUBMITTED email (normalised), checked BEFORE the
+        # account is resolved and applied identically whether or not the email is
+        # registered. This closes the enumeration oracle: the lock previously keyed on
+        # teacher_id (so only real emails could ever return 429) and a disabled account
+        # returned a distinct 403. Now unknown-email, wrong-password, disabled and locked
+        # are indistinguishable to the client.
+        retry = security.login_failure_lock('teacher_login_failed', email_key)
         if retry:
-            security.log_auth_event('teacher_login_locked', 'teacher', teacher_id, {'retry_after': retry})
+            security.log_auth_event('teacher_login_locked', 'teacher', email_key, {'retry_after': retry})
             resp = jsonify({'error': 'Too many failed attempts. Please try again later.', 'retry_after': retry})
             resp.status_code = 429
             resp.headers['Retry-After'] = str(retry)
             return resp
 
-        # Verify password
-        if not auth.verify_password(password, password_hash):
-            security.log_auth_event('teacher_login_failed', 'teacher', teacher_id, {'reason': 'bad_password'})
+        # Fetch teacher by email
+        teacher_data = dbase.fetch(_db, 'teachers',
+            ['teacher_id', 'password_hash', 'full_name', 'is_active', 'password_changed'],
+            ['email', email])
+
+        # Single generic failure path for unknown-email / wrong-password / disabled, all
+        # logged under the same email key so the lockout counts them uniformly and none is
+        # distinguishable from the others.
+        def _login_failed(reason):
+            security.log_auth_event('teacher_login_failed', 'teacher', email_key, {'reason': reason})
             return jsonify({'error': 'Invalid email or password'}), 401
+
+        if teacher_data[2] is None:
+            # Spend the same Argon2 time as a real account so response timing can't be
+            # used to tell a registered email from an unregistered one.
+            auth.dummy_password_verify(password)
+            return _login_failed('unknown_email')
+
+        teacher_id, password_hash, full_name, is_active, password_changed = teacher_data[2]
+
+        # Verify the password first (constant Argon2 cost), then check active — both fail
+        # with the identical 401 so a disabled account can't be told from a wrong password.
+        if not auth.verify_password(password, password_hash):
+            return _login_failed('bad_password')
+
+        if not is_active:
+            return _login_failed('inactive')
 
         _rehash_user_password_if_needed('teachers', 'teacher_id', teacher_id, password, password_hash)
 
@@ -134,6 +149,11 @@ def student_login_class():
         if not class_code or not student_name or not password:
             security.log_auth_event('student_login_invalid_request', 'student', details={'class_code': class_code, 'student_name': student_name})
             return jsonify({'error': 'All fields are required'}), 400
+
+        # Reject over-long passwords before any Argon2 work (CPU/memory DoS guard). Generic
+        # response so it stays consistent with the other invalid-credential paths below.
+        if len(password) > auth.PASSWORD_MAX_LENGTH:
+            return jsonify({'error': 'Invalid class code, name, or password'}), 401
 
         # Per-identifier lockout (students have no email/id at this point, so key on the
         # class_code|name they log in with). Bounds guessing of one student's 8-char
@@ -370,6 +390,15 @@ def logout():
     user = auth.get_current_user()
     if user:
         security.log_auth_event('logout', user['user_type'], user['user_id'])
+        # Best-effort: tear down this session's browser MQTT client so its credential
+        # can't be reused and the dynsec store doesn't grow unbounded. Never let an MQTT
+        # hiccup block logout.
+        try:
+            from server.common import mqtt, mqtt_dynsec
+            if mqtt_dynsec.is_enabled():
+                mqtt_dynsec.delete_browser_client(mqtt.server_session_for_user(user))
+        except Exception:
+            pass
     auth.clear_user_session()
     return jsonify({'success': True, 'message': 'Logged out successfully'}), 200
 
@@ -964,26 +993,15 @@ def save_project():
 
             student_owner, teacher_owner = result
 
-            # Adopt legacy rows that existed before per-user ownership was added.
-            if student_owner is None and teacher_owner is None:
-                if user_type == 'student':
-                    sql = dbase._s("""
-                        UPDATE projects
-                        SET student_id = %s, teacher_id = NULL
-                        WHERE uid = %s
-                    """)
-                    db.execute(sql, (user_id, uid))
-                else:
-                    sql = dbase._s("""
-                        UPDATE projects
-                        SET teacher_id = %s, student_id = NULL
-                        WHERE uid = %s
-                    """)
-                    db.execute(sql, (user_id, uid))
-            elif user_type == 'student' and student_owner != user_id:
-                db.close()
-                return jsonify({'error': 'Unauthorized'}), 403
-            elif user_type == 'teacher' and teacher_owner != user_id:
+            # Ownership is REQUIRED to overwrite. We used to silently ADOPT a row with no
+            # owner (a pre-per-user-ownership "legacy" row) to whoever saved first AND
+            # overwrite its contents — that let any logged-in user claim and clobber
+            # another author's project just by guessing its uid. We no longer adopt on
+            # write: an unowned (NULL) or other-owned row is refused. Genuine legacy rows
+            # must be assigned owners by a one-time backfill migration (operator task),
+            # never by a client save.
+            owner = student_owner if user_type == 'student' else teacher_owner
+            if owner is None or owner != user_id:
                 db.close()
                 return jsonify({'error': 'Unauthorized'}), 403
 

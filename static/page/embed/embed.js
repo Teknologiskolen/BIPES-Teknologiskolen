@@ -52,6 +52,15 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
 
   var selectedXml = null            // the XML actually rendered (what Copy copies)
 
+  // Escape before inserting any untrusted value (the ?uid= param, exception text) into
+  // innerHTML — otherwise /embed?uid=<img src=x onerror=...> is reflected XSS on the app
+  // origin (and the CSP here is permissive for framing, so nothing else blocks it).
+  function esc (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    })
+  }
+
   function textToDom (xml) {
     if (Blockly.utils && Blockly.utils.xml && Blockly.utils.xml.textToDom)
       return Blockly.utils.xml.textToDom(xml)
@@ -156,7 +165,7 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
       whenRenderable(relayout)
     } catch (e) {
       console.error('embed: failed to render blocks', e)
-      host.innerHTML = '<div id="embed-error">Could not render blocks:\n' + e + '</div>'
+      host.innerHTML = '<div id="embed-error">Could not render blocks:\n' + esc(e) + '</div>'
     }
   }
 
@@ -210,7 +219,7 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
         else throw new Error('project has no blocks')
       })
       .catch(function (e) {
-        host.innerHTML = '<div id="embed-error">Could not load shared project "' + uid + '":\n' + e + '</div>'
+        host.innerHTML = '<div id="embed-error">Could not load shared project "' + esc(uid) + '":\n' + esc(e) + '</div>'
       })
   } else if (xmlParam) {
     render(b64ToXml(xmlParam))

@@ -700,6 +700,12 @@ class _Runtime:
 
     def _wifi_mqtt_transport(self, cfg):
         m = cfg.get("mqtt", {})
+        # TLS is the default transport (the broker only exposes its encrypted :8883
+        # listener to the internet). A secrets.json that omits "ssl" therefore defaults to
+        # TLS rather than plaintext, so a missing flag can NEVER silently downgrade the
+        # connection and leak the per-device credentials. Set ssl:false explicitly only for
+        # a plain lab broker. Keeps _ssl_args() and the use_ssl/port choice below in sync.
+        m.setdefault("ssl", True)
         prefix = m.get("prefix", "")
         self._http_host = m.get("host")        # used to resolve relative OTA URLs
 
@@ -865,8 +871,10 @@ def run(ns, bluetooth=None, wifi=None):
     the BLE NUS transport. wifi can be:
       - True   -> MQTT using credentials from /secrets.json (secure; nothing in code)
       - a dict -> literal lab config, e.g.
-                  {"ssid": "...", "pw": "...", "host": "...", "port": 1884,
+                  {"ssid": "...", "pw": "...", "host": "...", "port": 8883, "ssl": True,
                    "user": "...", "password": "...", "prefix": "..."}
+                  (ssl defaults to True / port 8883; pass ssl=False + port 1883 only for a
+                   plain lab broker, and an optional "ca" PEM to verify the broker cert.)
     Bluetooth and Wi-Fi are never enabled at the same time.
     """
     runtime._ensure_fresh()

@@ -1,11 +1,12 @@
 from flask import Flask, Response, jsonify, render_template
 from flask import request, redirect, make_response
-from flask import render_template
+from flask import render_template, g
 
 import os
 import glob
 import socket
 import re
+import secrets
 from urllib.parse import urlencode
 from configparser import ConfigParser
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -152,6 +153,26 @@ def create_app(database="postgresql"):
     if database == 'postgresql' and not password_pepper:
         raise RuntimeError('PASSWORD_PEPPER must be set when AUTH_MODE=full')
 
+    # Refuse to start with a known-compromised or placeholder pepper / secret key. The
+    # pepper below was committed to .env in public git history (commits 2ecd643/d31f58c)
+    # and is therefore burned forever — deploying it would let anyone who reads the repo
+    # mount offline attacks on a leaked password DB. deploy.sh generates a fresh secret;
+    # this is a backstop in case a stale .env carrying the leaked value is ever reused.
+    _BURNED_SECRETS = {
+        'b3u52PXzCKRakSV4BlNpvk/XbVN8YoD9b1k4fI6G5cA',  # leaked PASSWORD_PEPPER (git history)
+    }
+    if database == 'postgresql':
+        for _label, _val in (('PASSWORD_PEPPER', password_pepper),
+                             ('FLASK_SECRET_KEY', flask_secret)):
+            _v = (_val or '').strip()
+            if _v in _BURNED_SECRETS:
+                raise RuntimeError(
+                    f'{_label} is a known-leaked value (present in public git history). '
+                    'Generate a fresh secret (e.g. `openssl rand -base64 32`) and rotate.')
+            if _v.lower().startswith('change-this') or _v.lower() in ('changeme', 'change-me'):
+                raise RuntimeError(
+                    f'{_label} is still a placeholder ({_v!r}). Set a real secret in .env.')
+
     app.config.from_mapping(
       SECRET_KEY = flask_secret,
       PASSWORD_PEPPER = password_pepper,
@@ -180,6 +201,18 @@ def create_app(database="postgresql"):
       PERMANENT_SESSION_LIFETIME = 3600,  # 1 hour session timeout
     )
 
+    def _csp_nonce():
+        # One nonce per request, shared between the inline <script nonce="{{ csp_nonce }}">
+        # tags in our templates (injected via the context processor below) and the CSP
+        # header set in add_security_headers. token_urlsafe(16) = 128 bits.
+        if not hasattr(g, 'csp_nonce'):
+            g.csp_nonce = secrets.token_urlsafe(16)
+        return g.csp_nonce
+
+    @app.context_processor
+    def inject_csp_nonce():
+        return {'csp_nonce': _csp_nonce()}
+
     @app.before_request
     def enforce_csrf():
         return security_module.protect_request()
@@ -188,20 +221,28 @@ def create_app(database="postgresql"):
     def add_security_headers(response):
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        # script-src is NONCE-based: every inline <script> in our templates carries
+        # nonce="{{ csp_nonce }}", so an injected inline <script>/event-handler (XSS)
+        # lacking the per-request nonce is refused by the browser. 'unsafe-eval' stays
+        # because Blockly and TF.js (ML/Vision) compile code/WASM at runtime — it does
+        # NOT re-enable inline-handler injection, so the XSS protection still holds. We
+        # deliberately do NOT restrict connect-src/img-src/style-src (MQTT-over-wss,
+        # camera blob:/data: frames and Blockly's injected inline styles must keep working).
+        nonce = _csp_nonce()
+        script_src = f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'"
         # The /embed routes must be framable by EXTERNAL lesson sites. For them, allow
         # framing (CSP frame-ancestors *) and do NOT send X-Frame-Options — SAMEORIGIN
         # would block cross-origin framing even with the permissive CSP. Everything else
-        # keeps SAMEORIGIN + a restrictive CSP. The CSP is limited to directives that do
-        # NOT affect how the Blockly IDE loads its own assets (a strict script-src is
-        # omitted — it needs report-only tuning against Blockly first).
+        # keeps SAMEORIGIN.
         if request.path == '/embed' or request.path.startswith('/embed/'):
-            response.headers['Content-Security-Policy'] = 'frame-ancestors *'
+            response.headers['Content-Security-Policy'] = (
+                f"{script_src}; object-src 'none'; base-uri 'self'; frame-ancestors *")
             response.headers.pop('X-Frame-Options', None)
         else:
             response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
             response.headers.setdefault(
                 'Content-Security-Policy',
-                "object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+                f"{script_src}; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         if request.path.startswith('/static/') and request.path.endswith('.js'):
             response.headers['Cache-Control'] = 'no-store'
         response = auth_module.finalize_auth_response(response)

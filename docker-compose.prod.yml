@@ -3,6 +3,13 @@
 # Always combine this file explicitly with the base file so the development
 # docker-compose.override.yml is never loaded on the server:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# This overlay also carries the container hardening that must stay off the dev path:
+# no-new-privileges on every service, and dropping ALL Linux capabilities from the web
+# container (it is the internet-facing app code, runs as the unprivileged appuser baked
+# into Dockerfile.prod, and needs no capabilities). The official postgres/mosquitto/nginx
+# entrypoints step down from root via gosu and bind privileged ports, so they keep their
+# default caps — only no-new-privileges is added there.
 
 services:
   postgres:
@@ -10,23 +17,33 @@ services:
     cpus: 0.45
     pids_limit: 100
     stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
 
   mosquitto-dynsec-init:
     mem_limit: 96m
     cpus: 0.20
     pids_limit: 50
+    security_opt:
+      - no-new-privileges:true
 
   mosquitto:
     mem_limit: 192m
     cpus: 0.30
     pids_limit: 100
     stop_grace_period: 20s
+    security_opt:
+      - no-new-privileges:true
 
   web:
     mem_limit: 768m
     cpus: 0.85
     pids_limit: 200
     stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
@@ -36,3 +53,5 @@ services:
     cpus: 0.25
     pids_limit: 100
     stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
