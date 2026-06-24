@@ -106,8 +106,6 @@ services:
       - MOSQUITTO_DYNSEC_ADMIN_PASSWORD=${MOSQUITTO_DYNSEC_ADMIN_PASSWORD:?Set MOSQUITTO_DYNSEC_ADMIN_PASSWORD in .env}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
       - PASSWORD_PEPPER=${PASSWORD_PEPPER:?Set PASSWORD_PEPPER in .env}
-    volumes:
-      - web_logs:/app/logs
     depends_on:
       mosquitto:
         condition: service_started
@@ -152,5 +150,4 @@ volumes:
   postgres_data:
   mosquitto_data:
   mosquitto_logs:
-  web_logs:
   nginx_logs:

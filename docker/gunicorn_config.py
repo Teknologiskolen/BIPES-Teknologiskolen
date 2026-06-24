@@ -34,9 +34,12 @@ timeout = 120
 max_requests = 400
 max_requests_jitter = 50
 
-# Logging
-accesslog = "/app/logs/access.log"
-errorlog = "/app/logs/error.log"
+# Logging -> stdout/stderr (captured by Docker's json-file driver, which the compose
+# caps at 10m x 3 so it can't fill the 15 GB disk). The previous /app/logs/*.log files
+# had NO rotation (unbounded growth) and, now that the web container runs as a non-root
+# user, aren't writable on a root-owned log volume anyway. "-" = stdout/stderr.
+accesslog = "-"
+errorlog = "-"
 loglevel = "info"
 
 # Process naming
