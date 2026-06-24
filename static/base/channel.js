@@ -1721,6 +1721,13 @@ function _WebMqtt (parent){
     if (idx < 0)
       return
     let name = topic.slice(idx + marker.length)
+    // Any message in this device's telemetry namespace means it is alive — cancel a
+    // pending grace-period teardown (armed by online=0 below). This is what lets an
+    // OTA/reboot blip recover silently instead of flashing Disconnected then Connected.
+    if (this._offlineTimer != undefined) {
+      clearTimeout(this._offlineTimer)
+      this._offlineTimer = undefined
+    }
     let line
     if (name === 'status')
       line = payload                       // whole protocol line (ACK/ERR/M/I/READY)
@@ -1728,14 +1735,20 @@ function _WebMqtt (parent){
       return                               // heartbeat — only used for the online dot
     else if (name === 'online') {
       // Retained presence flag, not telemetry — never shown in the terminal. When it
-      // goes to 0 the device's last-will fired (powered off / dropped), so remove it
-      // from the device list exactly like unplugging a USB serial device. Defer the
-      // teardown so we don't disconnect the Paho client from inside its own callback.
-      if (payload === '0' && this.uid != undefined) {
+      // goes to 0 the device's last-will fired (reboot / power-off / dropped). DON'T tear
+      // down immediately: an OTA or manual reboot rejoins within a few seconds, and a
+      // disconnect/reconnect flicker is noisy and drops the terminal. Arm a grace timer
+      // (~20 s); if the device comes back, online=1 — or any telemetry/heartbeat — clears
+      // it via the check above, so we never disconnect. Only a SUSTAINED absence (no sign
+      // of life for the whole window) is treated as a real disconnect.
+      if (payload === '0' && this.uid != undefined && this._offlineTimer == undefined) {
         let uid = this.uid
-        setTimeout(() => this.parent.disconnect(true, uid), 0)
+        this._offlineTimer = setTimeout(() => {
+          this._offlineTimer = undefined
+          this.parent.disconnect(true, uid)
+        }, 20000)
       }
-      return
+      return   // online=1 needs nothing here — the cancel-on-any-message check handled it
     }
     else
       line = 'T,' + name + '=' + payload   // telemetry value -> T,name=value
