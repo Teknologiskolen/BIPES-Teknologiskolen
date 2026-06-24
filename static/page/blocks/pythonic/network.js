@@ -667,10 +667,10 @@ Blockly.Python['runtime_start_wifi_secrets'] = function(block) {
 Blockly.Python['runtime_async_function'] = function(block) {
   Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
   var name = block.getFieldValue('NAME') || 'loop';
-  // Same global-scan as the on_* handlers, so a variable_set inside the loop writes
-  // the module variable instead of a hidden local (fixes "local variable referenced
-  // before assignment" in loop()).
-  var globalsLine = runtimeGlobalsLine(block, []);
+  // Same global-scan as the on_* handlers, so a variable the loop REASSIGNS writes the
+  // module variable instead of a hidden local (fixes "local variable referenced before
+  // assignment" in loop()). Scoped to the loop's own body ('STACK').
+  var globalsLine = runtimeGlobalsLine(block, [], 'STACK');
   var branch = Blockly.Python.statementToCode(block, 'STACK');
   if (!branch)
     branch = Blockly.Python.INDENT + 'pass\n';
@@ -714,33 +714,56 @@ Blockly.Python['wifi_is_connected'] = function(block) {
 // module variables the body uses, so a variable_set inside the handler writes the
 // module-level variable instead of a hidden local (same trick the procedure blocks
 // and mqtt_set_callback use).
-// Scan the program for every module-level variable it uses and emit an indented
-// `global a, b, c` line — minus `ownVars` (a handler's own parameters). Any function
-// that ASSIGNS a module variable (on_start, on_message, loop, …) needs this, or the
-// assignment creates a hidden local and a read raises
-// "local variable referenced before assignment".
-function runtimeGlobalsLine(block, ownVars) {
-  var workspace = block.workspace;
-  var globals = [];
+// Block types whose Python generator REBINDS a variable name (`x = …`). Only these
+// need a `global` declaration when they sit inside a function — a plain read, or an
+// in-place mutation (e.g. lists_setIndex appends to the object), does NOT.
+// ⚠️ If you add a block that assigns/rebinds a variable, add its type here, or a write
+// to that variable inside on_start/on_message/loop/… silently becomes a hidden local
+// and a later read raises "local variable referenced before assignment".
+// NB: text_append rebinds (`x = str(x) + …`), so it belongs here despite looking like
+// an in-place op.
+var RUNTIME_REBINDER_BLOCKS = [
+  'variables_set',     // x = value
+  'math_change',       // x = (x if … ) + n
+  'controls_for',      // for x in range(…)
+  'controls_forEach',  // for x in list
+  'text_append'        // x = str(x) + …
+];
+
+// Emit an indented `global a, b, c` line for exactly the variables this function's BODY
+// reassigns — scoped to the given statement input, minus `ownVars` (the handler's own
+// parameters). It walks only the body subtree, so e.g. on_start never declares a
+// variable that only on_message writes, and read-only variables stay out entirely.
+function runtimeGlobalsLine(block, ownVars, inputName) {
   var own = ownVars || [];
-  var variables = Blockly.Variables.allUsedVarModels(workspace) || [];
-  for (var i = 0, variable; variable = variables[i]; i++) {
-    var vn = Blockly.Python.nameDB_.getName(variable.name, Blockly.VARIABLE_CATEGORY_NAME);
-    if (own.indexOf(vn) == -1 && globals.indexOf(vn) == -1)
-      globals.push(vn);
-  }
-  var devVarList = Blockly.Variables.allDeveloperVariables(workspace);
-  for (var i = 0; i < devVarList.length; i++) {
-    var dn = Blockly.Python.nameDB_.getName(devVarList[i], Blockly.Names.DEVELOPER_VARIABLE_TYPE);
-    if (globals.indexOf(dn) == -1)
-      globals.push(dn);
+  var seen = {};
+  var globals = [];
+  var add = function(name) {
+    if (own.indexOf(name) == -1 && !seen[name]) { seen[name] = true; globals.push(name); }
+  };
+  var root = block.getInputTargetBlock(inputName || 'do');
+  var body = root ? root.getDescendants(false) : [];
+  for (var i = 0, b; b = body[i]; i++) {
+    // A rebinding block: the variable(s) in its OWN fields are the ones it assigns.
+    if (RUNTIME_REBINDER_BLOCKS.indexOf(b.type) != -1 && typeof b.getVarModels == 'function') {
+      var models = b.getVarModels() || [];
+      for (var j = 0; j < models.length; j++)
+        add(Blockly.Python.nameDB_.getName(models[j].name, Blockly.VARIABLE_CATEGORY_NAME));
+    }
+    // Developer (synthetic) variables are always written by the block that owns them.
+    if (typeof b.getDeveloperVariables == 'function') {
+      var dev = b.getDeveloperVariables() || [];
+      for (var k = 0; k < dev.length; k++)
+        add(Blockly.Python.nameDB_.getName(dev[k], Blockly.Names.DEVELOPER_VARIABLE_TYPE));
+    }
   }
   return globals.length ? Blockly.Python.INDENT + 'global ' + globals.join(', ') + '\n' : '';
 }
 
 function runtimeHandler(block, name, params, ownVars, inputName) {
-  var globalsLine = runtimeGlobalsLine(block, ownVars);
-  var body = Blockly.Python.statementToCode(block, inputName || 'do');
+  var resolvedInput = inputName || 'do';
+  var globalsLine = runtimeGlobalsLine(block, ownVars, resolvedInput);
+  var body = Blockly.Python.statementToCode(block, resolvedInput);
   if (!body)
     body = Blockly.Python.INDENT + 'pass\n';
   return 'def ' + name + '(' + params + '):\n' + globalsLine + body + '\n';
