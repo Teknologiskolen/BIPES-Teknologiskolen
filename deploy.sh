@@ -16,6 +16,11 @@ COMPOSE=(docker compose
   -f "$INSTALL_DIR/docker-compose.yml"
   -f "$INSTALL_DIR/docker-compose.prod.yml")
 
+# eclipse-mosquitto:2.0 drops privileges to this UID/GID. The bind-mounted TLS
+# certs must be owned by it (and the directory traversable) or the broker
+# crash-loops on "Unable to load server certificate". See install_certificate.
+MOSQUITTO_UID=1883
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -159,9 +164,12 @@ EOF
 }
 
 install_certificate() {
-  install -d -m 0750 "$INSTALL_DIR/docker/ssl"
-  install -m 0644 "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$INSTALL_DIR/docker/ssl/cert.pem"
-  install -m 0600 "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$INSTALL_DIR/docker/ssl/key.pem"
+  # 0755 so the mosquitto user (a non-root "other") can traverse into the dir;
+  # files owned by that UID so it can read the key (kept 0600). nginx reads the
+  # same files as root, so this ownership is transparent to it.
+  install -d -m 0755 "$INSTALL_DIR/docker/ssl"
+  install -m 0644 -o "$MOSQUITTO_UID" -g "$MOSQUITTO_UID" "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$INSTALL_DIR/docker/ssl/cert.pem"
+  install -m 0600 -o "$MOSQUITTO_UID" -g "$MOSQUITTO_UID" "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$INSTALL_DIR/docker/ssl/key.pem"
 }
 
 prepare_tls() {
@@ -192,8 +200,8 @@ prepare_tls() {
   cat > /etc/letsencrypt/renewal-hooks/deploy/bipes <<EOF
 #!/bin/sh
 set -eu
-install -m 0644 /etc/letsencrypt/live/$DOMAIN/fullchain.pem "$INSTALL_DIR/docker/ssl/cert.pem"
-install -m 0600 /etc/letsencrypt/live/$DOMAIN/privkey.pem "$INSTALL_DIR/docker/ssl/key.pem"
+install -m 0644 -o $MOSQUITTO_UID -g $MOSQUITTO_UID /etc/letsencrypt/live/$DOMAIN/fullchain.pem "$INSTALL_DIR/docker/ssl/cert.pem"
+install -m 0600 -o $MOSQUITTO_UID -g $MOSQUITTO_UID /etc/letsencrypt/live/$DOMAIN/privkey.pem "$INSTALL_DIR/docker/ssl/key.pem"
 cd "$INSTALL_DIR"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx mosquitto
 EOF
