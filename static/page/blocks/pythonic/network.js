@@ -997,3 +997,47 @@ Blockly.Python['cell_value'] = function(block) {
   var code = value_value;
   return code;
 };
+
+// ============================================================================
+// Make USER-DEFINED functions (procedures_def*) use the same reassigned-only
+// `global` rule as the runtime handlers. Blockly's stock procedure generator
+// (basic.js) declares EVERY workspace variable global except the function's own
+// parameters — noisy, and inconsistent with on_start/on_message/loop.
+//
+// Why we rewrite the OUTPUT instead of the cleaner approaches:
+//   * Re-feeding the generator a filtered variable list is UNSAFE: a procedure
+//     body can contain blocks (timer/IRQ/MQTT callbacks in timing.js/network.js/
+//     machine.js) that themselves call allUsedVarModels during statementToCode,
+//     so globally patching it would corrupt their codegen.
+//   * Re-implementing the whole generator risks drifting from upstream and, worse,
+//     mis-resolving the function NAME (a def/call mismatch -> NameError).
+// So we let the original run untouched (correct names, return value, scrub,
+// nested callbacks) and then replace just its `global …` line in the stored
+// definition with the reassigned-only set (scoped to the body 'STACK', minus
+// params). The regex is anchored to the function's own `def …:` signature, so a
+// nested callback def inside the body keeps its own globals.
+// network.js is concatenated AFTER basic.js (see concat_files(..., "basic.js")),
+// so procedures_def* is already defined here.
+(function () {
+  if (typeof Blockly == 'undefined' || !Blockly.Python) return;
+  var orig = Blockly.Python['procedures_defreturn'];
+  if (typeof orig != 'function') return;
+  function override(block) {
+    var before = {};
+    for (var k in Blockly.Python.definitions_) before[k] = true;
+    var ret = orig.call(this, block);                 // original generator, untouched
+    var params = (block.getVars() || []).map(function (v) {
+      return Blockly.Python.nameDB_.getName(v, Blockly.VARIABLE_CATEGORY_NAME);
+    });
+    var newLine = runtimeGlobalsLine(block, params, 'STACK');   // '' or INDENT+'global …\n'
+    for (var key in Blockly.Python.definitions_) {
+      if (before[key] || key.charAt(0) !== '%') continue;       // the def just added
+      Blockly.Python.definitions_[key] = Blockly.Python.definitions_[key].replace(
+        /(def [^\n]*:\n)([ \t]*global [^\n]*\n)?/,
+        function (m, sig) { return sig + newLine; });
+    }
+    return ret;
+  }
+  Blockly.Python['procedures_defreturn'] = override;
+  Blockly.Python['procedures_defnoreturn'] = override;   // basic.js aliases these
+})();
