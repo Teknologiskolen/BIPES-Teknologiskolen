@@ -673,62 +673,8 @@ function isLocalContext() {
   return window.location.protocol === 'file:';
 }
 
-// Cached per page load so adding/re-adding WiFi blocks doesn't keep rotating the
-// device password on the server.
-let _wifiBlockCreds
-// Auto-fill the MQTT credentials on a "Start over WiFi (manual settings)" block when
-// it's dropped in, so the student never copies them by hand. WiFi name/password stay
-// student-entered; host defaults to this page's host (broker usually runs on the same
-// server); user/password/prefix come from the server (the user's WiFi device).
-function autofillWifiCredentials (block) {
-  // Only relevant when the credential FIELDS are shown (literal block, or the combined
-  // WiFi block switched to "enter here"). In secrets-mode there's no HOST field and
-  // nothing to fill — the device reads /secrets.json itself.
-  if (!block.getField('HOST'))
-    return
-  let host = window.location.hostname
-  if (host && host !== 'localhost' && host !== '127.0.0.1')
-    block.setFieldValue(host, 'HOST')
-  let existing = {}
-  try { existing = JSON.parse(block.data || '{}') } catch (e) {}
-  if (existing.user)   // already carries MQTT creds (loaded project / re-toggled) — leave it
-    return
-  if (!document.getElementById('user-info'))   // provisioning needs a login
-    return
-  // Stash the credentials on the block's hidden `data` (not shown as fields); the
-  // code generator reads them from there and injects them into run(wifi=...).
-  let fill = (c) => {
-    if (!c) return
-    block.data = JSON.stringify({
-      user: c.mqtt_username || '',
-      password: c.mqtt_password || '',
-      prefix: c.mqtt_topic_prefix || ''
-    })
-  }
-  if (_wifiBlockCreds) { fill(_wifiBlockCreds); return }
-  fetch('/api/devices/block-credentials', {
-    method:'POST', credentials:'include',
-    headers:{'Content-Type':'application/json'}, body:'{}'
-  }).then(r => r.json()).then(j => {
-    if (j && j.success) { _wifiBlockCreds = j; fill(j) }
-  }).catch(() => {})
-}
-
 let moreInfo = 'is unknown, set at static/page/blocks/external.js'
 let blocksRegisterCallbacks = (workspace) => {
-  // Auto-fill MQTT credentials on the WiFi blocks. On CREATE (block dragged in) and on
-  // CHANGE (the combined WiFi block's dropdown switched to "enter here", which reveals
-  // the credential fields), top up the HOST field + hidden MQTT creds.
-  workspace.addChangeListener((event) => {
-    if (event.type !== Blockly.Events.BLOCK_CREATE && event.type !== Blockly.Events.BLOCK_CHANGE)
-      return
-    let ids = event.ids || (event.blockId ? [event.blockId] : [])
-    ids.forEach((id) => {
-      let block = workspace.getBlockById(id)
-      if (block && (block.type === 'runtime_start_wifi_literal' || block.type === 'runtime_program_wifi'))
-        autofillWifiCredentials(block)
-    })
-  })
   workspace.registerButtonCallback('installPyLib', (button) => {
     if (!/: (.*)$/.test(button.text_)){
       console.error(`Blocks: Blockly button "${button.text_}" is invalid.`)

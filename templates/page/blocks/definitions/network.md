@@ -542,9 +542,6 @@
 # wifi_is_connected
 <block type="wifi_is_connected"></block>
 
-# runtime_start_wifi_literal
-<block type="runtime_start_wifi_literal"></block>
-
 # runtime_on_start
 <block type="runtime_on_start"></block>
 

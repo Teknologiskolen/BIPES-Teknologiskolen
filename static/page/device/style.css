@@ -76,6 +76,10 @@ section#device #new-connection #WebSerial {
 }
 section#device #devices button {
   flex-shrink: 0;
+  /* Let the card grow to fit its two-column content; the generic .funky
+     button max-width of 18rem clipped the box while the inner inline-flex
+     div kept growing, so neighbouring cards visually overlapped. */
+  max-width: none;
 }
 section#device #devices button > div {
   min-width: 15rem;

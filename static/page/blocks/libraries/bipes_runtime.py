@@ -157,10 +157,11 @@ class _Runtime:
     def _path(self, name):
         return name if name.startswith("/") else "/" + name
 
-    # Files the browser must NEVER be able to read or list. secrets.json holds the
-    # WiFi/MQTT credentials and stays on the device only — LS hides it and GET refuses
-    # it. PUT is still allowed (that is how the Device page provisions it over USB).
-    _PROTECTED = ("secrets.json",)
+    # Files the browser must NEVER be able to read or list. (secrets.json USED to be
+    # here, but it is now shown in Files like any other file — the WiFi/MQTT credentials
+    # are no longer hidden, so students can see how the device is configured rather than
+    # it being "magical".) Add a filename here to hide it from LS and refuse GET.
+    _PROTECTED = ()
 
     def _is_protected(self, name):
         n = name[1:] if name.startswith("/") else name

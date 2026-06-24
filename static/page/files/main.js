@@ -385,8 +385,6 @@ class DeviceFiles {
     let matches = str.match(reg)
     if (matches != null) {
       matches = matches.map(str => str.replaceAll("'",""))
-      // Never surface device credentials in the file tree (see bipes_runtime._PROTECTED).
-      matches = matches.filter(m => m !== 'secrets.json' && m !== '/secrets.json')
       matches.forEach ((match) => {
         if(match.match(/\./) == null) {
           ref.push({

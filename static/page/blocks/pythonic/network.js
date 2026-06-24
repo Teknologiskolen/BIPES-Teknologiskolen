@@ -808,26 +808,8 @@ Blockly.Python['runtime_program_bluetooth'] = function(block) {
 };
 
 Blockly.Python['runtime_program_wifi'] = function(block) {
-  var defs = runtimeProgramScaffold(block, true);
-  if (block.getFieldValue('CREDS') !== 'FIELDS')
-    return defs + 'bipes_runtime.run(globals(), wifi=True)\n';   // creds from /secrets.json
-  // Fields mode: build the literal wifi config (same shape as runtime_start_wifi_literal),
-  // pulling the auto-filled MQTT credentials from the block's hidden `data`.
-  var esc = function(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); };
-  var ssid = esc(block.getFieldValue('SSID') || '');
-  var pw = esc(block.getFieldValue('PW') || '');
-  var host = esc(block.getFieldValue('HOST') || '');
-  var useTls = block.getFieldValue('SSL') !== 'PLAIN';
-  var port = parseInt(block.getFieldValue('PORT')) || (useTls ? 8883 : 1883);
-  var creds = {};
-  try { creds = JSON.parse(block.data || '{}'); } catch (e) {}
-  var user = esc(creds.user || '');
-  var password = esc(creds.password || '');
-  var prefix = esc(creds.prefix || '');
-  var cfg = '{"ssid": "' + ssid + '", "pw": "' + pw + '", "host": "' + host + '", "port": ' + port +
-            ', "ssl": ' + (useTls ? 'True' : 'False') +
-            ', "user": "' + user + '", "password": "' + password + '", "prefix": "' + prefix + '"}';
-  return defs + 'bipes_runtime.run(globals(), wifi=' + cfg + ')\n';
+  // Credentials always come from the device's /secrets.json — nothing in the program.
+  return runtimeProgramScaffold(block, true) + 'bipes_runtime.run(globals(), wifi=True)\n';
 };
 
 Blockly.Python['runtime_on_start'] = function(block) {
@@ -862,28 +844,6 @@ Blockly.Python['runtime_serial_send'] = function(block) {
   Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
   var text = Blockly.Python.valueToCode(block, 'TEXT', Blockly.Python.ORDER_NONE) || '""';
   return 'bipes_runtime.serial_send(' + text + ')\n';
-};
-
-// Start over WiFi. WiFi name/password/host come from the visible fields; the MQTT
-// credentials come from the block's hidden `data` (auto-filled on add) and are
-// injected here so they never appear as editable fields.
-Blockly.Python['runtime_start_wifi_literal'] = function(block) {
-  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
-  var esc = function(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); };
-  var ssid = esc(block.getFieldValue('SSID') || '');
-  var pw = esc(block.getFieldValue('PW') || '');
-  var host = esc(block.getFieldValue('HOST') || '');
-  var useTls = block.getFieldValue('SSL') !== 'PLAIN';   // default (incl. legacy blocks) = TLS
-  var port = parseInt(block.getFieldValue('PORT')) || (useTls ? 8883 : 1883);
-  var creds = {};
-  try { creds = JSON.parse(block.data || '{}'); } catch (e) {}
-  var user = esc(creds.user || '');
-  var password = esc(creds.password || '');
-  var prefix = esc(creds.prefix || '');
-  var cfg = '{"ssid": "' + ssid + '", "pw": "' + pw + '", "host": "' + host + '", "port": ' + port +
-            ', "ssl": ' + (useTls ? 'True' : 'False') +
-            ', "user": "' + user + '", "password": "' + password + '", "prefix": "' + prefix + '"}';
-  return 'bipes_runtime.run(globals(), wifi=' + cfg + ')\n';
 };
 
 // Subscribe to an extra MQTT topic (messages -> on_message).

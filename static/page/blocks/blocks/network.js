@@ -1075,33 +1075,6 @@ Blockly.Blocks['runtime_serial_send'] = {
   }
 };
 
-// Start over WiFi. The student enters only their WiFi name/password (+ broker host);
-// the MQTT credentials are fetched automatically and stored on the block's hidden
-// `data` (never shown as editable fields), then injected into the generated code.
-Blockly.Blocks['runtime_start_wifi_literal'] = {
-  init: function() {
-    this.appendDummyInput().appendField(Msg["runtime_start_wifi"]);
-    this.appendDummyInput()
-        .appendField(Msg["runtime_wifi_name"]).appendField(new Blockly.FieldTextInput("SSID"), "SSID");
-    this.appendDummyInput()
-        .appendField(Msg["runtime_wifi_password"]).appendField(new Blockly.FieldTextInput(""), "PW");
-    this.appendDummyInput()
-        .appendField(Msg["runtime_broker_host"]).appendField(new Blockly.FieldTextInput("192.168.0.10"), "HOST");
-    this.appendDummyInput()
-        .appendField(Msg["runtime_broker_port"]).appendField(new Blockly.FieldTextInput("8883"), "PORT");
-    this.appendDummyInput()
-        .appendField(Msg["runtime_security"]).appendField(new Blockly.FieldDropdown([
-          [Msg["runtime_tls_encrypted"], "TLS"],
-          [Msg["runtime_plain_no_tls"], "PLAIN"]
-        ]), "SSL");
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(170);
-    this.setTooltip("Connect over WiFi and the BIPES dashboard. Enter your WiFi name/password (and the broker host if it isn't this server). Keep security on TLS so the device credentials are encrypted (port 8883); only use 'plain' for a local lab broker without TLS (port 1883). The MQTT credentials are added automatically when you're logged in — you don't see or type them. Place at the end of your program.");
-    this.setHelpUrl("http://www.bipes.net.br");
-  }
-};
-
 // ============================================================================
 // Combined "program" blocks. One block per transport holds the WHOLE event
 // scaffold (on start / on message / on stop, plus on connect / on disconnect for
@@ -1151,60 +1124,16 @@ Blockly.Blocks['runtime_program_bluetooth'] = {
   }
 };
 
-// WiFi: full scaffold (+ connect/disconnect) + start over WiFi, with a dropdown
-// to take credentials from /secrets.json OR from fields typed on the block. ---
+// WiFi: full scaffold (+ connect/disconnect) + start over WiFi. Credentials always
+// come from the device's /secrets.json (set once on the Device page) — never typed
+// into the program. ----------------------------------------------------------
 Blockly.Blocks['runtime_program_wifi'] = {
   init: function() {
     this.appendDummyInput().appendField(Msg["runtime_program_wifi"]);
-    this.appendDummyInput()
-        .appendField(Msg["runtime_credentials"])
-        .appendField(new Blockly.FieldDropdown([
-          [Msg["runtime_credentials_secrets"], "SECRETS"],
-          [Msg["runtime_credentials_enter"], "FIELDS"]
-        ], this.onCredsChange_.bind(this)), "CREDS");
     appendRuntimeEventSections(this, true);
     this.setColour(170);
-    this.setTooltip("A whole program over WiFi + the dashboard in one block. Credentials 'from secrets.json' = set once on the Device page, nothing in your program (use for anything real). 'enter here' = type WiFi name/password + broker for a lab (MQTT credentials are added automatically). 'on connect'/'on disconnect' fire as the browser joins/leaves.");
+    this.setTooltip("A whole program over WiFi + the dashboard in one block. WiFi and broker credentials come from the device's /secrets.json (set once on the Device page) — nothing in your program. 'on connect'/'on disconnect' fire as the browser joins/leaves.");
     this.setHelpUrl("http://www.bipes.net.br");
-    this.useFields_ = false;
-  },
-  // Dropdown validator: show/hide the credential fields.
-  onCredsChange_: function(value) {
-    this.updateShape_(value === 'FIELDS');
-    return value;
-  },
-  // Add/remove the WiFi credential rows (placed above 'on start').
-  updateShape_: function(useFields) {
-    this.useFields_ = !!useFields;
-    var has = !!this.getInput('WIFI_SSID');
-    if (useFields && !has) {
-      this.appendDummyInput('WIFI_SSID').appendField(Msg["runtime_wifi_name"]).appendField(new Blockly.FieldTextInput("SSID"), "SSID");
-      this.appendDummyInput('WIFI_PW').appendField(Msg["runtime_wifi_password"]).appendField(new Blockly.FieldTextInput(""), "PW");
-      this.appendDummyInput('WIFI_HOST').appendField(Msg["runtime_broker_host"]).appendField(new Blockly.FieldTextInput("192.168.0.10"), "HOST");
-      this.appendDummyInput('WIFI_PORT').appendField(Msg["runtime_broker_port"]).appendField(new Blockly.FieldTextInput("8883"), "PORT");
-      this.appendDummyInput('WIFI_SSL').appendField(Msg["runtime_security"]).appendField(new Blockly.FieldDropdown([
-        [Msg["runtime_tls_encrypted"], "TLS"], [Msg["runtime_plain_no_tls"], "PLAIN"]
-      ]), "SSL");
-      this.moveInputBefore('WIFI_SSID', 'ON_START');
-      this.moveInputBefore('WIFI_PW', 'ON_START');
-      this.moveInputBefore('WIFI_HOST', 'ON_START');
-      this.moveInputBefore('WIFI_PORT', 'ON_START');
-      this.moveInputBefore('WIFI_SSL', 'ON_START');
-    } else if (!useFields && has) {
-      this.removeInput('WIFI_SSID');
-      this.removeInput('WIFI_PW');
-      this.removeInput('WIFI_HOST');
-      this.removeInput('WIFI_PORT');
-      this.removeInput('WIFI_SSL');
-    }
-  },
-  mutationToDom: function() {
-    var c = Blockly.utils.xml.createElement('mutation');
-    c.setAttribute('fields', this.useFields_ ? '1' : '0');
-    return c;
-  },
-  domToMutation: function(xml) {
-    this.updateShape_(xml.getAttribute('fields') === '1');
   }
 };
 

@@ -1200,7 +1200,12 @@ class WifiSetup {
       let d = (await resp.json()).device
       let secrets = {
         wifi:{ssid:ssid, pw:pw},
-        mqtt:{host:host, port:1884,
+        // TLS on 8883 — the broker only publishes its encrypted listener to the
+        // internet now (the old plaintext 1884->1883 mapping was removed in the TLS
+        // migration), so device credentials are encrypted in transit. ssl:true makes
+        // the runtime encrypt (encrypt-only without a `ca`, which is enough to stop
+        // passive sniffing of the per-device credentials).
+        mqtt:{host:host, port:8883, ssl:true,
               user:d.mqtt_username, password:d.mqtt_password, prefix:d.mqtt_topic_prefix}
       }
       let json = JSON.stringify(secrets)
