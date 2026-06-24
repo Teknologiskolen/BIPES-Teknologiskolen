@@ -64,8 +64,19 @@ class MQTTClient:
         addr = socket.getaddrinfo(self.server, self.port)[0][-1]
         self.sock.connect(addr)
         if self.ssl:
-            import ussl
-            self.sock = ussl.wrap_socket(self.sock, **self.ssl_params)
+            # `self.ssl` is either a modern ssl.SSLContext (bipes_runtime._ssl_args
+            # builds one) or just True (legacy boolean API). Use whichever the caller
+            # passed, and prefer the modern `ssl` module — `ussl` was renamed to `ssl`
+            # in newer MicroPython (rp2 >=1.23), so `import ussl` raises there.
+            if hasattr(self.ssl, "wrap_socket"):
+                # SSLContext: pass SNI so a verifying broker cert's hostname matches.
+                self.sock = self.ssl.wrap_socket(self.sock, server_hostname=self.server)
+            else:
+                try:
+                    import ssl as _ssl
+                except ImportError:
+                    import ussl as _ssl
+                self.sock = _ssl.wrap_socket(self.sock, **self.ssl_params)
         premsg = bytearray(b"\x10\0\0\0\0\0")
         msg = bytearray(b"\x04MQTT\x04\x02\0\0")
 
