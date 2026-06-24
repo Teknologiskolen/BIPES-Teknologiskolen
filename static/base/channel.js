@@ -1726,6 +1726,17 @@ function _WebMqtt (parent){
       line = payload                       // whole protocol line (ACK/ERR/M/I/READY)
     else if (name === 'seen')
       return                               // heartbeat — only used for the online dot
+    else if (name === 'online') {
+      // Retained presence flag, not telemetry — never shown in the terminal. When it
+      // goes to 0 the device's last-will fired (powered off / dropped), so remove it
+      // from the device list exactly like unplugging a USB serial device. Defer the
+      // teardown so we don't disconnect the Paho client from inside its own callback.
+      if (payload === '0' && this.uid != undefined) {
+        let uid = this.uid
+        setTimeout(() => this.parent.disconnect(true, uid), 0)
+      }
+      return
+    }
     else
       line = 'T,' + name + '=' + payload   // telemetry value -> T,name=value
     this.parent.inString(line + '\r\n', this.uid)

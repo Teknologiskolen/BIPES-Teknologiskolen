@@ -970,10 +970,8 @@ class WifiSetup {
     $.pwInput = new DOM('input', {placeholder:Msg['WifiPassword'] || 'WiFi password', type:'password'})
     $.nameLabel = new DOM('h4', {innerText:(Msg['DeviceName'] || 'Device name') + ':'})
     $.nameInput = new DOM('input', {placeholder:Msg['DeviceName'] || 'Device name', value:'Pico device'})
-    // Broker host the Pico connects to. Defaults to how you reached BIPES, but if
-    // that's "localhost" the device can't reach it — set the server's LAN IP.
-    $.hostLabel = new DOM('h4', {innerText:(Msg['BrokerHost'] || 'Broker host (server LAN IP)') + ':'})
-    $.hostInput = new DOM('input', {placeholder:'192.168.x.x', value:window.location.hostname})
+    // No broker-host field: the broker runs on the same server as BIPES, so the host
+    // the browser used to reach BIPES is the broker host (derived in save()).
     $.buttonSave = new DOM('button', {
       innerText:Msg['SaveToDevice'] || 'Save to device', className:'icon text', id:'connect'
     }).onclick(this, () => this.save())
@@ -981,7 +979,6 @@ class WifiSetup {
       $.ssidLabel, $.ssidInput,
       $.pwLabel, $.pwInput,
       $.nameLabel, $.nameInput,
-      $.hostLabel, $.hostInput,
       new DOM('div').append([$.buttonSave])
     ])
     $.addForm.$.style.display = 'none'
@@ -1175,14 +1172,13 @@ class WifiSetup {
     let ssid = $.ssidInput.$.value.trim()
     let pw = $.pwInput.$.value
     let name = $.nameInput.$.value.trim() || 'Pico device'
-    let host = $.hostInput.$.value.trim() || window.location.hostname
+    // The broker runs on the same server as BIPES, so the host the browser used to
+    // reach BIPES IS the broker host — derive it instead of asking the user to type it.
+    let host = window.location.hostname
     if (!ssid){ notification.send(Msg['WifiNeedSsid'] || 'Enter the WiFi name (SSID).'); return }
     if (host === 'localhost' || host === '127.0.0.1'){
       notification.send(Msg['BrokerHostLocal'] ||
-        'Broker host is localhost — the Pico cannot reach that. Set the server\'s LAN IP.'); return
-    }
-    if (!/^[A-Za-z0-9.\-]+$/.test(host) || host.indexOf('..') !== -1 || /^[.\-]|[.\-]$/.test(host)){
-      notification.send((Msg['BrokerHostInvalid'] || 'Broker host looks invalid') + ': "' + host + '"'); return
+        'You\'re on localhost — open BIPES via the server\'s real address (domain or LAN IP) so the device can reach the broker, then add the device.'); return
     }
     if (channel.targetDevice == undefined || !channel.hasConnection(channel.targetDevice)){
       notification.send(Msg['ConnectUsbFirst'] || 'Connect the device over USB first.'); return
