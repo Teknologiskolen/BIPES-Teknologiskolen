@@ -440,7 +440,12 @@ def create_app(database="postgresql"):
     @app.route("/embed")
     @app.route("/embed/<uid>")
     def embed(uid=None):
-        resp = make_response(render_template('embed.html'))
+        # Block labels follow ?lang= (validated), so an embed can be shown in Danish,
+        # English, … — defaults to the server default language.
+        lang = request.args.get('lang', default_lang)
+        if lang not in available_lang:
+            lang = default_lang
+        resp = make_response(render_template('embed.html', lang=lang))
         # Allow this page to be framed by external lesson sites.
         resp.headers['Content-Security-Policy'] = "frame-ancestors *"
         resp.headers.pop('X-Frame-Options', None)

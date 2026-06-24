@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,10 +15,12 @@
     }
     #copy-btn:hover { background: #f4f4f4; }
   </style>
-  <!-- Blockly + BIPES block definitions + message tables (read-only render only). -->
+  <!-- Blockly + BIPES block definitions + message tables (read-only render only).
+       Message tables follow ?lang= (defaults to the server language) so block labels
+       can be Danish, English, … -->
   <script src="/static/libs/blockly.umd.js"></script>
-  <script src="/static/msg/en.js"></script>
-  <script src="/static/page/blocks/msg/en.js"></script>
+  <script src="/static/msg/{{ lang }}.js"></script>
+  <script src="/static/page/blocks/msg/{{ lang }}.js"></script>
   <script src="/static/page/blocks/blocks.umd.js"></script>
 </head>
 <body>

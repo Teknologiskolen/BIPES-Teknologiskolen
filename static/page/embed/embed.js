@@ -107,6 +107,42 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
     else setTimeout(apply, 0)
   }
 
+  // Blockly measures each field's text with getComputedTextLength() during a render
+  // pass. If that first pass runs while the iframe is still hidden / zero-size (common
+  // when embedded in a lesson page or a dialog) or before fonts settle, the field
+  // widths come out too small and the text overflows the block shape. svgResize() does
+  // NOT fix this — it resizes the SVG canvas, not the field text. The width cache is
+  // per-render-pass (cleared between passes), so forcing a fresh workspace.render()
+  // once the frame is actually visible + sized re-measures every field correctly.
+  function relayout () {
+    try { if (workspace.render) workspace.render() } catch (e) {}
+    fitAndCenter()
+  }
+  // Run cb exactly once, as soon as fonts are ready AND #blocks has a real (nonzero)
+  // size — i.e. the workspace is genuinely renderable.
+  function whenRenderable (cb) {
+    var done = false
+    var fire = function () {
+      if (done) return true
+      if (host.clientWidth > 0 && host.clientHeight > 0) { done = true; cb(); return true }
+      return false
+    }
+    var start = function () {
+      if (fire()) return
+      if (window.ResizeObserver) {
+        var ro = new ResizeObserver(function () { if (fire()) ro.disconnect() })
+        ro.observe(host)
+      } else {
+        var n = 0
+        var t = setInterval(function () { if (fire() || ++n > 40) clearInterval(t) }, 50)
+      }
+    }
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then)
+      document.fonts.ready.then(start, start)
+    else
+      start()
+  }
+
   function render (xml) {
     try {
       if (blockParam != null) xml = selectChain(xml, blockParam)
@@ -115,6 +151,9 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
       Blockly.Xml.domToWorkspace(textToDom(xml), workspace)
       fitAndCenter()
       setupCopy()
+      // Re-measure + re-fit once the frame is truly visible/sized and fonts are ready,
+      // so field text never stays clipped from a too-early first measurement.
+      whenRenderable(relayout)
     } catch (e) {
       console.error('embed: failed to render blocks', e)
       host.innerHTML = '<div id="embed-error">Could not render blocks:\n' + e + '</div>'
