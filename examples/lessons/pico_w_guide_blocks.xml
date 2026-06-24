@@ -1,0 +1,452 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable id="v_navn">navn</variable>
+    <variable id="v_alder">alder</variable>
+    <variable id="v_fornavn">fornavn</variable>
+    <variable id="v_value">value</variable>
+    <variable id="v_line">line</variable>
+    <variable id="v_distance">distance</variable>
+  </variables>
+
+  <!-- block 0 — Trin 5: print "Hejsa" -->
+  <block x="20" y="20" type="text_print">
+    <value name="TEXT">
+      <block type="text"><field name="TEXT">Hejsa</field></block>
+    </value>
+  </block>
+
+  <!-- block 1 — Trin 6: variabler -->
+  <block x="20" y="120" type="variables_set">
+    <field name="VAR" id="v_alder">alder</field>
+    <value name="VALUE"><block type="math_number"><field name="NUM">7</field></block></value>
+    <next>
+      <block type="variables_set">
+        <field name="VAR" id="v_fornavn">fornavn</field>
+        <value name="VALUE"><block type="text"><field name="TEXT">Anna</field></block></value>
+        <next>
+          <block type="text_print">
+            <value name="TEXT">
+              <block type="text_join">
+                <mutation items="4"></mutation>
+                <value name="ADD0"><block type="variables_get"><field name="VAR" id="v_fornavn">fornavn</field></block></value>
+                <value name="ADD1"><block type="text"><field name="TEXT"> er </field></block></value>
+                <value name="ADD2"><block type="variables_get"><field name="VAR" id="v_alder">alder</field></block></value>
+                <value name="ADD3"><block type="text"><field name="TEXT"> år gammel.</field></block></value>
+              </block>
+            </value>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 2 — Trin 7: betingelser (if/else) -->
+  <block x="20" y="300" type="variables_set">
+    <field name="VAR" id="v_navn">navn</field>
+    <value name="VALUE"><block type="text"><field name="TEXT">Batman</field></block></value>
+    <next>
+      <block type="controls_if">
+        <mutation else="1"></mutation>
+        <value name="IF0">
+          <block type="logic_compare">
+            <field name="OP">EQ</field>
+            <value name="A"><block type="variables_get"><field name="VAR" id="v_navn">navn</field></block></value>
+            <value name="B"><block type="text"><field name="TEXT">Batman</field></block></value>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="text_print"><value name="TEXT"><block type="text"><field name="TEXT">Du er Batman!</field></block></value></block>
+        </statement>
+        <statement name="ELSE">
+          <block type="text_print"><value name="TEXT"><block type="text"><field name="TEXT">Du er ikke Batman!</field></block></value></block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 3 — Trin 8: løkke (while True) med pause -->
+  <block x="20" y="480" type="controls_whileUntil">
+    <field name="MODE">WHILE</field>
+    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+    <statement name="DO">
+      <block type="text_print">
+        <value name="TEXT"><block type="text"><field name="TEXT">Loopet kører!</field></block></value>
+        <next>
+          <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- block 4 — Trin 10: en FYSISK (ekstern) lysdiode på breadboard, koblet til GP4
+       (+ 120 ohm modstand til GND). Dette er IKKE den indbyggede LED. -->
+  <block x="20" y="640" type="controls_whileUntil">
+    <field name="MODE">WHILE</field>
+    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+    <statement name="DO">
+      <block type="machine.Pin.setValue">
+        <value name="pin"><shadow type="pinout"><field name="PIN">4</field></shadow></value>
+        <value name="value"><block type="math_number"><field name="NUM">1</field></block></value>
+        <next>
+          <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+            <next>
+              <block type="machine.Pin.setValue">
+                <value name="pin"><shadow type="pinout"><field name="PIN">4</field></shadow></value>
+                <value name="value"><block type="math_number"><field name="NUM">0</field></block></value>
+                <next>
+                  <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- block 5 — Trin 11: knap (GP3) tænder besked -->
+  <block x="20" y="820" type="controls_whileUntil">
+    <field name="MODE">WHILE</field>
+    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+    <statement name="DO">
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="logic_compare">
+            <field name="OP">EQ</field>
+            <value name="A">
+              <block type="machine.Pin.getValue">
+                <value name="pin"><shadow type="pinout"><field name="PIN">3</field></shadow></value>
+                <field name="PULL">Ingen</field>
+              </block>
+            </value>
+            <value name="B"><block type="math_number"><field name="NUM">1</field></block></value>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="text_print"><value name="TEXT"><block type="text"><field name="TEXT">Du trykkede på knappen!</field></block></value></block>
+        </statement>
+        <next>
+          <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">500</field></shadow></value></block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- block 6 — Trin 12/13: LDR/potentiometer styrer LED-lysstyrke (ADC -> PWM) -->
+  <block x="20" y="1000" type="machine.PWM.init">
+    <value name="pin"><block type="math_number"><field name="NUM">4</field></block></value>
+    <value name="frequency"><block type="math_number"><field name="NUM">1000</field></block></value>
+    <value name="duty"><block type="math_number"><field name="NUM">0</field></block></value>
+    <next>
+      <block type="controls_whileUntil">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+        <statement name="DO">
+          <block type="variables_set">
+            <field name="VAR" id="v_value">value</field>
+            <value name="VALUE">
+              <block type="machine.ADC.read_u16"><value name="pin"><shadow type="math_number"><field name="NUM">26</field></shadow></value></block>
+            </value>
+            <next>
+              <block type="machine.PWM.duty">
+                <value name="pin"><block type="math_number"><field name="NUM">4</field></block></value>
+                <value name="duty"><block type="variables_get"><field name="VAR" id="v_value">value</field></block></value>
+                <next>
+                  <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">250</field></shadow></value></block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 7 — Trin 14: linjesensor (analog ADC) -->
+  <block x="20" y="1180" type="controls_whileUntil">
+    <field name="MODE">WHILE</field>
+    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+    <statement name="DO">
+      <block type="variables_set">
+        <field name="VAR" id="v_line">line</field>
+        <value name="VALUE"><block type="machine.ADC.read_u16"><value name="pin"><shadow type="math_number"><field name="NUM">26</field></shadow></value></block></value>
+        <next>
+          <block type="text_print">
+            <value name="TEXT">
+              <block type="text_join">
+                <mutation items="2"></mutation>
+                <value name="ADD0"><block type="text"><field name="TEXT">line: </field></block></value>
+                <value name="ADD1"><block type="variables_get"><field name="VAR" id="v_line">line</field></block></value>
+              </block>
+            </value>
+            <next>
+              <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">100</field></shadow></value></block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- block 8 — Trin 16: DC-motor (Kitronik) -->
+  <block x="20" y="1360" type="kitronik_pico_robotics__create">
+    <value name="I2CAddress"><shadow type="math_number"><field name="NUM">108</field></shadow></value>
+    <value name="sda"><shadow type="pinout"><field name="PIN">8</field></shadow></value>
+    <value name="scl"><shadow type="pinout"><field name="PIN">9</field></shadow></value>
+    <next>
+      <block type="controls_whileUntil">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+        <statement name="DO">
+          <block type="kitronik_pico_robotics__motor_on">
+            <value name="motor"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <field name="direction">f</field>
+            <value name="speed"><shadow type="math_number"><field name="NUM">100</field></shadow></value>
+            <next>
+              <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+                <next>
+                  <block type="kitronik_pico_robotics__motor_off">
+                    <value name="motor"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                    <next>
+                      <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 9 — Trin 17: servomotor (Kitronik) -->
+  <block x="20" y="1540" type="kitronik_pico_robotics__create">
+    <value name="I2CAddress"><shadow type="math_number"><field name="NUM">108</field></shadow></value>
+    <value name="sda"><shadow type="pinout"><field name="PIN">8</field></shadow></value>
+    <value name="scl"><shadow type="pinout"><field name="PIN">9</field></shadow></value>
+    <next>
+      <block type="controls_whileUntil">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+        <statement name="DO">
+          <block type="kitronik_pico_robotics__servo_write">
+            <value name="servo"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <value name="degrees"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+            <next>
+              <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+                <next>
+                  <block type="kitronik_pico_robotics__servo_write">
+                    <value name="servo"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                    <value name="degrees"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+                    <next>
+                      <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+                        <next>
+                          <block type="kitronik_pico_robotics__servo_write">
+                            <value name="servo"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                            <value name="degrees"><shadow type="math_number"><field name="NUM">180</field></shadow></value>
+                            <next>
+                              <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 10 — Trin 18: NeoPixel skifter mellem gul og grøn -->
+  <block x="20" y="1720" type="neopixel__create">
+    <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+    <value name="number"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+    <value name="state_machine"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+    <value name="pin"><shadow type="pinout"><field name="PIN">28</field></shadow></value>
+    <next>
+      <block type="controls_whileUntil">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+        <statement name="DO">
+          <block type="neopixel__set_pixel">
+            <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <value name="pixel_num"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+            <value name="rgb_w">
+              <shadow type="text"><field name="TEXT"></field></shadow>
+              <block type="neopixel_color_numbers">
+                <value name="red"><block type="math_number"><field name="NUM">255</field></block></value>
+                <value name="green"><block type="math_number"><field name="NUM">100</field></block></value>
+                <value name="blue"><block type="math_number"><field name="NUM">0</field></block></value>
+              </block>
+            </value>
+            <value name="how_bright"><shadow type="math_number"><field name="NUM">50</field></shadow></value>
+            <next>
+              <block type="neopixel__set_pixel">
+                <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                <value name="pixel_num"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                <value name="rgb_w">
+                  <shadow type="text"><field name="TEXT"></field></shadow>
+                  <block type="neopixel_color_numbers">
+                    <value name="red"><block type="math_number"><field name="NUM">0</field></block></value>
+                    <value name="green"><block type="math_number"><field name="NUM">255</field></block></value>
+                    <value name="blue"><block type="math_number"><field name="NUM">0</field></block></value>
+                  </block>
+                </value>
+                <value name="how_bright"><shadow type="math_number"><field name="NUM">50</field></shadow></value>
+                <next>
+                  <block type="neopixel__show">
+                    <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                    <next>
+                      <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 11 — Trin 19: sonarsensor (HC-SR04) måler afstand -->
+  <block x="20" y="1900" type="hcsr04__create">
+    <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+    <value name="trigger_pin"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+    <value name="echo_pin"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+    <value name="echo_timeout_us"><shadow type="math_number"><field name="NUM">30000</field></shadow></value>
+    <next>
+      <block type="controls_whileUntil">
+        <field name="MODE">WHILE</field>
+        <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+        <statement name="DO">
+          <block type="variables_set">
+            <field name="VAR" id="v_distance">distance</field>
+            <value name="VALUE">
+              <block type="hcsr04__distance_cm"><value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+            </value>
+            <next>
+              <block type="text_print">
+                <value name="TEXT">
+                  <block type="text_join">
+                    <mutation items="3"></mutation>
+                    <value name="ADD0"><block type="text"><field name="TEXT">Distance: </field></block></value>
+                    <value name="ADD1"><block type="variables_get"><field name="VAR" id="v_distance">distance</field></block></value>
+                    <value name="ADD2"><block type="text"><field name="TEXT"> cm</field></block></value>
+                  </block>
+                </value>
+                <next>
+                  <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+
+  <!-- block 12 — Trin 19 opgave: afstands-trafiklys (sonar + neopixel + if/elif/else) -->
+  <block x="20" y="2080" type="neopixel__create">
+    <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+    <value name="number"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+    <value name="state_machine"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+    <value name="pin"><shadow type="pinout"><field name="PIN">28</field></shadow></value>
+    <next>
+      <block type="hcsr04__create">
+        <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+        <value name="trigger_pin"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+        <value name="echo_pin"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+        <value name="echo_timeout_us"><shadow type="math_number"><field name="NUM">30000</field></shadow></value>
+        <next>
+          <block type="controls_whileUntil">
+            <field name="MODE">WHILE</field>
+            <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+            <statement name="DO">
+              <block type="variables_set">
+                <field name="VAR" id="v_distance">distance</field>
+                <value name="VALUE"><block type="hcsr04__distance_cm"><value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block></value>
+                <next>
+                  <block type="controls_if">
+                    <mutation elseif="1" else="1"></mutation>
+                    <value name="IF0">
+                      <block type="logic_compare">
+                        <field name="OP">LT</field>
+                        <value name="A"><block type="variables_get"><field name="VAR" id="v_distance">distance</field></block></value>
+                        <value name="B"><block type="math_number"><field name="NUM">10</field></block></value>
+                      </block>
+                    </value>
+                    <statement name="DO0">
+                      <block type="neopixel__set_pixel">
+                        <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                        <value name="pixel_num"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+                        <value name="rgb_w">
+                          <shadow type="text"><field name="TEXT"></field></shadow>
+                          <block type="neopixel_color_numbers">
+                            <value name="red"><block type="math_number"><field name="NUM">255</field></block></value>
+                            <value name="green"><block type="math_number"><field name="NUM">0</field></block></value>
+                            <value name="blue"><block type="math_number"><field name="NUM">0</field></block></value>
+                          </block>
+                        </value>
+                        <value name="how_bright"><shadow type="math_number"><field name="NUM">50</field></shadow></value>
+                        <next><block type="neopixel__show"><value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block></next>
+                      </block>
+                    </statement>
+                    <value name="IF1">
+                      <block type="logic_compare">
+                        <field name="OP">LT</field>
+                        <value name="A"><block type="variables_get"><field name="VAR" id="v_distance">distance</field></block></value>
+                        <value name="B"><block type="math_number"><field name="NUM">20</field></block></value>
+                      </block>
+                    </value>
+                    <statement name="DO1">
+                      <block type="neopixel__set_pixel">
+                        <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                        <value name="pixel_num"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+                        <value name="rgb_w">
+                          <shadow type="text"><field name="TEXT"></field></shadow>
+                          <block type="neopixel_color_numbers">
+                            <value name="red"><block type="math_number"><field name="NUM">255</field></block></value>
+                            <value name="green"><block type="math_number"><field name="NUM">100</field></block></value>
+                            <value name="blue"><block type="math_number"><field name="NUM">0</field></block></value>
+                          </block>
+                        </value>
+                        <value name="how_bright"><shadow type="math_number"><field name="NUM">50</field></shadow></value>
+                        <next><block type="neopixel__show"><value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block></next>
+                      </block>
+                    </statement>
+                    <statement name="ELSE">
+                      <block type="neopixel__set_pixel">
+                        <value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+                        <value name="pixel_num"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+                        <value name="rgb_w">
+                          <shadow type="text"><field name="TEXT"></field></shadow>
+                          <block type="neopixel_color_numbers">
+                            <value name="red"><block type="math_number"><field name="NUM">0</field></block></value>
+                            <value name="green"><block type="math_number"><field name="NUM">255</field></block></value>
+                            <value name="blue"><block type="math_number"><field name="NUM">0</field></block></value>
+                          </block>
+                        </value>
+                        <value name="how_bright"><shadow type="math_number"><field name="NUM">50</field></shadow></value>
+                        <next><block type="neopixel__show"><value name="id"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block></next>
+                      </block>
+                    </statement>
+                    <next>
+                      <block type="utime_sleep_ms"><value name="pIn"><shadow type="math_number"><field name="NUM">200</field></shadow></value></block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </statement>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+
+</xml>

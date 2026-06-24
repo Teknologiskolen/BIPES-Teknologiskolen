@@ -29,7 +29,7 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
   // Default target; each pinout block also carries its own DEVICE field from the
   // saved XML, which takes precedence when resolving its pins.
   window.bipes.page.project = window.bipes.page.project ||
-    { current: { device: { target: 'RPIPico' } } }
+    { current: { device: { target: 'RPIPicoW' } } }
 
   var host = document.getElementById('blocks')
 

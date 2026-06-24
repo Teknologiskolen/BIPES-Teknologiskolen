@@ -495,6 +495,15 @@ nav #guest-info #login-link {
 nav #guest-info #login-link:hover {
   background: rgba(68,153,204,.2);
 }
+/* The guest/user info blocks are plain text + a sign-in/out action; they must NOT
+   inherit the generic `nav a/span::before` icon — it rendered as a stray menu glyph
+   on the Login link (and labels) when the nav was expanded. */
+nav #guest-info a::before,
+nav #guest-info span::before,
+nav #user-info a::before,
+nav #user-info span::before {
+  display: none;
+}
 
 /* The nav's bottom cluster is a flex column so we can pin the login/logout action to
    the very bottom-left corner regardless of the (invisible-when-collapsed) guest-info

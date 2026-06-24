@@ -665,11 +665,16 @@ Blockly.Python['runtime_start_wifi_secrets'] = function(block) {
 
 // Runtime: define an async function -------------------------------------------
 Blockly.Python['runtime_async_function'] = function(block) {
+  Blockly.Python.definitions_['import_bipes_runtime'] = 'import bipes_runtime';
   var name = block.getFieldValue('NAME') || 'loop';
+  // Same global-scan as the on_* handlers, so a variable_set inside the loop writes
+  // the module variable instead of a hidden local (fixes "local variable referenced
+  // before assignment" in loop()).
+  var globalsLine = runtimeGlobalsLine(block, []);
   var branch = Blockly.Python.statementToCode(block, 'STACK');
   if (!branch)
     branch = Blockly.Python.INDENT + 'pass\n';
-  return 'async def ' + name + '():\n' + branch + '\n';
+  return 'async def ' + name + '():\n' + globalsLine + branch + '\n';
 };
 
 // Runtime: cooperative wait (yields; does not block the event loop) ------------
@@ -709,20 +714,32 @@ Blockly.Python['wifi_is_connected'] = function(block) {
 // module variables the body uses, so a variable_set inside the handler writes the
 // module-level variable instead of a hidden local (same trick the procedure blocks
 // and mqtt_set_callback use).
-function runtimeHandler(block, name, params, ownVars, inputName) {
+// Scan the program for every module-level variable it uses and emit an indented
+// `global a, b, c` line — minus `ownVars` (a handler's own parameters). Any function
+// that ASSIGNS a module variable (on_start, on_message, loop, …) needs this, or the
+// assignment creates a hidden local and a read raises
+// "local variable referenced before assignment".
+function runtimeGlobalsLine(block, ownVars) {
   var workspace = block.workspace;
   var globals = [];
   var own = ownVars || [];
   var variables = Blockly.Variables.allUsedVarModels(workspace) || [];
   for (var i = 0, variable; variable = variables[i]; i++) {
     var vn = Blockly.Python.nameDB_.getName(variable.name, Blockly.VARIABLE_CATEGORY_NAME);
-    if (own.indexOf(vn) == -1)
+    if (own.indexOf(vn) == -1 && globals.indexOf(vn) == -1)
       globals.push(vn);
   }
   var devVarList = Blockly.Variables.allDeveloperVariables(workspace);
-  for (var i = 0; i < devVarList.length; i++)
-    globals.push(Blockly.Python.nameDB_.getName(devVarList[i], Blockly.Names.DEVELOPER_VARIABLE_TYPE));
-  var globalsLine = globals.length ? Blockly.Python.INDENT + 'global ' + globals.join(', ') + '\n' : '';
+  for (var i = 0; i < devVarList.length; i++) {
+    var dn = Blockly.Python.nameDB_.getName(devVarList[i], Blockly.Names.DEVELOPER_VARIABLE_TYPE);
+    if (globals.indexOf(dn) == -1)
+      globals.push(dn);
+  }
+  return globals.length ? Blockly.Python.INDENT + 'global ' + globals.join(', ') + '\n' : '';
+}
+
+function runtimeHandler(block, name, params, ownVars, inputName) {
+  var globalsLine = runtimeGlobalsLine(block, ownVars);
   var body = Blockly.Python.statementToCode(block, inputName || 'do');
   if (!body)
     body = Blockly.Python.INDENT + 'pass\n';

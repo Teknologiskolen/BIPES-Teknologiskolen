@@ -53,7 +53,7 @@ def ensure_postgres_auth_schema(app):
 
 # Default language on server mode
 # Note: this is overwritten by the Makefile's lang arg on the "make release" command.
-default_lang = 'en'
+default_lang = 'da'
 # Languages available, used in the templates generators.
 available_lang = {
     'da':'Dansk',
