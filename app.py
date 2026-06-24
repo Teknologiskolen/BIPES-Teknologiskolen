@@ -230,19 +230,24 @@ def create_app(database="postgresql"):
         # camera blob:/data: frames and Blockly's injected inline styles must keep working).
         nonce = _csp_nonce()
         script_src = f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'"
+        # worker-src 'self' blob:: Muuri (the dashboard grid) and similar libs spawn Web
+        # Workers from blob: URLs; with no explicit worker-src they fall back to script-src
+        # and get blocked. Allowing blob: workers does NOT re-enable inline-script injection
+        # (that stays gated by script-src, which has neither 'unsafe-inline' nor blob:).
+        worker_src = "worker-src 'self' blob:"
         # The /embed routes must be framable by EXTERNAL lesson sites. For them, allow
         # framing (CSP frame-ancestors *) and do NOT send X-Frame-Options — SAMEORIGIN
         # would block cross-origin framing even with the permissive CSP. Everything else
         # keeps SAMEORIGIN.
         if request.path == '/embed' or request.path.startswith('/embed/'):
             response.headers['Content-Security-Policy'] = (
-                f"{script_src}; object-src 'none'; base-uri 'self'; frame-ancestors *")
+                f"{script_src}; {worker_src}; object-src 'none'; base-uri 'self'; frame-ancestors *")
             response.headers.pop('X-Frame-Options', None)
         else:
             response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
             response.headers.setdefault(
                 'Content-Security-Policy',
-                f"{script_src}; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
+                f"{script_src}; {worker_src}; object-src 'none'; base-uri 'self'; frame-ancestors 'self'")
         if request.path.startswith('/static/') and request.path.endswith('.js'):
             response.headers['Cache-Control'] = 'no-store'
         response = auth_module.finalize_auth_response(response)
@@ -486,11 +491,10 @@ def create_app(database="postgresql"):
         lang = request.args.get('lang', default_lang)
         if lang not in available_lang:
             lang = default_lang
-        resp = make_response(render_template('embed.html', lang=lang))
-        # Allow this page to be framed by external lesson sites.
-        resp.headers['Content-Security-Policy'] = "frame-ancestors *"
-        resp.headers.pop('X-Frame-Options', None)
-        return resp
+        # The framing policy for /embed (CSP frame-ancestors * + dropping X-Frame-Options)
+        # is applied centrally in add_security_headers(), which also attaches the
+        # script-src/worker-src nonce policy — so nothing extra is needed here.
+        return make_response(render_template('embed.html', lang=lang))
 
     # A tiny standalone "lesson" page that embeds the blocks via an <iframe>,
     # so you can verify embedding end-to-end. Open /embed-test.
