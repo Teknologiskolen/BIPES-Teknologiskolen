@@ -57,6 +57,9 @@ const CLASSES_I18N = {
         active: 'Active',
         pendingSetup: 'Pending Setup',
         removeFromClass: 'Remove from class',
+        deleteStudent: 'Delete student account',
+        deleteStudentConfirm: 'Permanently delete {name}? This removes the account from ALL classes and deletes all their projects. This cannot be undone.',
+        failedToDeleteStudent: 'Failed to delete student',
         showCode: 'Show one-time code',
         clickToCopyCode: 'Click to copy code',
         initialCodeLabel: 'One-time code',
@@ -133,6 +136,9 @@ const CLASSES_I18N = {
         active: 'Aktiv',
         pendingSetup: 'Afventer opsætning',
         removeFromClass: 'Fjern fra klasse',
+        deleteStudent: 'Slet elevkonto',
+        deleteStudentConfirm: 'Slet {name} permanent? Dette fjerner kontoen fra ALLE klasser og sletter alle deres projekter. Dette kan ikke fortrydes.',
+        failedToDeleteStudent: 'Kunne ikke slette eleven',
         showCode: 'Vis engangskode',
         clickToCopyCode: 'Klik for at kopiere kode',
         initialCodeLabel: 'Engangskode',
@@ -209,6 +215,9 @@ const CLASSES_I18N = {
         active: 'Aktiv',
         pendingSetup: 'Einrichtung ausstehend',
         removeFromClass: 'Aus Klasse entfernen',
+        deleteStudent: 'Schülerkonto löschen',
+        deleteStudentConfirm: '{name} dauerhaft löschen? Dies entfernt das Konto aus ALLEN Klassen und löscht alle Projekte. Dies kann nicht rückgängig gemacht werden.',
+        failedToDeleteStudent: 'Schüler konnte nicht gelöscht werden',
         showCode: 'Einmalcode anzeigen',
         clickToCopyCode: 'Zum Kopieren klicken',
         initialCodeLabel: 'Einmalcode',
@@ -604,6 +613,9 @@ class ClassesPage {
                                     <button class="btn-icon remove-student-btn" data-student-id="${student.student_id}" title="${t('removeFromClass')}">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
                                     </button>
+                                    <button class="btn-icon delete-student-btn" data-student-id="${student.student_id}" data-student-name="${esc(student.student_name)}" title="${t('deleteStudent')}">
+                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6.5" r="3"/><path d="M2.5 16.5c0-3 2.5-5 5.5-5 1 0 1.9.2 2.7.6"/><path d="M13 12.5l4 4M17 12.5l-4 4"/></svg>
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -644,12 +656,23 @@ class ClassesPage {
             this.showAddStudentModal();
         });
 
-        // Remove student buttons
+        // Remove student buttons (unenroll from this class only)
         container.querySelectorAll('.remove-student-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const studentId = e.currentTarget.dataset.studentId;
                 if (confirm(t('removeStudentConfirm'))) {
                     await this.removeStudent(studentId);
+                }
+            });
+        });
+
+        // Delete student buttons (permanently delete the account + all their data)
+        container.querySelectorAll('.delete-student-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const studentId = e.currentTarget.dataset.studentId;
+                const name = e.currentTarget.dataset.studentName;
+                if (confirm(t('deleteStudentConfirm').replace('{name}', name))) {
+                    await this.deleteStudentAccount(studentId);
                 }
             });
         });
@@ -943,6 +966,23 @@ class ClassesPage {
                 this.showClassDetail(this.currentClass.class_id);
             } else {
                 alert(t('failedToRemoveStudent'));
+            }
+        } catch (error) {
+            alert(t('networkError'));
+        }
+    }
+
+    async deleteStudentAccount(studentId) {
+        try {
+            const response = await fetch(`/api/classes/${this.currentClass.class_id}/students/${studentId}/account`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                this.showClassDetail(this.currentClass.class_id);
+            } else {
+                alert(data.error || t('failedToDeleteStudent'));
             }
         } catch (error) {
             alert(t('networkError'));

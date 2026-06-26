@@ -299,6 +299,10 @@ nav #classes.on::before {
     white-space: nowrap;
 }
 
+.delete-student-btn:hover {
+    color: #dc3545;
+}
+
 .status-active {
     background: #d4edda;
     color: #155724;

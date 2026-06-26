@@ -861,6 +861,53 @@ def remove_student_from_class(class_id, student_id):
         return security.server_error(e)
 
 
+@bp.route('/classes/<int:class_id>/students/<int:student_id>/account', methods=['DELETE'])
+@auth.require_teacher()
+@security.require_same_origin()
+def delete_student_account(class_id, student_id):
+    """
+    Permanently delete a student ACCOUNT and all their data — distinct from removing them
+    from a single class. ON DELETE CASCADE removes their enrollments (in every class) and
+    their projects. Because students are a school-wide shared directory, this also affects
+    any other class the student belonged to.
+
+    Allowed for a teacher with access to a class the student is (or was) enrolled in, so a
+    teacher can only delete accounts they actually manage.
+    Returns: {success: true} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if not access:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        db = dbase.get_db(_db)
+        # The student must be linked to this class (active or previously removed) so a
+        # teacher cannot delete arbitrary accounts they have no relationship with.
+        link = db.execute(dbase._s("""
+            SELECT 1 FROM enrollments WHERE class_id = %s AND student_id = %s
+        """), (class_id, student_id)).fetchone()
+        if link is None:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'Student is not part of this class'}), 404
+
+        # Hard delete; enrollments + projects cascade via ON DELETE CASCADE.
+        db.execute(dbase._s("DELETE FROM students WHERE student_id = %s"), (student_id,))
+        db.commit()
+        db.close()
+        g.pop('db', None)
+
+        return jsonify({'success': True, 'message': 'Student account deleted'}), 200
+
+    except Exception as e:
+        return security.server_error(e)
+
+
 @bp.route('/classes/<int:class_id>/students', methods=['GET'])
 @auth.require_teacher()
 def get_class_students(class_id):
