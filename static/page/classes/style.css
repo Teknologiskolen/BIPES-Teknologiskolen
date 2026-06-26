@@ -309,6 +309,27 @@ nav #classes.on::before {
     color: #856404;
 }
 
+.initial-code {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    color: #333;
+    background: #f1f3f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: all;
+}
+
+.initial-code:hover {
+    background: #e9ecef;
+    border-color: #667eea;
+}
+
 .password-display {
     font-family: 'Courier New', monospace;
     font-weight: 600;

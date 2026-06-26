@@ -879,13 +879,15 @@ def get_class_students(class_id):
         if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
-        # Get students in class. has_initial_code tells the UI whether a re-viewable
-        # one-time code still exists (the code itself is never sent here — only via the
-        # dedicated, audited code endpoint).
+        # Get students in class. For students who haven't finished setup yet, decrypt and
+        # return their one-time code inline so the teacher can read it straight from the
+        # list. This is the same teacher and the same authorisation as the dedicated code
+        # endpoint, so it exposes nothing new; the code is wiped once the student sets
+        # their own password (password_changed = TRUE), after which we never return it.
         db = dbase.get_db(_db)
         sql = dbase._s("""
             SELECT s.student_id, s.student_name, s.password_changed, e.enrolled_at,
-                   (s.initial_password_enc IS NOT NULL) AS has_initial_code
+                   s.initial_password_enc
             FROM students s
             JOIN enrollments e ON s.student_id = e.student_id
             WHERE e.class_id = %s AND e.is_active = TRUE
@@ -897,14 +899,19 @@ def get_class_students(class_id):
 
         students = []
         for row in rows:
-            student_id, student_name, password_changed, enrolled_at, has_initial_code = row
+            student_id, student_name, password_changed, enrolled_at, initial_password_enc = row
+
+            initial_password = None
+            if not password_changed and initial_password_enc:
+                initial_password = auth.decrypt_initial_password(initial_password_enc)
 
             students.append({
                 'student_id': student_id,
                 'student_name': student_name,
                 'password_changed': password_changed,
                 'enrolled_at': enrolled_at,
-                'has_initial_code': bool(has_initial_code)
+                'has_initial_code': initial_password is not None,
+                'initial_password': initial_password
             })
 
         return jsonify({'students': students}), 200

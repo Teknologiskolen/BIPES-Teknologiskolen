@@ -58,6 +58,7 @@ const CLASSES_I18N = {
         pendingSetup: 'Pending Setup',
         removeFromClass: 'Remove from class',
         showCode: 'Show one-time code',
+        clickToCopyCode: 'Click to copy code',
         initialCodeLabel: 'One-time code',
         codeCopied: 'Copied to clipboard!',
         noCodeAvailable: 'No code available; the student has already changed their password.',
@@ -133,6 +134,7 @@ const CLASSES_I18N = {
         pendingSetup: 'Afventer opsætning',
         removeFromClass: 'Fjern fra klasse',
         showCode: 'Vis engangskode',
+        clickToCopyCode: 'Klik for at kopiere kode',
         initialCodeLabel: 'Engangskode',
         codeCopied: 'Kopieret til udklipsholder!',
         noCodeAvailable: 'Ingen kode tilgængelig; eleven har allerede ændret sin adgangskode.',
@@ -208,6 +210,7 @@ const CLASSES_I18N = {
         pendingSetup: 'Einrichtung ausstehend',
         removeFromClass: 'Aus Klasse entfernen',
         showCode: 'Einmalcode anzeigen',
+        clickToCopyCode: 'Zum Kopieren klicken',
         initialCodeLabel: 'Einmalcode',
         codeCopied: 'In die Zwischenablage kopiert!',
         noCodeAvailable: 'Kein Code verfügbar; der Schüler hat sein Passwort bereits geändert.',
@@ -594,12 +597,10 @@ class ClassesPage {
                                     ${student.password_changed ?
                                         `<span class="badge badge-success">${t('active')}</span>` :
                                         `<span class="badge badge-warning">${t('pendingSetup')}</span>`}
+                                    ${(!student.password_changed && student.initial_password) ?
+                                        `<span class="initial-code" data-code="${esc(student.initial_password)}" title="${t('clickToCopyCode')}">${esc(student.initial_password)}</span>` : ''}
                                 </td>
                                 <td>
-                                    ${(!student.password_changed && student.has_initial_code) ?
-                                        `<button class="btn-icon show-code-btn" data-student-id="${student.student_id}" title="${t('showCode')}">
-                                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.5"/></svg>
-                                        </button>` : ''}
                                     <button class="btn-icon remove-student-btn" data-student-id="${student.student_id}" title="${t('removeFromClass')}">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
                                     </button>
@@ -653,10 +654,12 @@ class ClassesPage {
             });
         });
 
-        // Show one-time code buttons (only present while the code is still re-viewable)
-        container.querySelectorAll('.show-code-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                await this.showStudentCode(e.currentTarget.dataset.studentId);
+        // One-time code shown inline for students who haven't finished setup; click to copy.
+        container.querySelectorAll('.initial-code').forEach(el => {
+            el.addEventListener('click', async (e) => {
+                const code = e.currentTarget.dataset.code;
+                try { await navigator.clipboard.writeText(code); } catch (err) {}
+                alert(`${t('initialCodeLabel')}: ${code}\n\n${t('codeCopied')}`);
             });
         });
 
