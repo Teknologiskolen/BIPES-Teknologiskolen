@@ -4,6 +4,7 @@ Flask-MQTT==1.3.0
 paho-mqtt==2.1.0
 psycopg[binary]==3.3.4
 argon2-cffi==25.1.0
+cryptography==44.0.0
 PyYAML==6.0.3
 jsonschema==4.26.0
 textX==4.3.0

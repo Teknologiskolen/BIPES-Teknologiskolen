@@ -75,13 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Success — teachers go to their classes home, students to the IDE.
+            // Success — everyone lands in the IDE after first-time setup.
             showAlert(t('setup_complete', 'Password changed! Redirecting...'), 'success');
             setTimeout(() => {
-                if (userType === 'teacher')
-                    window.location.href = window.authPreferences ? window.authPreferences.path('/classes') : '/classes';
-                else
-                    window.location.href = window.authPreferences ? window.authPreferences.idePath() : '/ide';
+                window.location.href = window.authPreferences ? window.authPreferences.idePath() : '/ide';
             }, 1500);
 
         } catch (error) {

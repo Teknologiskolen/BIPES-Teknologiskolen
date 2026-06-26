@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS students (
   student_name VARCHAR(100) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   password_changed BOOLEAN DEFAULT FALSE,
+  -- Encrypted (Fernet) one-time initial password, re-viewable by the owning teacher
+  -- until the student first changes their password (then set to NULL). Never plaintext.
+  initial_password_enc TEXT,
   created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
   created_by_teacher_id INTEGER NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
@@ -38,6 +41,18 @@ CREATE TABLE IF NOT EXISTS classes (
   created_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
   is_active BOOLEAN DEFAULT TRUE,
   FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id)
+);
+
+-- Class teachers (many-to-many: teachers <-> classes). The class's original creator is
+-- also recorded here as a member; classes.teacher_id is retained as the "created by"
+-- record. Any teacher listed here has full access to the class (co-teaching).
+CREATE TABLE IF NOT EXISTS class_teachers (
+  class_id INTEGER NOT NULL,
+  teacher_id INTEGER NOT NULL,
+  added_at NUMERIC(16,6) NOT NULL DEFAULT(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP::TIMESTAMP WITH TIME ZONE)::NUMERIC(16,6)),
+  PRIMARY KEY (class_id, teacher_id),
+  FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE
 );
 
 -- Enrollments (many-to-many: students <-> classes)
@@ -118,6 +133,12 @@ BEGIN
         ALTER TABLE projects ADD COLUMN student_id INTEGER REFERENCES students(student_id) ON DELETE CASCADE;
     END IF;
 
+    -- Encrypted one-time initial password (re-viewable until first password change).
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name='students' AND column_name='initial_password_enc') THEN
+        ALTER TABLE students ADD COLUMN initial_password_enc TEXT;
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                    WHERE table_name='projects' AND column_name='teacher_id') THEN
         ALTER TABLE projects ADD COLUMN teacher_id INTEGER REFERENCES teachers(teacher_id) ON DELETE CASCADE;
@@ -156,6 +177,13 @@ ALTER TABLE students DROP COLUMN IF EXISTS initial_password;
 CREATE INDEX IF NOT EXISTS idx_students_name ON students(student_name);
 CREATE INDEX IF NOT EXISTS idx_classes_code ON classes(class_code);
 CREATE INDEX IF NOT EXISTS idx_classes_teacher ON classes(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_class_teachers_teacher ON class_teachers(teacher_id);
+
+-- Backfill class_teachers with each class's original creator (idempotent). Ensures every
+-- existing class has its owner as a member so co-teaching access checks work uniformly.
+INSERT INTO class_teachers (class_id, teacher_id)
+SELECT class_id, teacher_id FROM classes
+ON CONFLICT (class_id, teacher_id) DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_enrollments_class ON enrollments(class_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_projects_student ON projects(student_id);

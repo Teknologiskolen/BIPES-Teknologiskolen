@@ -279,10 +279,12 @@ def student_change_password():
         new_password_hash = auth.hash_password(new_password)
         db = dbase.get_db(_db)
 
-        # Update password and mark onboarding as complete
+        # Update password and mark onboarding as complete. Wipe the stored one-time code
+        # the moment the student sets their own password — it's no longer valid and must
+        # not remain re-viewable by the teacher.
         sql = dbase._s("""
             UPDATE students
-            SET password_hash = %s, password_changed = TRUE
+            SET password_hash = %s, password_changed = TRUE, initial_password_enc = NULL
             WHERE student_id = %s
         """)
         db.execute(sql, (new_password_hash, student_id))
@@ -469,6 +471,11 @@ def create_class():
         class_data = dbase.fetch(_db, 'classes', ['class_id'], ['class_code', class_code])
         class_id = class_data[2][0]
 
+        # Record the creator as a member so co-teaching access checks are uniform.
+        dbase.insert(_db, 'class_teachers',
+            ['class_id', 'teacher_id', 'added_at'],
+            (class_id, teacher_id, timestamp))
+
         return jsonify({
             'success': True,
             'class_id': class_id,
@@ -484,26 +491,31 @@ def create_class():
 @auth.require_teacher()
 def get_my_classes():
     """
-    Get all classes created by the current teacher
-    Returns: {classes: [{class_id, class_name, class_code, description, created_at, student_count}]}
+    Get all classes the current teacher owns or co-teaches
+    Returns: {classes: [{class_id, class_name, class_code, description, created_at, student_count, is_owner}]}
     """
     try:
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Get teacher's classes with student counts
+        # Get the teacher's classes (owned or co-taught) with student counts.
         db = dbase.get_db(_db)
+        # Match classes the teacher owns (classes.teacher_id) OR co-teaches (class_teachers).
+        # The ownership arm keeps owned classes visible even if the class_teachers backfill
+        # hasn't run yet on an upgraded database.
         sql = dbase._s("""
             SELECT c.class_id, c.class_name, c.class_code, c.description, c.created_at,
-                   COUNT(e.enrollment_id) as student_count
+                   COUNT(DISTINCT e.enrollment_id) as student_count,
+                   (c.teacher_id = %s) as is_owner
             FROM classes c
+            LEFT JOIN class_teachers ct ON ct.class_id = c.class_id AND ct.teacher_id = %s
             LEFT JOIN enrollments e ON c.class_id = e.class_id AND e.is_active = TRUE
-            WHERE c.teacher_id = %s AND c.is_active = TRUE
-            GROUP BY c.class_id, c.class_name, c.class_code, c.description, c.created_at
+            WHERE c.is_active = TRUE AND (c.teacher_id = %s OR ct.teacher_id IS NOT NULL)
+            GROUP BY c.class_id, c.class_name, c.class_code, c.description, c.created_at, c.teacher_id
             ORDER BY c.created_at DESC
         """)
 
-        rows = db.execute(sql, (teacher_id,)).fetchall()
+        rows = db.execute(sql, (teacher_id, teacher_id, teacher_id)).fetchall()
         db.close()
 
         classes = []
@@ -514,7 +526,8 @@ def get_my_classes():
                 'class_code': row[2],
                 'description': row[3],
                 'created_at': row[4],
-                'student_count': row[5]
+                'student_count': row[5],
+                'is_owner': bool(row[6])
             })
 
         return jsonify({'classes': classes}), 200
@@ -534,7 +547,7 @@ def get_class_details(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
+        # Verify teacher owns or co-teaches this class
         class_data = dbase.fetch(_db, 'classes',
             ['class_id', 'class_name', 'class_code', 'description', 'created_at', 'teacher_id'],
             ['class_id', class_id])
@@ -542,7 +555,8 @@ def get_class_details(class_id):
         if class_data[2] is None:
             return jsonify({'error': 'Class not found'}), 404
 
-        if class_data[2][5] != teacher_id:
+        owner_id = class_data[2][5]
+        if owner_id != teacher_id and not auth.teacher_class_access(_db, teacher_id, class_id):
             return jsonify({'error': 'Unauthorized'}), 403
 
         return jsonify({
@@ -550,7 +564,8 @@ def get_class_details(class_id):
             'class_name': class_data[2][1],
             'class_code': class_data[2][2],
             'description': class_data[2][3],
-            'created_at': class_data[2][4]
+            'created_at': class_data[2][4],
+            'is_owner': owner_id == teacher_id
         }), 200
 
     except Exception as e:
@@ -569,13 +584,11 @@ def delete_class(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         # Soft delete
@@ -608,14 +621,14 @@ def search_students(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # The teacher must own the class they are searching to add students to. Students
-        # themselves are a school-wide shared directory (the same student account can be
-        # taught by several teachers), so the search below is intentionally not scoped to
-        # the requesting teacher.
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-        if class_data[2] is None:
+        # The teacher must own or co-teach the class they are searching to add students to.
+        # Students themselves are a school-wide shared directory (the same student account
+        # can be taught by several teachers), so the search below is intentionally not
+        # scoped to the requesting teacher.
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         obj = request.json
@@ -664,13 +677,11 @@ def create_student_and_enroll(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         obj = request.json
@@ -702,16 +713,19 @@ def create_student_and_enroll(class_id):
         # Generate initial password
         initial_password = auth.generate_initial_password()
         password_hash = auth.hash_password(initial_password)
+        # Store the one-time code encrypted at rest so the teacher can re-view it until
+        # the student first changes their password (wiped on change-password).
+        initial_password_enc = auth.encrypt_initial_password(initial_password)
         timestamp = auth.get_timestamp()
 
         # Create student and get the new student_id via RETURNING
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            INSERT INTO students (student_name, password_hash, password_changed, created_at, created_by_teacher_id)
-            VALUES (%s, %s, FALSE, %s, %s)
+            INSERT INTO students (student_name, password_hash, password_changed, initial_password_enc, created_at, created_by_teacher_id)
+            VALUES (%s, %s, FALSE, %s, %s, %s)
             RETURNING student_id
         """)
-        result = db.execute(sql, (student_name, password_hash, timestamp, teacher_id)).fetchone()
+        result = db.execute(sql, (student_name, password_hash, initial_password_enc, timestamp, teacher_id)).fetchone()
         db.commit()
         student_id = result[0]
 
@@ -749,13 +763,11 @@ def add_existing_student(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         obj = request.json
@@ -819,13 +831,11 @@ def remove_student_from_class(class_id, student_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         # Soft delete enrollment
@@ -855,19 +865,20 @@ def get_class_students(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
-        # Get students in class
+        # Get students in class. has_initial_code tells the UI whether a re-viewable
+        # one-time code still exists (the code itself is never sent here — only via the
+        # dedicated, audited code endpoint).
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT s.student_id, s.student_name, s.password_changed, e.enrolled_at
+            SELECT s.student_id, s.student_name, s.password_changed, e.enrolled_at,
+                   (s.initial_password_enc IS NOT NULL) AS has_initial_code
             FROM students s
             JOIN enrollments e ON s.student_id = e.student_id
             WHERE e.class_id = %s AND e.is_active = TRUE
@@ -879,16 +890,268 @@ def get_class_students(class_id):
 
         students = []
         for row in rows:
-            student_id, student_name, password_changed, enrolled_at = row
+            student_id, student_name, password_changed, enrolled_at, has_initial_code = row
 
             students.append({
                 'student_id': student_id,
                 'student_name': student_name,
                 'password_changed': password_changed,
-                'enrolled_at': enrolled_at
+                'enrolled_at': enrolled_at,
+                'has_initial_code': bool(has_initial_code)
             })
 
         return jsonify({'students': students}), 200
+
+    except Exception as e:
+        return security.server_error(e)
+
+
+@bp.route('/classes/<int:class_id>/students/<int:student_id>/code', methods=['GET'])
+@auth.require_teacher()
+def get_student_initial_code(class_id, student_id):
+    """
+    Re-view a student's one-time initial password.
+    Only available to the teacher who owns the class the student is enrolled in, and only
+    until the student first changes their password (after which the code is wiped).
+    Returns: {initial_password} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if not access:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Verify the student is actively enrolled in this class, and pull the code.
+        db = dbase.get_db(_db)
+        sql = dbase._s("""
+            SELECT s.password_changed, s.initial_password_enc
+            FROM students s
+            JOIN enrollments e ON s.student_id = e.student_id
+            WHERE s.student_id = %s AND e.class_id = %s
+              AND e.is_active = TRUE AND s.is_active = TRUE
+            LIMIT 1
+        """)
+        row = db.execute(sql, (student_id, class_id)).fetchone()
+        db.close()
+        g.pop('db', None)
+
+        if row is None:
+            return jsonify({'error': 'Student not found in this class'}), 404
+
+        password_changed, initial_password_enc = row
+
+        if password_changed or not initial_password_enc:
+            # The student has already set their own password — there is no code to show.
+            return jsonify({'error': 'No initial code available; the student has already changed their password'}), 410
+
+        initial_password = auth.decrypt_initial_password(initial_password_enc)
+        if initial_password is None:
+            # Token unreadable (e.g. after a pepper rotation) — treat as gone.
+            return jsonify({'error': 'Initial code is no longer recoverable'}), 410
+
+        return jsonify({'initial_password': initial_password}), 200
+
+    except Exception as e:
+        return security.server_error(e)
+
+
+#---------------------------------------------------------------------------
+# Co-teachers
+#---------------------------------------------------------------------------
+
+@bp.route('/classes/<int:class_id>/teachers', methods=['GET'])
+@auth.require_teacher()
+def get_class_teachers(class_id):
+    """
+    List the teachers (owner + co-teachers) on a class.
+    Any teacher on the class may view the list.
+    Returns: {teachers: [{teacher_id, full_name, email, is_owner, is_self}]} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if not access:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Owner is recorded on classes.teacher_id; everyone (incl. owner) is in class_teachers.
+        owner_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
+        owner_id = owner_data[2][0] if owner_data[2] else None
+
+        db = dbase.get_db(_db)
+        sql = dbase._s("""
+            SELECT t.teacher_id, t.full_name, t.email, ct.added_at
+            FROM class_teachers ct
+            JOIN teachers t ON t.teacher_id = ct.teacher_id
+            WHERE ct.class_id = %s AND t.is_active = TRUE
+            ORDER BY (t.teacher_id = %s) DESC, ct.added_at ASC
+        """)
+        rows = db.execute(sql, (class_id, owner_id)).fetchall()
+        db.close()
+
+        teachers = []
+        for row in rows:
+            teachers.append({
+                'teacher_id': row[0],
+                'full_name': row[1],
+                'email': row[2],
+                'is_owner': row[0] == owner_id,
+                'is_self': row[0] == teacher_id
+            })
+
+        return jsonify({'teachers': teachers}), 200
+
+    except Exception as e:
+        return security.server_error(e)
+
+
+@bp.route('/classes/<int:class_id>/teachers', methods=['POST'])
+@auth.require_teacher()
+@security.require_same_origin()
+def add_co_teacher(class_id):
+    """
+    Add a co-teacher to a class by email. Any teacher on the class may add others.
+    POST body: {email}
+    Returns: {success: true, teacher: {...}} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if not access:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        obj = request.json or {}
+        email = (obj.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'error': 'Teacher email is required'}), 400
+
+        # Look up the teacher to add. Email is stored as entered; match case-insensitively.
+        db = dbase.get_db(_db)
+        sql = dbase._s("""
+            SELECT teacher_id, full_name, email
+            FROM teachers
+            WHERE LOWER(email) = %s AND is_active = TRUE
+            LIMIT 1
+        """)
+        target = db.execute(sql, (email,)).fetchone()
+        if target is None:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'No teacher found with that email'}), 404
+
+        target_id, target_name, target_email = target
+
+        # Already on the class?
+        exists = db.execute(dbase._s(
+            "SELECT 1 FROM class_teachers WHERE class_id = %s AND teacher_id = %s"
+        ), (class_id, target_id)).fetchone()
+        if exists is not None:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'That teacher is already on this class'}), 409
+
+        timestamp = auth.get_timestamp()
+        db.execute(dbase._s(
+            "INSERT INTO class_teachers (class_id, teacher_id, added_at) VALUES (%s, %s, %s)"
+        ), (class_id, target_id, timestamp))
+        db.commit()
+
+        owner_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
+        owner_id = owner_data[2][0] if owner_data[2] else None
+
+        return jsonify({
+            'success': True,
+            'teacher': {
+                'teacher_id': target_id,
+                'full_name': target_name,
+                'email': target_email,
+                'is_owner': target_id == owner_id,
+                'is_self': target_id == teacher_id
+            }
+        }), 201
+
+    except Exception as e:
+        return security.server_error(e)
+
+
+@bp.route('/classes/<int:class_id>/teachers/<int:target_teacher_id>', methods=['DELETE'])
+@auth.require_teacher()
+@security.require_same_origin()
+def remove_co_teacher(class_id, target_teacher_id):
+    """
+    Remove a teacher from a class. Any teacher on the class may remove another (full
+    parity). The class's last remaining teacher cannot be removed (would orphan it).
+    Returns: {success: true} or {error}
+    """
+    try:
+        user = auth.get_current_user()
+        teacher_id = user['user_id']
+
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
+            return jsonify({'error': 'Class not found'}), 404
+        if not access:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        db = dbase.get_db(_db)
+
+        # Target must currently be on the class.
+        present = db.execute(dbase._s(
+            "SELECT 1 FROM class_teachers WHERE class_id = %s AND teacher_id = %s"
+        ), (class_id, target_teacher_id)).fetchone()
+        if present is None:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'That teacher is not on this class'}), 404
+
+        # Never leave a class with no teachers.
+        count_row = db.execute(dbase._s(
+            "SELECT COUNT(*) FROM class_teachers WHERE class_id = %s"
+        ), (class_id,)).fetchone()
+        if count_row and count_row[0] <= 1:
+            db.close()
+            g.pop('db', None)
+            return jsonify({'error': 'Cannot remove the only teacher on the class'}), 409
+
+        # Read the recorded owner on the same connection (avoid dbase.fetch here — it would
+        # close the connection mid-transaction and discard the DELETE below).
+        owner_row = db.execute(dbase._s(
+            "SELECT teacher_id FROM classes WHERE class_id = %s"
+        ), (class_id,)).fetchone()
+        owner_id = owner_row[0] if owner_row else None
+
+        db.execute(dbase._s(
+            "DELETE FROM class_teachers WHERE class_id = %s AND teacher_id = %s"
+        ), (class_id, target_teacher_id))
+
+        # If we removed the recorded owner, hand ownership to the next-oldest remaining
+        # teacher so classes.teacher_id always points at a real member.
+        if owner_id == target_teacher_id:
+            next_owner = db.execute(dbase._s(
+                "SELECT teacher_id FROM class_teachers WHERE class_id = %s ORDER BY added_at ASC LIMIT 1"
+            ), (class_id,)).fetchone()
+            if next_owner is not None:
+                db.execute(dbase._s(
+                    "UPDATE classes SET teacher_id = %s WHERE class_id = %s"
+                ), (next_owner[0], class_id))
+
+        db.commit()
+        db.close()
+        g.pop('db', None)
+
+        return jsonify({'success': True, 'message': 'Teacher removed from class'}), 200
 
     except Exception as e:
         return security.server_error(e)
@@ -1145,13 +1408,11 @@ def get_class_projects(class_id):
         user = auth.get_current_user()
         teacher_id = user['user_id']
 
-        # Verify teacher owns this class
-        class_data = dbase.fetch(_db, 'classes', ['teacher_id'], ['class_id', class_id])
-
-        if class_data[2] is None:
+        # Verify teacher owns or co-teaches this class
+        access = auth.teacher_class_access(_db, teacher_id, class_id)
+        if access is None:
             return jsonify({'error': 'Class not found'}), 404
-
-        if class_data[2][0] != teacher_id:
+        if not access:
             return jsonify({'error': 'Unauthorized'}), 403
 
         # Get projects assigned to this class

@@ -41,6 +41,9 @@ const CLASSES_I18N = {
         noDescription: 'No description',
         studentsSuffix: 'students',
         viewClass: 'View Class',
+        deleteClass: 'Delete class',
+        deleteClassConfirm: 'Delete class "{name}"? This cannot be undone.',
+        failedToDeleteClass: 'Failed to delete class',
         loadingClassDetails: 'Loading class details...',
         failedToLoadStudents: 'Failed to load students',
         backToClasses: '← Back to Classes',
@@ -54,6 +57,23 @@ const CLASSES_I18N = {
         active: 'Active',
         pendingSetup: 'Pending Setup',
         removeFromClass: 'Remove from class',
+        showCode: 'Show one-time code',
+        initialCodeLabel: 'One-time code',
+        codeCopied: 'Copied to clipboard!',
+        noCodeAvailable: 'No code available; the student has already changed their password.',
+        teachersHeader: 'Teachers',
+        coTeacherEmailPlaceholder: 'Co-teacher email',
+        addCoTeacher: 'Add co-teacher',
+        loadingTeachers: 'Loading teachers...',
+        failedToLoadTeachers: 'Failed to load teachers',
+        you: 'you',
+        ownerBadge: 'Owner',
+        coTeacherBadge: 'Co-teacher',
+        removeTeacher: 'Remove from class',
+        removeTeacherConfirm: 'Remove {name} from this class?',
+        enterCoTeacherEmail: 'Please enter a teacher email',
+        failedToAddCoTeacher: 'Failed to add co-teacher',
+        failedToRemoveTeacher: 'Failed to remove teacher',
         classCodeCopied: 'Class code copied!',
         removeStudentConfirm: 'Remove this student from the class?',
         noStudentsFound: 'No students found',
@@ -96,6 +116,9 @@ const CLASSES_I18N = {
         noDescription: 'Ingen beskrivelse',
         studentsSuffix: 'elever',
         viewClass: 'Vis klasse',
+        deleteClass: 'Slet klasse',
+        deleteClassConfirm: 'Slet klassen "{name}"? Dette kan ikke fortrydes.',
+        failedToDeleteClass: 'Kunne ikke slette klassen',
         loadingClassDetails: 'Indlæser klassedetaljer...',
         failedToLoadStudents: 'Kunne ikke indlæse elever',
         backToClasses: '← Tilbage til klasser',
@@ -109,6 +132,23 @@ const CLASSES_I18N = {
         active: 'Aktiv',
         pendingSetup: 'Afventer opsætning',
         removeFromClass: 'Fjern fra klasse',
+        showCode: 'Vis engangskode',
+        initialCodeLabel: 'Engangskode',
+        codeCopied: 'Kopieret til udklipsholder!',
+        noCodeAvailable: 'Ingen kode tilgængelig; eleven har allerede ændret sin adgangskode.',
+        teachersHeader: 'Lærere',
+        coTeacherEmailPlaceholder: 'Medlærers e-mail',
+        addCoTeacher: 'Tilføj medlærer',
+        loadingTeachers: 'Indlæser lærere...',
+        failedToLoadTeachers: 'Kunne ikke indlæse lærere',
+        you: 'dig',
+        ownerBadge: 'Ejer',
+        coTeacherBadge: 'Medlærer',
+        removeTeacher: 'Fjern fra klasse',
+        removeTeacherConfirm: 'Fjern {name} fra denne klasse?',
+        enterCoTeacherEmail: 'Indtast venligst en lærers e-mail',
+        failedToAddCoTeacher: 'Kunne ikke tilføje medlærer',
+        failedToRemoveTeacher: 'Kunne ikke fjerne lærer',
         classCodeCopied: 'Klassekode kopieret!',
         removeStudentConfirm: 'Fjern denne elev fra klassen?',
         noStudentsFound: 'Ingen elever fundet',
@@ -151,6 +191,9 @@ const CLASSES_I18N = {
         noDescription: 'Keine Beschreibung',
         studentsSuffix: 'Schüler',
         viewClass: 'Klasse anzeigen',
+        deleteClass: 'Klasse löschen',
+        deleteClassConfirm: 'Klasse "{name}" löschen? Dies kann nicht rückgängig gemacht werden.',
+        failedToDeleteClass: 'Klasse konnte nicht gelöscht werden',
         loadingClassDetails: 'Klassendetails werden geladen...',
         failedToLoadStudents: 'Schüler konnten nicht geladen werden',
         backToClasses: '← Zurück zu den Klassen',
@@ -164,6 +207,23 @@ const CLASSES_I18N = {
         active: 'Aktiv',
         pendingSetup: 'Einrichtung ausstehend',
         removeFromClass: 'Aus Klasse entfernen',
+        showCode: 'Einmalcode anzeigen',
+        initialCodeLabel: 'Einmalcode',
+        codeCopied: 'In die Zwischenablage kopiert!',
+        noCodeAvailable: 'Kein Code verfügbar; der Schüler hat sein Passwort bereits geändert.',
+        teachersHeader: 'Lehrkräfte',
+        coTeacherEmailPlaceholder: 'E-Mail der Mitlehrkraft',
+        addCoTeacher: 'Mitlehrkraft hinzufügen',
+        loadingTeachers: 'Lehrkräfte werden geladen...',
+        failedToLoadTeachers: 'Lehrkräfte konnten nicht geladen werden',
+        you: 'Sie',
+        ownerBadge: 'Eigentümer',
+        coTeacherBadge: 'Mitlehrkraft',
+        removeTeacher: 'Aus Klasse entfernen',
+        removeTeacherConfirm: '{name} aus dieser Klasse entfernen?',
+        enterCoTeacherEmail: 'Bitte eine Lehrer-E-Mail eingeben',
+        failedToAddCoTeacher: 'Mitlehrkraft konnte nicht hinzugefügt werden',
+        failedToRemoveTeacher: 'Lehrkraft konnte nicht entfernt werden',
         classCodeCopied: 'Klassencode kopiert!',
         removeStudentConfirm: 'Diesen Schüler aus der Klasse entfernen?',
         noStudentsFound: 'Keine Schüler gefunden',
@@ -427,6 +487,9 @@ class ClassesPage {
                     <button class="btn btn-secondary view-class-btn" data-class-id="${cls.class_id}">
                         ${t('viewClass')}
                     </button>
+                    <button class="btn-icon delete-class-btn" data-class-id="${cls.class_id}" data-class-name="${esc(cls.class_name)}" title="${t('deleteClass')}">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -434,10 +497,40 @@ class ClassesPage {
         // Attach click handlers
         container.querySelectorAll('.view-class-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const classId = parseInt(e.target.dataset.classId);
+                const classId = parseInt(e.currentTarget.dataset.classId);
                 this.showClassDetail(classId);
             });
         });
+
+        container.querySelectorAll('.delete-class-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const classId = parseInt(e.currentTarget.dataset.classId);
+                const name = e.currentTarget.dataset.className;
+                if (confirm(t('deleteClassConfirm').replace('{name}', name))) {
+                    this.deleteClass(classId);
+                }
+            });
+        });
+    }
+
+    async deleteClass(classId) {
+        try {
+            const response = await fetch(`/api/classes/${classId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                // Hide the detail view in case the deleted class was open, then refresh.
+                const detail = this.$.container.$.querySelector('#class-detail');
+                if (detail) detail.style.display = 'none';
+                this.loadClasses();
+            } else {
+                alert(data.error || t('failedToDeleteClass'));
+            }
+        } catch (error) {
+            alert(t('networkError'));
+        }
     }
 
     async showClassDetail(classId) {
@@ -476,6 +569,7 @@ class ClassesPage {
                     ${t('classCodeLabel')} <strong>${esc(this.currentClass.class_code)}</strong>
                     <button class="btn-icon" id="copy-class-code" title="${t('copyClassCode')}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="9" height="10" rx="1.5"/><path d="M4 13H3.5A1.5 1.5 0 0 1 2 11.5v-7A1.5 1.5 0 0 1 3.5 3h7A1.5 1.5 0 0 1 12 4.5V5"/></svg></button>
                 </div>
+                <button class="btn btn-danger" id="delete-class-btn">${t('deleteClass')}</button>
             </div>
 
             <div class="tab-content active" id="students-tab">
@@ -502,6 +596,10 @@ class ClassesPage {
                                         `<span class="badge badge-warning">${t('pendingSetup')}</span>`}
                                 </td>
                                 <td>
+                                    ${(!student.password_changed && student.has_initial_code) ?
+                                        `<button class="btn-icon show-code-btn" data-student-id="${student.student_id}" title="${t('showCode')}">
+                                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                                        </button>` : ''}
                                     <button class="btn-icon remove-student-btn" data-student-id="${student.student_id}" title="${t('removeFromClass')}">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
                                     </button>
@@ -510,6 +608,17 @@ class ClassesPage {
                         `).join('')}
                     </tbody>
                 </table>
+            </div>
+
+            <div class="tab-content active" id="teachers-tab">
+                <div class="students-header">
+                    <h3>${t('teachersHeader')}</h3>
+                    <div class="add-co-teacher">
+                        <input type="email" id="co-teacher-email" placeholder="${t('coTeacherEmailPlaceholder')}" />
+                        <button class="btn btn-primary" id="add-co-teacher-btn">${t('addCoTeacher')}</button>
+                    </div>
+                </div>
+                <div id="teachers-list"><div class="loading">${t('loadingTeachers')}</div></div>
             </div>
 
         `;
@@ -524,6 +633,12 @@ class ClassesPage {
             alert(t('classCodeCopied'));
         });
 
+        container.querySelector('#delete-class-btn').addEventListener('click', () => {
+            if (confirm(t('deleteClassConfirm').replace('{name}', this.currentClass.class_name))) {
+                this.deleteClass(this.currentClass.class_id);
+            }
+        });
+
         container.querySelector('#add-student-btn').addEventListener('click', () => {
             this.showAddStudentModal();
         });
@@ -531,12 +646,147 @@ class ClassesPage {
         // Remove student buttons
         container.querySelectorAll('.remove-student-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const studentId = e.target.dataset.studentId;
+                const studentId = e.currentTarget.dataset.studentId;
                 if (confirm(t('removeStudentConfirm'))) {
                     await this.removeStudent(studentId);
                 }
             });
         });
+
+        // Show one-time code buttons (only present while the code is still re-viewable)
+        container.querySelectorAll('.show-code-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.showStudentCode(e.currentTarget.dataset.studentId);
+            });
+        });
+
+        // Co-teachers
+        const addCoTeacherBtn = container.querySelector('#add-co-teacher-btn');
+        const coTeacherEmail = container.querySelector('#co-teacher-email');
+        addCoTeacherBtn.addEventListener('click', () => this.addCoTeacher());
+        coTeacherEmail.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); this.addCoTeacher(); }
+        });
+        this.loadClassTeachers();
+    }
+
+    async loadClassTeachers() {
+        const list = this.$.container.$.querySelector('#teachers-list');
+        if (!list) return;
+        try {
+            const response = await fetch(`/api/classes/${this.currentClass.class_id}/teachers`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            if (response.ok) {
+                this.renderClassTeachers(data.teachers);
+            } else {
+                list.innerHTML = `<div class="error">${data.error || t('failedToLoadTeachers')}</div>`;
+            }
+        } catch (error) {
+            list.innerHTML = `<div class="error">${t('failedToLoadTeachers')}</div>`;
+        }
+    }
+
+    renderClassTeachers(teachers) {
+        const list = this.$.container.$.querySelector('#teachers-list');
+        if (!list) return;
+
+        list.innerHTML = `
+            <table class="students-table">
+                <tbody>
+                    ${teachers.map(teacher => `
+                        <tr>
+                            <td>${esc(teacher.full_name)}${teacher.is_self ? ` (${t('you')})` : ''}</td>
+                            <td>${esc(teacher.email)}</td>
+                            <td>
+                                ${teacher.is_owner
+                                    ? `<span class="badge badge-success">${t('ownerBadge')}</span>`
+                                    : `<span class="badge badge-warning">${t('coTeacherBadge')}</span>`}
+                            </td>
+                            <td>
+                                ${teachers.length > 1 ?
+                                    `<button class="btn-icon remove-teacher-btn" data-teacher-id="${teacher.teacher_id}" data-teacher-name="${esc(teacher.full_name)}" title="${t('removeTeacher')}">
+                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6 5.5l.7 10a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-10"/></svg>
+                                    </button>` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        list.querySelectorAll('.remove-teacher-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const teacherId = e.currentTarget.dataset.teacherId;
+                const name = e.currentTarget.dataset.teacherName;
+                if (confirm(t('removeTeacherConfirm').replace('{name}', name))) {
+                    await this.removeCoTeacher(teacherId);
+                }
+            });
+        });
+    }
+
+    async addCoTeacher() {
+        const input = this.$.container.$.querySelector('#co-teacher-email');
+        const email = (input.value || '').trim();
+        if (!email) { alert(t('enterCoTeacherEmail')); return; }
+        try {
+            const response = await fetch(`/api/classes/${this.currentClass.class_id}/teachers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                input.value = '';
+                this.loadClassTeachers();
+            } else {
+                alert(data.error || t('failedToAddCoTeacher'));
+            }
+        } catch (error) {
+            alert(t('networkError'));
+        }
+    }
+
+    async removeCoTeacher(teacherId) {
+        try {
+            const response = await fetch(`/api/classes/${this.currentClass.class_id}/teachers/${teacherId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                // If a teacher removed themselves, they no longer have access — go back to the list.
+                this.loadClasses();
+                this.loadClassTeachers();
+            } else {
+                alert(data.error || t('failedToRemoveTeacher'));
+            }
+        } catch (error) {
+            alert(t('networkError'));
+        }
+    }
+
+    async showStudentCode(studentId) {
+        try {
+            const response = await fetch(`/api/classes/${this.currentClass.class_id}/students/${studentId}/code`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                try { await navigator.clipboard.writeText(data.initial_password); } catch (e) {}
+                alert(`${t('initialCodeLabel')}: ${data.initial_password}\n\n${t('codeCopied')}`);
+            } else {
+                alert(data.error || t('noCodeAvailable'));
+                // The code may have just been used; refresh so the button disappears.
+                this.showClassDetail(this.currentClass.class_id);
+            }
+        } catch (error) {
+            alert(t('networkError'));
+        }
     }
 
     showAddStudentModal() {

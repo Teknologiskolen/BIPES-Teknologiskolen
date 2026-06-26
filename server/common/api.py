@@ -70,7 +70,11 @@ def _share_list_query(user, from_ts=None, limit=None):
 
 def _can_access_shared_project(user, teacher_id, shared_public, shared_class_id):
     if user['user_type'] == 'teacher':
-        return bool(shared_public) or teacher_id == user['user_id']
+        if bool(shared_public) or teacher_id == user['user_id']:
+            return True
+        # Co-teachers can open projects shared to a class they teach.
+        return bool(shared_class_id) and bool(
+            auth.teacher_class_access(_db, user['user_id'], shared_class_id))
 
     if not shared_class_id:
         return False
@@ -112,13 +116,8 @@ def _upsert_share(user, obj):
 
     db = dbase.get_db(_db)
     if shared_class_id is not None:
-        sql = dbase._s("""
-            SELECT class_id
-            FROM classes
-            WHERE class_id = %s AND teacher_id = %s AND is_active = TRUE
-        """)
-        class_row = db.execute(sql, (shared_class_id, user['user_id'])).fetchone()
-        if class_row is None:
+        # The teacher must own or co-teach the class they're sharing to.
+        if not auth.teacher_class_access(_db, user['user_id'], shared_class_id):
             db.close()
             return jsonify({'error': 'Class not found or unauthorized'}), 403
 

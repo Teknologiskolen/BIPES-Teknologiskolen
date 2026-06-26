@@ -123,6 +123,63 @@ def dummy_password_verify(password: str) -> None:
 
 
 #------------------------------------------------------------------------
+# Initial-password encryption at rest
+#------------------------------------------------------------------------
+#
+# A student's one-time initial password is stored encrypted so the owning teacher can
+# re-view it until the student first changes their password. We use Fernet (AES-128-CBC
+# + HMAC) with a key derived from PASSWORD_PEPPER via HKDF-SHA256 and a distinct info
+# label, so the encryption key is domain-separated from the password-hashing pepper and
+# no extra operator secret is required. Rotating the pepper makes existing tokens
+# undecryptable, which is acceptable: codes are ephemeral and wiped on first login.
+
+_INITIAL_PW_FERNET = None
+_INITIAL_PW_FERNET_PEPPER = None
+
+
+def _initial_pw_fernet():
+    global _INITIAL_PW_FERNET, _INITIAL_PW_FERNET_PEPPER
+    pepper = _get_password_pepper()
+    if _INITIAL_PW_FERNET is None or _INITIAL_PW_FERNET_PEPPER != pepper:
+        try:
+            import base64
+            from cryptography.fernet import Fernet
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "cryptography is required to encrypt initial passwords. "
+                "Install it in the app environment."
+            ) from exc
+
+        key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b"bipes-initial-password-encryption-v1",
+        ).derive(pepper.encode("utf-8"))
+        _INITIAL_PW_FERNET = Fernet(base64.urlsafe_b64encode(key))
+        _INITIAL_PW_FERNET_PEPPER = pepper
+    return _INITIAL_PW_FERNET
+
+
+def encrypt_initial_password(plaintext: str) -> str:
+    """Encrypt a one-time initial password for at-rest storage. Returns a Fernet token."""
+    return _initial_pw_fernet().encrypt(plaintext.encode("utf-8")).decode("ascii")
+
+
+def decrypt_initial_password(token: str):
+    """Decrypt a stored initial-password token. Returns the plaintext, or None if the
+    token is missing or cannot be decrypted (e.g. after a pepper rotation)."""
+    if not token:
+        return None
+    try:
+        return _initial_pw_fernet().decrypt(token.encode("ascii")).decode("utf-8")
+    except Exception:
+        return None
+
+
+#------------------------------------------------------------------------
 # Class / Student Password Generation
 #------------------------------------------------------------------------
 
@@ -137,6 +194,27 @@ def generate_initial_password() -> str:
     password += [secrets.choice(chars) for _ in range(5)]
     rng.shuffle(password)
     return "".join(password)
+
+
+def teacher_class_access(db_name, teacher_id, class_id):
+    """Authorization for teacher access to a class, supporting co-teachers.
+
+    Returns True if the teacher owns or co-teaches the active class, False if the class
+    exists but the teacher has no access, or None if the class doesn't exist / is inactive.
+    Callers map None -> 404 and False -> 403 to preserve existing behaviour. Does not
+    close the connection (leaves it to request teardown)."""
+    db = dbase.get_db(db_name)
+    row = db.execute(dbase._s(
+        "SELECT teacher_id FROM classes WHERE class_id = %s AND is_active = TRUE"
+    ), (class_id,)).fetchone()
+    if row is None:
+        return None
+    if row[0] == teacher_id:
+        return True
+    member = db.execute(dbase._s(
+        "SELECT 1 FROM class_teachers WHERE class_id = %s AND teacher_id = %s"
+    ), (class_id, teacher_id)).fetchone()
+    return member is not None
 
 
 def generate_class_code() -> str:
