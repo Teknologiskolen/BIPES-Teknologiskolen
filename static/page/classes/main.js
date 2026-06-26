@@ -795,10 +795,27 @@ class ClassesPage {
     showAddStudentModal() {
         this.$.addStudentModal.style.display = 'flex';   // flex => centered (see .modal CSS)
 
-        const searchInput = this.$.container.$.querySelector('#student-search');
+        // The modal lives in the persistent teacher-view DOM, so attaching listeners here
+        // every time it opens would stack duplicates — one click would then fire createStudent
+        // multiple times (created several identical students). Strip prior listeners by
+        // replacing the interactive nodes with clones before wiring fresh ones.
+        let searchInput = this.$.container.$.querySelector('#student-search');
+        searchInput.replaceWith(searchInput.cloneNode(true));
+        searchInput = this.$.container.$.querySelector('#student-search');
+
+        let createBtn = this.$.container.$.querySelector('#create-student-btn');
+        createBtn.replaceWith(createBtn.cloneNode(true));
+        createBtn = this.$.container.$.querySelector('#create-student-btn');
+
         const searchResults = this.$.container.$.querySelector('#student-search-results');
-        const createBtn = this.$.container.$.querySelector('#create-student-btn');
         const newStudentName = this.$.container.$.querySelector('#new-student-name');
+
+        // Reset the modal to a clean state on each open.
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        newStudentName.value = '';
+        const pwDisplay = this.$.container.$.querySelector('#student-password-display');
+        if (pwDisplay) pwDisplay.style.display = 'none';
 
         // Search students
         searchInput.addEventListener('input', async (e) => {
@@ -846,11 +863,15 @@ class ClassesPage {
                 return;
             }
 
-            await this.createStudent(name);
+            await this.createStudent(name, createBtn);
         });
     }
 
-    async createStudent(name) {
+    async createStudent(name, createBtn) {
+        // Guard against a rapid double-click submitting twice before the request returns.
+        if (this._creatingStudent) return;
+        this._creatingStudent = true;
+        if (createBtn) createBtn.disabled = true;
         try {
             const response = await fetch(`/api/classes/${this.currentClass.class_id}/students/create`, {
                 method: 'POST',
@@ -883,6 +904,9 @@ class ClassesPage {
             }
         } catch (error) {
             alert(t('networkError'));
+        } finally {
+            this._creatingStudent = false;
+            if (createBtn) createBtn.disabled = false;
         }
     }
 
