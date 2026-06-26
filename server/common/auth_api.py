@@ -790,22 +790,29 @@ def add_existing_student(class_id):
         timestamp = auth.get_timestamp()
         db = dbase.get_db(_db)
         sql = dbase._s("""
-            SELECT enrollment_id FROM enrollments
+            SELECT enrollment_id, is_active FROM enrollments
             WHERE class_id = %s AND student_id = %s
         """)
         existing = db.execute(sql, (class_id, student_id)).fetchone()
 
         if existing is not None:
-            db.close()
-            g.pop('db', None)
-            return jsonify({'error': 'Student already enrolled in this class'}), 409
-
-        # Enroll student
-        sql2 = dbase._s("""
-            INSERT INTO enrollments (class_id, student_id, enrolled_at)
-            VALUES (%s, %s, %s)
-        """)
-        db.execute(sql2, (class_id, student_id, timestamp))
+            enrollment_id, is_active = existing
+            if is_active:
+                db.close()
+                g.pop('db', None)
+                return jsonify({'error': 'Student already enrolled in this class'}), 409
+            # Removing a student soft-deletes the enrollment (is_active = FALSE), and the
+            # UNIQUE(class_id, student_id) constraint means we must reactivate that row
+            # rather than insert a new one.
+            db.execute(dbase._s("""
+                UPDATE enrollments SET is_active = TRUE, enrolled_at = %s
+                WHERE enrollment_id = %s
+            """), (timestamp, enrollment_id))
+        else:
+            db.execute(dbase._s("""
+                INSERT INTO enrollments (class_id, student_id, enrolled_at)
+                VALUES (%s, %s, %s)
+            """), (class_id, student_id, timestamp))
         db.commit()
         db.close()
         g.pop('db', None)
