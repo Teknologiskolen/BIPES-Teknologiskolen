@@ -28,9 +28,6 @@ const CLASSES_I18N = {
         createNewStudent: 'Create New Student',
         studentNamePlaceholder: 'Student name',
         createStudent: 'Create Student',
-        studentPassword: 'Student Password',
-        copyPassword: 'Copy Password',
-        passwordHint: 'Give this password to the student. They will need to change it on first login.',
         classCreatedSuccess: 'Class created successfully! Class code:',
         errorPrefix: 'Error:',
         failedToCreateClass: 'Failed to create class',
@@ -51,6 +48,11 @@ const CLASSES_I18N = {
         copyClassCode: 'Copy class code',
         studentsHeader: 'Students',
         addStudent: '+ Add Student',
+        downloadPdf: 'Download PDF',
+        pdfColClassCode: 'Class code',
+        pdfColUsername: 'Username',
+        pdfColFirstCode: 'First-time code',
+        pdfGeneratedOn: 'Generated',
         studentName: 'Student Name',
         status: 'Status',
         actions: 'Actions',
@@ -83,7 +85,6 @@ const CLASSES_I18N = {
         noStudentsFound: 'No students found',
         enterStudentName: 'Please enter a student name',
         failedToCreateStudent: 'Failed to create student',
-        passwordCopied: 'Password copied!',
         failedToAddStudent: 'Failed to add student',
         failedToRemoveStudent: 'Failed to remove student',
         notEnrolled: 'You are not enrolled in any classes yet.',
@@ -107,9 +108,6 @@ const CLASSES_I18N = {
         createNewStudent: 'Opret ny elev',
         studentNamePlaceholder: 'Elevnavn',
         createStudent: 'Opret elev',
-        studentPassword: 'Elevadgangskode',
-        copyPassword: 'Kopiér adgangskode',
-        passwordHint: 'Giv denne adgangskode til eleven. Eleven skal ændre den ved første login.',
         classCreatedSuccess: 'Klassen blev oprettet! Klassekode:',
         errorPrefix: 'Fejl:',
         failedToCreateClass: 'Kunne ikke oprette klasse',
@@ -130,6 +128,11 @@ const CLASSES_I18N = {
         copyClassCode: 'Kopiér klassekode',
         studentsHeader: 'Elever',
         addStudent: '+ Tilføj elev',
+        downloadPdf: 'Download PDF',
+        pdfColClassCode: 'Klassekode',
+        pdfColUsername: 'Brugernavn',
+        pdfColFirstCode: 'Engangskode',
+        pdfGeneratedOn: 'Genereret',
         studentName: 'Elevnavn',
         status: 'Status',
         actions: 'Handlinger',
@@ -162,7 +165,6 @@ const CLASSES_I18N = {
         noStudentsFound: 'Ingen elever fundet',
         enterStudentName: 'Indtast venligst et elevnavn',
         failedToCreateStudent: 'Kunne ikke oprette elev',
-        passwordCopied: 'Adgangskode kopieret!',
         failedToAddStudent: 'Kunne ikke tilføje elev',
         failedToRemoveStudent: 'Kunne ikke fjerne elev',
         notEnrolled: 'Du er ikke tilmeldt nogen klasser endnu.',
@@ -186,9 +188,6 @@ const CLASSES_I18N = {
         createNewStudent: 'Neuen Schüler anlegen',
         studentNamePlaceholder: 'Name des Schülers',
         createStudent: 'Schüler anlegen',
-        studentPassword: 'Schülerpasswort',
-        copyPassword: 'Passwort kopieren',
-        passwordHint: 'Geben Sie dieses Passwort an den Schüler weiter. Es muss bei der ersten Anmeldung geändert werden.',
         classCreatedSuccess: 'Klasse erfolgreich erstellt! Klassencode:',
         errorPrefix: 'Fehler:',
         failedToCreateClass: 'Klasse konnte nicht erstellt werden',
@@ -209,6 +208,11 @@ const CLASSES_I18N = {
         copyClassCode: 'Klassencode kopieren',
         studentsHeader: 'Schüler',
         addStudent: '+ Schüler hinzufügen',
+        downloadPdf: 'PDF herunterladen',
+        pdfColClassCode: 'Klassencode',
+        pdfColUsername: 'Benutzername',
+        pdfColFirstCode: 'Erstanmelde-Code',
+        pdfGeneratedOn: 'Erstellt',
         studentName: 'Name des Schülers',
         status: 'Status',
         actions: 'Aktionen',
@@ -241,7 +245,6 @@ const CLASSES_I18N = {
         noStudentsFound: 'Keine Schüler gefunden',
         enterStudentName: 'Bitte geben Sie einen Schülernamen ein',
         failedToCreateStudent: 'Schüler konnte nicht angelegt werden',
-        passwordCopied: 'Passwort kopiert!',
         failedToAddStudent: 'Schüler konnte nicht hinzugefügt werden',
         failedToRemoveStudent: 'Schüler konnte nicht entfernt werden',
         notEnrolled: 'Sie sind noch in keiner Klasse eingeschrieben.',
@@ -376,14 +379,6 @@ class ClassesPage {
                         <label for="new-student-name">${t('createNewStudent')}</label>
                         <input type="text" id="new-student-name" placeholder="${t('studentNamePlaceholder')}">
                         <button id="create-student-btn" class="btn btn-secondary">${t('createStudent')}</button>
-                    </div>
-                    <div id="student-password-display" style="display: none;" class="password-display">
-                        <div class="password-label">${t('studentPassword')}</div>
-                        <div class="password-value" id="generated-password"></div>
-                        <button class="copy-btn" id="copy-password-btn">${t('copyPassword')}</button>
-                        <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
-                            ${t('passwordHint')}
-                        </p>
                     </div>
                 </div>
             </div>
@@ -587,7 +582,10 @@ class ClassesPage {
             <div class="tab-content active" id="students-tab">
                 <div class="students-header">
                     <h3>${t('studentsHeader')} (${students.length})</h3>
-                    <button class="btn btn-primary" id="add-student-btn">${t('addStudent')}</button>
+                    <div class="students-header-actions">
+                        <button class="btn btn-secondary" id="download-pdf-btn">${t('downloadPdf')}</button>
+                        <button class="btn btn-primary" id="add-student-btn">${t('addStudent')}</button>
+                    </div>
                 </div>
 
                 <table class="students-table">
@@ -656,6 +654,10 @@ class ClassesPage {
             this.showAddStudentModal();
         });
 
+        container.querySelector('#download-pdf-btn').addEventListener('click', () => {
+            this.downloadClassPdf(students);
+        });
+
         // Remove student buttons (unenroll from this class only)
         container.querySelectorAll('.remove-student-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -694,6 +696,73 @@ class ClassesPage {
             if (e.key === 'Enter') { e.preventDefault(); this.addCoTeacher(); }
         });
         this.loadClassTeachers();
+    }
+
+    // Open a clean, printable roster in a new window and trigger the browser's print
+    // dialog, where the teacher can choose "Save as PDF". One row per student with the
+    // class code, username, and (for students who haven't logged in yet) their one-time
+    // code — so each row works as a hand-out slip.
+    downloadClassPdf(students) {
+        const cls = this.currentClass;
+        const lang = (window.bipes && bipes.lang) || 'en';
+        const classCode = esc(cls.class_code);
+        const className = esc(cls.class_name);
+
+        let generatedOn = '';
+        try { generatedOn = new Date().toLocaleDateString(lang); } catch (e) {}
+
+        const rows = students.map(s => {
+            const pending = !s.password_changed && s.initial_password;
+            // Students who have already set up their account have no first-time code; leave it blank.
+            const code = pending ? esc(s.initial_password) : '';
+            return `<tr>
+                <td class="code">${classCode}</td>
+                <td>${esc(s.student_name)}</td>
+                <td class="code">${code}</td>
+            </tr>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html>
+<html lang="${esc(lang)}">
+<head>
+<meta charset="utf-8">
+<title>${className} — ${classCode}</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1a1a1a; margin: 32px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.sub { color: #555; font-size: 12px; margin: 0 0 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+th { background: #f3f4f6; border-bottom: 2px solid #cbd0d6; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+td.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; letter-spacing: .05em; }
+td.muted { color: #999; }
+tr { page-break-inside: avoid; }
+@media print { body { margin: 12mm; } }
+</style>
+</head>
+<body>
+<h1>${className}</h1>
+<p class="sub">${t('pdfColClassCode')}: <strong>${classCode}</strong>${generatedOn ? ` &middot; ${t('pdfGeneratedOn')}: ${esc(generatedOn)}` : ''}</p>
+<table>
+<thead><tr><th>${t('pdfColClassCode')}</th><th>${t('pdfColUsername')}</th><th>${t('pdfColFirstCode')}</th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</body>
+</html>`;
+
+        const w = window.open('', '_blank');
+        if (!w) { alert(t('networkError')); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+
+        // Print once the new document is ready; the setTimeout is a fallback for browsers
+        // where `onload` has already fired on the written document.
+        let printed = false;
+        const doPrint = () => { if (printed) return; printed = true; w.focus(); w.print(); };
+        w.onload = doPrint;
+        setTimeout(doPrint, 600);
     }
 
     async loadClassTeachers() {
@@ -837,8 +906,6 @@ class ClassesPage {
         searchInput.value = '';
         searchResults.innerHTML = '';
         newStudentName.value = '';
-        const pwDisplay = this.$.container.$.querySelector('#student-password-display');
-        if (pwDisplay) pwDisplay.style.display = 'none';
 
         // Search students
         searchInput.addEventListener('input', async (e) => {
@@ -906,22 +973,10 @@ class ClassesPage {
             const data = await response.json();
 
             if (response.ok) {
-                // Show password
-                const passwordDisplay = this.$.container.$.querySelector('#student-password-display');
-                const passwordValue = this.$.container.$.querySelector('#generated-password');
-                passwordValue.textContent = data.initial_password;
-                passwordDisplay.style.display = 'block';
-
-                this.$.container.$.querySelector('#copy-password-btn').addEventListener('click', () => {
-                    navigator.clipboard.writeText(data.initial_password);
-                    alert(t('passwordCopied'));
-                });
-
-                // Refresh student list after 3 seconds
-                setTimeout(() => {
-                    this.$.addStudentModal.style.display = 'none';
-                    this.showClassDetail(this.currentClass.class_id);
-                }, 3000);
+                // The student's one-time code is shown inline in the class list, so just
+                // close the modal and refresh to reveal it there.
+                this.$.addStudentModal.style.display = 'none';
+                this.showClassDetail(this.currentClass.class_id);
             } else {
                 alert(t('errorPrefix') + ' ' + (data.error || t('failedToCreateStudent')));
             }
