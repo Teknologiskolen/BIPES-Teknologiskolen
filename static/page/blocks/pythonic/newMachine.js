@@ -156,9 +156,18 @@ Blockly.Python["machine.Pin.setValue"] = function(block) {
   Blockly.Python.definitions_['from_machine_import_Pin'] = 'from machine import Pin';
   var pinInput = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
   var pin = pinInput.replace('(','').replace(')','');
+  var name = 'pin' + pin.replace(/[^a-zA-Z0-9_]/g, '');
   var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
-  Blockly.Python.definitions_['gpio_set'] = 'def gpio_set(pin,value):\n  if value >= 1:\n    Pin(pin, Pin.OUT).on()\n  else:\n    Pin(pin, Pin.OUT).off()';
-  var code = `gpio_set(${pin}, ${value})\n`;
+  // Declare the pin once (like the input block does for Pin.IN), then drive it. Avoids
+  // re-creating the Pin object on every call and the gpio_set() helper function.
+  Blockly.Python.definitions_[`gpio_out_${name}`] = `${name} = Pin(${pin}, Pin.OUT)`;
+  var code;
+  if (value === 'True')
+    code = `${name}.on()\n`;
+  else if (value === 'False')
+    code = `${name}.off()\n`;
+  else
+    code = `${name}.value(${value})\n`;
   return code;
 };
 
@@ -166,7 +175,9 @@ Blockly.Python["machine.Pin.toggle"] = function(block) {
   Blockly.Python.definitions_['from_machine_import_Pin'] = 'from machine import Pin';
   var pinInput = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
   var pin = pinInput.replace('(','').replace(')','');
-  var code = `Pin(${pin}, Pin.OUT).toggle()\n`;
+  var name = 'pin' + pin.replace(/[^a-zA-Z0-9_]/g, '');
+  Blockly.Python.definitions_[`gpio_out_${name}`] = `${name} = Pin(${pin}, Pin.OUT)`;
+  var code = `${name}.toggle()\n`;
   return code;
 };
 
