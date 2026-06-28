@@ -257,6 +257,12 @@ sand_table_robot__draw_flower
 sand_table_robot__run_gcode_text
 sand_table_robot__run_gcode_file
 end_category
+PicoFly
+pico_fly__create
+pico_fly__motor
+pico_fly__motor_stop
+pico_fly__set_servo
+end_category
 end_category
 
 Display
@@ -266,6 +272,8 @@ neopixel__brightness
 neopixel__set_pixel
 neopixel__set_pixel_line
 neopixel__set_pixel_line_gradient
+neopixel__fill
+neopixel__clear
 neopixel__rotate_left
 neopixel__rotate_right
 neopixel__show

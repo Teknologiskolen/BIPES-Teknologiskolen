@@ -103,6 +103,10 @@ export const knownLibs = {
     hostname:'./static/page/blocks/libraries',
     file:'neopixel.py'
   },
+  picofly_firmware:{
+    hostname:'./static/page/blocks/libraries',
+    file:'picofly_firmware.py'
+  },
   ble_advertising:{
     hostname:'./static/page/blocks/libraries',
     file:'ble_advertising.py'

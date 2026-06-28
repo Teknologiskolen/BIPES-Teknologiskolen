@@ -1,0 +1,36 @@
+// Block definitions for the PicoFly board (picofly_firmware.py).
+// The library .py is the plain library; this .blockdef is the single source of
+// truth for the blocks. The board is created with PicoFly(); __init__ frees the
+// PWM pins and starts the heartbeat LED itself, so the generated
+// `board = picofly_firmware.PicoFly()` is safe to re-run.
+//
+// The motor/servo selection is a dropdown, so the blocks target the board-level
+// helpers board.motor()/board.motor_stop()/board.set_servo() instead of the
+// nested board.motor_a.forward(...) / board.servo1.set_angle(...) chains
+// (which the DSL can't express as a single selectable call).
+
+module picofly_firmware
+import "picofly_firmware"
+url "https://github.com/bipes"
+
+category "PicoFly" color=120 {
+
+    class PicoFly as singleton named "board" {
+
+        block __init__ label="Start PicoFly board" tooltip="Opret PicoFly-board: motorer + servoer klargøres og LED'en begynder at blinke."
+
+        block motor label="Motor {which} hastighed {speed}" tooltip="Kør motor A eller B. Hastighed -1.0 til 1.0 (fremad positiv, baglæns negativ, 0 = stop)." {
+            param which options[("A","a"),("B","b")]
+            param speed type=Number default=1.0
+        }
+
+        block motor_stop label="Stop motor {which}" tooltip="Stop motor A eller B." {
+            param which options[("A","a"),("B","b")]
+        }
+
+        block set_servo label="Servo {servo} vinkel {angle}" tooltip="Sæt servo 1-4 til en vinkel (0-180 grader)." {
+            param servo type=Number options[("1","1"),("2","2"),("3","3"),("4","4")]
+            param angle type=Number default=90
+        }
+    }
+}

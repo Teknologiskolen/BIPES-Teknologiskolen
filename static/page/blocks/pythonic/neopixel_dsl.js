@@ -54,6 +54,24 @@ Blockly.Python["neopixel__set_pixel_line_gradient"] = function(block) {
   return code;
 };
 
+Blockly.Python["neopixel__fill"] = function(block) {
+  Blockly.Python.definitions_["import_neopixel"] = "import neopixel";
+  Blockly.Python.definitions_["registry_neopixel_instances"] = "neopixel_instances = {}";
+  var id = Blockly.Python.valueToCode(block, "id", Blockly.Python.ORDER_ATOMIC);
+  var rgb_w = Blockly.Python.valueToCode(block, "rgb_w", Blockly.Python.ORDER_ATOMIC);
+  var how_bright = Blockly.Python.valueToCode(block, "how_bright", Blockly.Python.ORDER_ATOMIC);
+  var code = "neopixel_instances[" + id + "].fill(" + rgb_w + ", " + how_bright + ")" + "\n";
+  return code;
+};
+
+Blockly.Python["neopixel__clear"] = function(block) {
+  Blockly.Python.definitions_["import_neopixel"] = "import neopixel";
+  Blockly.Python.definitions_["registry_neopixel_instances"] = "neopixel_instances = {}";
+  var id = Blockly.Python.valueToCode(block, "id", Blockly.Python.ORDER_ATOMIC);
+  var code = "neopixel_instances[" + id + "].clear()" + "\n";
+  return code;
+};
+
 Blockly.Python["neopixel__rotate_left"] = function(block) {
   Blockly.Python.definitions_["import_neopixel"] = "import neopixel";
   Blockly.Python.definitions_["registry_neopixel_instances"] = "neopixel_instances = {}";

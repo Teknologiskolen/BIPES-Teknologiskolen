@@ -51,6 +51,7 @@ DEFAULT_BLOCKDEF_TARGETS = [
     _target("buzzer_music"),
     _target("alarm_clock"),
     _target("app_core"),
+    _target("picofly", library="picofly_firmware"),
 ]
 
 

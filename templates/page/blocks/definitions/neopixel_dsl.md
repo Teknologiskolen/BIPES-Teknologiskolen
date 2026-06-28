@@ -128,6 +128,34 @@
   </value>
 </block>
 
+# neopixel__fill
+<block type="neopixel__fill">
+  <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+  <value name="rgb_w">
+    <shadow type="text">
+      <field name="TEXT"></field>
+    </shadow>
+  </value>
+  <value name="how_bright">
+    <shadow type="math_number">
+      <field name="NUM">255</field>
+    </shadow>
+  </value>
+</block>
+
+# neopixel__clear
+<block type="neopixel__clear">
+  <value name="id">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
+
 # neopixel__rotate_left
 <block type="neopixel__rotate_left">
   <value name="id">

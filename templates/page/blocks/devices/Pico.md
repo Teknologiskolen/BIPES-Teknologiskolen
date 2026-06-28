@@ -163,6 +163,12 @@ sand_table_robot__draw_flower
 sand_table_robot__run_gcode_text
 sand_table_robot__run_gcode_file
 end_category
+PicoFly
+pico_fly__create
+pico_fly__motor
+pico_fly__motor_stop
+pico_fly__set_servo
+end_category
 end_category
 
 Display

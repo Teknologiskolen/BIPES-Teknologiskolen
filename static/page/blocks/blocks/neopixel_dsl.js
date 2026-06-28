@@ -79,6 +79,34 @@ Blockly.Blocks["neopixel__set_pixel_line_gradient"] = {
   }
 };
 
+Blockly.Blocks["neopixel__fill"] = {
+  init: function() {
+    this.appendDummyInput().appendField((Blockly.Msg["BLBL_FILL"]||"Fill"));
+    this.appendValueInput("id").setCheck("Number").appendField((Blockly.Msg["BLBL_ID"]||"ID #"));
+    this.appendValueInput("rgb_w").appendField((Blockly.Msg["BLBL_RGB_W"]||"RGB W"));
+    this.appendValueInput("how_bright").setCheck("Number").appendField((Blockly.Msg["BLBL_HOW_BRIGHT"]||"How Bright"));
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(true);
+    this.setTooltip((Blockly.Msg["BTIP_NEOPIXEL_FILL"]||"Fill the WHOLE strip with one colour (connect a colour block). Call show after."));
+    this.setHelpUrl("https://github.com/blaz-r/pi_pico_neopixel");
+  }
+};
+
+Blockly.Blocks["neopixel__clear"] = {
+  init: function() {
+    this.appendDummyInput().appendField((Blockly.Msg["BLBL_CLEAR"]||"Clear"));
+    this.appendValueInput("id").setCheck("Number").appendField((Blockly.Msg["BLBL_ID"]||"ID #"));
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(45);
+    this.setInputsInline(true);
+    this.setTooltip((Blockly.Msg["BTIP_NEOPIXEL_CLEAR"]||"Turn the whole strip off (all LEDs to 0). Call show after."));
+    this.setHelpUrl("https://github.com/blaz-r/pi_pico_neopixel");
+  }
+};
+
 Blockly.Blocks["neopixel__rotate_left"] = {
   init: function() {
     this.appendDummyInput().appendField((Blockly.Msg["BLBL_ROTATE_LEFT"]||"Rotate Left"));

@@ -39,6 +39,11 @@ category "NeoPixel Strip" color=45 {
             param right_rgb_w type=Any
             param how_bright type=Number default=255
         }
+        block fill tooltip="Fill the WHOLE strip with one colour (connect a colour block). Call show after." {
+            param rgb_w type=Any
+            param how_bright type=Number default=255
+        }
+        block clear tooltip="Turn the whole strip off (all LEDs to 0). Call show after."
         block rotate_left tooltip="Shift all LEDs left by a number of steps." {
             param num_of_pixels type=Number default=1
         }
