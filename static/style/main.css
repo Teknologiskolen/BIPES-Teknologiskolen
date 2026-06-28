@@ -1081,9 +1081,28 @@ body.light div#status-bar {
   color: #000;
 }
 div#status-bar #globals {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   min-width: 5rem;
   height: 1.5rem;
+}
+/* Name of the currently open project, so it's always clear what's loaded.
+   order:1 keeps it to the right of the target-device info, which is appended
+   to #globals at runtime (so DOM order alone can't guarantee placement). */
+div#status-bar #status-project {
+  order: 1;
+  display: inline-flex;
+  align-items: center;
+  max-width: 18rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: .125rem .5rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+div#status-bar #status-project:empty {
+  display: none;
 }
 div#status-bar select  {
   border-radius: 0;

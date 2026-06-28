@@ -299,7 +299,21 @@ class Project {
         bipes.page[key].load(this.projects[uid][key])
       }
     }
+    this._updateStatusName()
     return uid
+  }
+  /*
+   * Reflect the open project's name in the status bar so it's always clear what's
+   * loaded. Pass a name to override (e.g. mid-rename, before this.current updates).
+   */
+  _updateStatusName (name){
+    let el = document.getElementById('status-project')
+    if (!el)
+      return
+    if (name == undefined)
+      name = this.current && this.current.project ? this.current.project.name : ''
+    el.textContent = name || ''
+    el.title = name || ''
   }
   unload (uid){
     this.projects[uid] = undefined
@@ -1339,6 +1353,10 @@ class Project {
      $.classList.add('shared')
     else
      $.classList.remove('shared')
+
+    // Keep the status-bar name in sync when the open project is renamed.
+    if (uid == this.currentUID && obj.name != undefined)
+      this._updateStatusName(obj.name)
   }
   /*
    * Update project data on all tabs then from current scope write to localStorage.
@@ -1597,36 +1615,13 @@ class SharedProject {
   render (){
     this.$.projects.$.innerHTML = ''
 
+    // Students see one self-contained card per project: the class name lives inside
+    // the card (see $Card), so no separate group header is needed and nothing is
+    // duplicated. Newest first.
     if (session.isStudent()) {
-      const groups = new Map()
-      this.projects.forEach((proj) => {
-        const key = proj.class_id || 'ungrouped'
-        if (!groups.has(key)) {
-          groups.set(key, {
-            label: proj.class_name ?
-              `${proj.class_name}${proj.class_code ? ` (${proj.class_code})` : ''}` :
-              'Shared Projects',
-            teacher: proj.teacher_name || proj.author || '',
-            items: []
-          })
-        }
-        groups.get(key).items.push(proj)
-      })
-
-      const fragments = []
-      groups.forEach((group) => {
-        fragments.push(
-          new DOM('div', {className:'shared-group'}).append([
-            new DOM('div', {className:'shared-group-header'}).append([
-              new DOM('h4', {innerText: group.label}),
-              new DOM('span', {innerText: group.teacher ? `${Msg['By']} ${group.teacher}` : ''})
-            ]),
-            new DOM('span', {className:'listy shared-group-list'})
-              .append(group.items.map(item => this.$Card(item)))
-          ])
-        )
-      })
-      this.$.projects.append(fragments)
+      let doms = []
+      this.projects.forEach(proj => doms.push(this.$Card(proj)))
+      this.$.projects.append(doms)
       return
     }
 
@@ -1691,22 +1686,28 @@ class SharedProject {
    * Creates a DOM shared project card
    */
   $Card (item){
+    const isStudent = session.isStudent()
     const metaLine = item.class_name && !session.isTeacher() ?
       `${item.class_name}${item.class_code ? ` (${item.class_code})` : ''}` :
       `${Msg['By']} ${item.author}`
 
+    // The shared-project id is an internal handle teachers use to share/identify a
+    // project; students never need it, so omit it from their cards.
+    const firstRow = [
+      new DOM('h4', {
+        id:'name',
+        innerText: item.name
+      })
+    ]
+    if (!isStudent)
+      firstRow.push(new DOM('div', {
+        id:'uid',
+        innerText: item.uid
+      }))
+
     return new DOM('button', {uid: item.uid})
       .append([
-        new DOM('div', {className:'row'}).append([
-          new DOM('h4', {
-            id:'name',
-            innerText: item.name
-          }),
-          new DOM('div', {
-            id:'uid',
-            innerText: item.uid
-          })
-        ]),
+        new DOM('div', {className:'row'}).append(firstRow),
         new DOM('div', {className:'row'}).append([
           new DOM('span', {
             id:'author',
