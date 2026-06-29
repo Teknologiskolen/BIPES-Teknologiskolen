@@ -36,8 +36,14 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
   var params = new URLSearchParams(location.search)
   var uid = params.get('uid')
   var xmlParam = params.get('xml')
-  var blockParam = params.get('block')          // pick one top-level chain (index or block id)
-  var locked = blockParam != null || params.get('lock') === '1'
+  // ?block=<sel> picks specific top-level chains (0-based index or block id). Accepts a
+  // comma list and/or repeated params:  ?block=1,2   or   ?block=1&block=2  (both at once
+  // is fine too). Empty when not selecting — then the whole source renders.
+  var blockSel = params.getAll('block')
+    .reduce(function (acc, v) { return acc.concat(String(v).split(',')) }, [])
+    .map(function (s) { return s.trim() })
+    .filter(function (s) { return s.length })
+  var locked = blockSel.length > 0 || params.get('lock') === '1'
 
   // Locked: a fixed snippet — no pan/zoom/drag. Otherwise pan/zoom is allowed.
   var workspace = Blockly.inject(host, {
@@ -71,20 +77,26 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
     return Blockly.Xml.domToText ? Blockly.Xml.domToText(dom) : new XMLSerializer().serializeToString(dom)
   }
 
-  // Keep only the chosen top-level chain (0-based index or block id) plus any
-  // <variables>, so one project can power several single-chain embeds.
-  function selectChain (xmlText, sel) {
+  // Keep only the chosen top-level chains (0-based indices and/or block ids) plus any
+  // <variables>, so one project can power single- or multi-chain embeds. `sels` is an
+  // array of selectors; chains are emitted in the order requested, with duplicates
+  // dropped. Each chain keeps its original x/y, so multiple chains don't overlap.
+  function selectChain (xmlText, sels) {
     var dom = textToDom(xmlText)
     var kids = Array.prototype.slice.call(dom.children)
     var blocks = kids.filter(function (c) { return c.tagName && c.tagName.toLowerCase() === 'block' })
-    var chosen = /^\d+$/.test(sel) ? blocks[parseInt(sel, 10)]
-      : blocks.filter(function (b) { return b.getAttribute('id') === sel })[0]
-    if (!chosen) return xmlText      // out of range / not found -> render the whole project
+    var chosen = []
+    sels.forEach(function (sel) {
+      var b = /^\d+$/.test(sel) ? blocks[parseInt(sel, 10)]
+        : blocks.filter(function (x) { return x.getAttribute('id') === sel })[0]
+      if (b && chosen.indexOf(b) === -1) chosen.push(b)
+    })
+    if (!chosen.length) return xmlText      // nothing matched -> render the whole project
     var out = textToDom('<xml xmlns="https://developers.google.com/blockly/xml"></xml>')
     kids.forEach(function (c) {
       if (c.tagName && c.tagName.toLowerCase() === 'variables') out.appendChild(c.cloneNode(true))
     })
-    out.appendChild(chosen.cloneNode(true))
+    chosen.forEach(function (b) { out.appendChild(b.cloneNode(true)) })
     return domToText(out)
   }
 
@@ -154,7 +166,7 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
 
   function render (xml) {
     try {
-      if (blockParam != null) xml = selectChain(xml, blockParam)
+      if (blockSel.length) xml = selectChain(xml, blockSel)
       selectedXml = xml
       workspace.clear()
       Blockly.Xml.domToWorkspace(textToDom(xml), workspace)
