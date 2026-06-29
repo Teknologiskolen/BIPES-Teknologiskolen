@@ -77,10 +77,36 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
     return Blockly.Xml.domToText ? Blockly.Xml.domToText(dom) : new XMLSerializer().serializeToString(dom)
   }
 
+  // A procedure's NAME field (definitions) / mutation name (call blocks) — read from a
+  // block element's DIRECT children so a function body's own blocks aren't mistaken for it.
+  function directChildrenByTag (el, tag) {
+    var out = []
+    var kids = el.children ? Array.prototype.slice.call(el.children) : []
+    kids.forEach(function (k) { if (k.tagName && k.tagName.toLowerCase() === tag) out.push(k) })
+    return out
+  }
+  function procDefName (block) {
+    var fields = directChildrenByTag(block, 'field')
+    for (var i = 0; i < fields.length; i++)
+      if (fields[i].getAttribute('name') === 'NAME') return fields[i].textContent
+    return null
+  }
+  function procCallName (block) {
+    var muts = directChildrenByTag(block, 'mutation')
+    return muts.length ? muts[0].getAttribute('name') : null
+  }
+  var DEF_TYPES = ['procedures_defnoreturn', 'procedures_defreturn']
+  var CALL_TYPES = ['procedures_callnoreturn', 'procedures_callreturn']
+
   // Keep only the chosen top-level chains (0-based indices and/or block ids) plus any
   // <variables>, so one project can power single- or multi-chain embeds. `sels` is an
-  // array of selectors; chains are emitted in the order requested, with duplicates
-  // dropped. Each chain keeps its original x/y, so multiple chains don't overlap.
+  // array of selectors; chains are emitted in source order, with duplicates dropped.
+  // Each chain keeps its original x/y, so multiple chains don't overlap.
+  //
+  // Crucially, a function CALL lives in one chain while its DEFINITION is a separate
+  // top-level chain. So after the explicit picks we auto-pull the definitions any chosen
+  // chain calls — transitively (a function may call another) — so the author can select
+  // just the calling chain and still get a runnable, self-contained embed.
   function selectChain (xmlText, sels) {
     var dom = textToDom(xmlText)
     var kids = Array.prototype.slice.call(dom.children)
@@ -92,6 +118,28 @@ import { deviceSpecifications } from '/static/page/device/devices.js'
       if (b && chosen.indexOf(b) === -1) chosen.push(b)
     })
     if (!chosen.length) return xmlText      // nothing matched -> render the whole project
+
+    // Map each top-level function definition by name, then walk the chosen chains for
+    // call blocks and drag in the definitions they need.
+    var defByName = {}
+    blocks.forEach(function (b) {
+      if (DEF_TYPES.indexOf(b.getAttribute('type')) !== -1) {
+        var nm = procDefName(b)
+        if (nm != null) defByName[nm] = b
+      }
+    })
+    var queue = chosen.slice()
+    while (queue.length) {
+      var blk = queue.shift()
+      var nested = Array.prototype.slice.call(blk.getElementsByTagName('block'))
+      nested.concat(blk).forEach(function (bl) {
+        if (CALL_TYPES.indexOf(bl.getAttribute('type')) === -1) return
+        var def = defByName[procCallName(bl)]
+        if (def && chosen.indexOf(def) === -1) { chosen.push(def); queue.push(def) }
+      })
+    }
+    // Emit in source order so the XML stays tidy (on-canvas position comes from x/y).
+    chosen.sort(function (a, b) { return blocks.indexOf(a) - blocks.indexOf(b) })
     var out = textToDom('<xml xmlns="https://developers.google.com/blockly/xml"></xml>')
     kids.forEach(function (c) {
       if (c.tagName && c.tagName.toLowerCase() === 'variables') out.appendChild(c.cloneNode(true))
