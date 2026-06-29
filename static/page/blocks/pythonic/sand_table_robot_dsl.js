@@ -4,16 +4,7 @@ Blockly.Python["sand_table_robot__create"] = function(block) {
   var motor2_pins = Blockly.Python.valueToCode(block, "motor2_pins", Blockly.Python.ORDER_ATOMIC);
   var sensor_shoulder_pin = Blockly.Python.valueToCode(block, "sensor_shoulder_pin", Blockly.Python.ORDER_ATOMIC);
   var sensor_elbow_pin = Blockly.Python.valueToCode(block, "sensor_elbow_pin", Blockly.Python.ORDER_ATOMIC);
-  var L1 = Blockly.Python.valueToCode(block, "L1", Blockly.Python.ORDER_ATOMIC);
-  var L2 = Blockly.Python.valueToCode(block, "L2", Blockly.Python.ORDER_ATOMIC);
-  var steps_per_rev = Blockly.Python.valueToCode(block, "steps_per_rev", Blockly.Python.ORDER_ATOMIC);
-  var backlash_deg_m1 = Blockly.Python.valueToCode(block, "backlash_deg_m1", Blockly.Python.ORDER_ATOMIC);
-  var backlash_deg_m2 = Blockly.Python.valueToCode(block, "backlash_deg_m2", Blockly.Python.ORDER_ATOMIC);
-  var homing_dir_shoulder = Blockly.Python.valueToCode(block, "homing_dir_shoulder", Blockly.Python.ORDER_ATOMIC);
-  var homing_dir_elbow = Blockly.Python.valueToCode(block, "homing_dir_elbow", Blockly.Python.ORDER_ATOMIC);
-  var homing_clear_steps = Blockly.Python.valueToCode(block, "homing_clear_steps", Blockly.Python.ORDER_ATOMIC);
-  var default_speed_ms = Blockly.Python.valueToCode(block, "default_speed_ms", Blockly.Python.ORDER_ATOMIC);
-  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor1_pins + ", " + motor2_pins + ", " + sensor_shoulder_pin + ", " + sensor_elbow_pin + ", " + L1 + ", " + L2 + ", " + steps_per_rev + ", " + backlash_deg_m1 + ", " + backlash_deg_m2 + ", " + homing_dir_shoulder + ", " + homing_dir_elbow + ", " + homing_clear_steps + ", " + default_speed_ms + ")" + "\n";
+  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor1_pins + ", " + motor2_pins + ", " + sensor_shoulder_pin + ", " + sensor_elbow_pin + ")" + "\n";
   return code;
 };
 
@@ -26,6 +17,16 @@ Blockly.Python["sand_table_robot__home"] = function(block) {
 Blockly.Python["sand_table_robot__off"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
   var code = "sand_table_robot.off()" + "\n";
+  return code;
+};
+
+Blockly.Python["sand_table_robot__step_motor"] = function(block) {
+  Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
+  var motor = String(Number(block.getFieldValue("motor")));
+  var direction = JSON.stringify(block.getFieldValue("direction"));
+  var steps = Blockly.Python.valueToCode(block, "steps", Blockly.Python.ORDER_ATOMIC);
+  var speed = Blockly.Python.valueToCode(block, "speed", Blockly.Python.ORDER_ATOMIC);
+  var code = "sand_table_robot.step_motor(" + motor + ", " + direction + ", " + steps + ", " + speed + ")" + "\n";
   return code;
 };
 

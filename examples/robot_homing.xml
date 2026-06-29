@@ -1,0 +1,69 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+
+  <block x="40" y="40" type="sand_table_robot__create">
+    <comment pinned="false" h="140" w="380">Opgave: Homing af én arm.
+Drej motor 1 (skulder) ét trin ad gangen, indtil hall-sensoren bliver 1.
+Sensoren læses med blokken "Read digital pin" fra kategorien Pin.
+Hall-sensor: 1 = ingen magnet, 0 = magnet tæt på
+(skift sammenligningen til 0, hvis din arm skal stoppe NÅR den finder magneten).</comment>
+    <value name="motor1_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0"><block type="math_number"><field name="NUM">21</field></block></value>
+        <value name="ADD1"><block type="math_number"><field name="NUM">20</field></block></value>
+        <value name="ADD2"><block type="math_number"><field name="NUM">19</field></block></value>
+        <value name="ADD3"><block type="math_number"><field name="NUM">18</field></block></value>
+      </block>
+    </value>
+    <value name="motor2_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0"><block type="math_number"><field name="NUM">17</field></block></value>
+        <value name="ADD1"><block type="math_number"><field name="NUM">16</field></block></value>
+        <value name="ADD2"><block type="math_number"><field name="NUM">15</field></block></value>
+        <value name="ADD3"><block type="math_number"><field name="NUM">14</field></block></value>
+      </block>
+    </value>
+    <value name="sensor_shoulder_pin">
+      <shadow type="pinout"><field name="PIN">22</field></shadow>
+    </value>
+    <value name="sensor_elbow_pin">
+      <shadow type="pinout"><field name="PIN">1</field></shadow>
+    </value>
+    <next>
+
+      <block type="controls_whileUntil">
+        <field name="MODE">UNTIL</field>
+        <value name="BOOL">
+          <block type="logic_compare">
+            <field name="OP">EQ</field>
+            <value name="A">
+              <block type="machine.Pin.getValue">
+                <value name="pin">
+                  <shadow type="pinout"><field name="PIN">22</field></shadow>
+                </value>
+                <field name="PULL">Pin.PULL_UP</field>
+              </block>
+            </value>
+            <value name="B">
+              <block type="math_number"><field name="NUM">1</field></block>
+            </value>
+          </block>
+        </value>
+        <statement name="DO">
+          <block type="sand_table_robot__step_motor">
+            <field name="motor">1</field>
+            <field name="direction">f</field>
+            <value name="steps"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <value name="speed"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+          </block>
+        </statement>
+        <next>
+          <block type="sand_table_robot__off"/>
+        </next>
+      </block>
+
+    </next>
+  </block>
+
+</xml>

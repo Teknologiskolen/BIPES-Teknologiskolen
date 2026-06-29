@@ -5,20 +5,11 @@ Blockly.Blocks["sand_table_robot__create"] = {
     this.appendValueInput("motor2_pins").appendField((Blockly.Msg["BLBL_MOTOR_2_PINS"]||"Motor 2 Pins"));
     this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_SHOULDER_PIN"]||"Sensor Shoulder Pin"));
     this.appendValueInput("sensor_elbow_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_ELBOW_PIN"]||"Sensor Elbow Pin"));
-    this.appendValueInput("L1").setCheck("Number").appendField((Blockly.Msg["BLBL_L1"]||"L1"));
-    this.appendValueInput("L2").setCheck("Number").appendField((Blockly.Msg["BLBL_L2"]||"L2"));
-    this.appendValueInput("steps_per_rev").setCheck("Number").appendField((Blockly.Msg["BLBL_STEPS_PER_REV"]||"Steps Per Rev"));
-    this.appendValueInput("backlash_deg_m1").setCheck("Number").appendField((Blockly.Msg["BLBL_BACKLASH_DEG_M_1"]||"Backlash Deg M 1"));
-    this.appendValueInput("backlash_deg_m2").setCheck("Number").appendField((Blockly.Msg["BLBL_BACKLASH_DEG_M_2"]||"Backlash Deg M 2"));
-    this.appendValueInput("homing_dir_shoulder").setCheck("Number").appendField((Blockly.Msg["BLBL_HOMING_DIR_SHOULDER"]||"Homing Dir Shoulder"));
-    this.appendValueInput("homing_dir_elbow").setCheck("Number").appendField((Blockly.Msg["BLBL_HOMING_DIR_ELBOW"]||"Homing Dir Elbow"));
-    this.appendValueInput("homing_clear_steps").setCheck("Number").appendField((Blockly.Msg["BLBL_HOMING_CLEAR_STEPS"]||"Homing Clear Steps"));
-    this.appendValueInput("default_speed_ms").setCheck("Number").appendField((Blockly.Msg["BLBL_DEFAULT_SPEED_MS"]||"Default Speed Ms"));
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(30);
     this.setInputsInline(true);
-    this.setTooltip((Blockly.Msg["BTIP_SAND_TABLE_ROBOT_CREATE"]||"Create the sand-table SCARA robot (motor pins, sensors, arm geometry)."));
+    this.setTooltip((Blockly.Msg["BTIP_SAND_TABLE_ROBOT_CREATE"]||"Create the sand-table SCARA robot: the two motor pin-arrays and the two homing-sensor pins."));
     this.setHelpUrl("https://github.com/bipes");
   }
 };
@@ -43,6 +34,22 @@ Blockly.Blocks["sand_table_robot__off"] = {
     this.setColour(30);
     this.setInputsInline(true);
     this.setTooltip((Blockly.Msg["BTIP_SAND_TABLE_ROBOT_OFF"]||"Power off both stepper motors."));
+    this.setHelpUrl("https://github.com/bipes");
+  }
+};
+
+Blockly.Blocks["sand_table_robot__step_motor"] = {
+  init: function() {
+    this.appendDummyInput().appendField((Blockly.Msg["BLBL_DREJ_MOTOR"]||"Drej motor")).appendField(new Blockly.FieldDropdown([["1 (skulder)", "1"], ["2 (albue)", "2"]]), "motor");
+    this.appendDummyInput().appendField(new Blockly.FieldDropdown([["fremad", "f"], ["tilbage", "r"]]), "direction");
+    this.appendValueInput("steps").setCheck("Number");
+    this.appendValueInput("speed").setCheck("Number").appendField((Blockly.Msg["BLBL_TRIN_FART"]||"trin, fart"));
+    this.appendDummyInput().appendField((Blockly.Msg["BLBL_MS"]||"ms"));
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setInputsInline(true);
+    this.setTooltip((Blockly.Msg["BTIP_SAND_TABLE_ROBOT_STEP_MOTOR"]||"Drej \u00e9n stepmotor et antal trin. 4096 trin = en hel omgang. Fart = ms pr. trin (st\u00f8rre = langsommere)."));
     this.setHelpUrl("https://github.com/bipes");
   }
 };

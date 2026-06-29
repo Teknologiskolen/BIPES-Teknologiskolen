@@ -1,0 +1,94 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+
+  <block x="40" y="40" type="sand_table_robot__create">
+    <comment pinned="false" h="120" w="360">Opgave: Drej begge stepmotorer.
+1) Samme vej   2) Modsat vej   3) Forskellige farter.
+Motor 1 = skulder, motor 2 = albue.
+Trin: 4096 = en hel omgang. Fart = ms pr. trin (større = langsommere).</comment>
+    <value name="motor1_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0"><block type="math_number"><field name="NUM">21</field></block></value>
+        <value name="ADD1"><block type="math_number"><field name="NUM">20</field></block></value>
+        <value name="ADD2"><block type="math_number"><field name="NUM">19</field></block></value>
+        <value name="ADD3"><block type="math_number"><field name="NUM">18</field></block></value>
+      </block>
+    </value>
+    <value name="motor2_pins">
+      <block type="lists_create_with">
+        <mutation items="4"/>
+        <value name="ADD0"><block type="math_number"><field name="NUM">17</field></block></value>
+        <value name="ADD1"><block type="math_number"><field name="NUM">16</field></block></value>
+        <value name="ADD2"><block type="math_number"><field name="NUM">15</field></block></value>
+        <value name="ADD3"><block type="math_number"><field name="NUM">14</field></block></value>
+      </block>
+    </value>
+    <value name="sensor_shoulder_pin">
+      <shadow type="pinout"><field name="PIN">22</field></shadow>
+    </value>
+    <value name="sensor_elbow_pin">
+      <shadow type="pinout"><field name="PIN">1</field></shadow>
+    </value>
+    <next>
+
+      <block type="sand_table_robot__step_motor">
+        <comment pinned="false" h="80" w="300">1) Samme vej: begge motorer fremad, samme fart.</comment>
+        <field name="motor">1</field>
+        <field name="direction">f</field>
+        <value name="steps"><shadow type="math_number"><field name="NUM">500</field></shadow></value>
+        <value name="speed"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+        <next>
+          <block type="sand_table_robot__step_motor">
+            <field name="motor">2</field>
+            <field name="direction">f</field>
+            <value name="steps"><shadow type="math_number"><field name="NUM">500</field></shadow></value>
+            <value name="speed"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+            <next>
+
+              <block type="sand_table_robot__step_motor">
+                <comment pinned="false" h="80" w="300">2) Modsat vej: motor 1 fremad, motor 2 tilbage.</comment>
+                <field name="motor">1</field>
+                <field name="direction">f</field>
+                <value name="steps"><shadow type="math_number"><field name="NUM">500</field></shadow></value>
+                <value name="speed"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+                <next>
+                  <block type="sand_table_robot__step_motor">
+                    <field name="motor">2</field>
+                    <field name="direction">r</field>
+                    <value name="steps"><shadow type="math_number"><field name="NUM">500</field></shadow></value>
+                    <value name="speed"><shadow type="math_number"><field name="NUM">3</field></shadow></value>
+                    <next>
+
+                      <block type="sand_table_robot__step_motor">
+                        <comment pinned="false" h="80" w="320">3) Forskellige farter: motor 1 hurtig (fart 2), motor 2 langsom (fart 10).</comment>
+                        <field name="motor">1</field>
+                        <field name="direction">f</field>
+                        <value name="steps"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+                        <value name="speed"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+                        <next>
+                          <block type="sand_table_robot__step_motor">
+                            <field name="motor">2</field>
+                            <field name="direction">f</field>
+                            <value name="steps"><shadow type="math_number"><field name="NUM">1000</field></shadow></value>
+                            <value name="speed"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+                            <next>
+                              <block type="sand_table_robot__off"/>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+
+                    </next>
+                  </block>
+                </next>
+              </block>
+
+            </next>
+          </block>
+        </next>
+      </block>
+
+    </next>
+  </block>
+
+</xml>

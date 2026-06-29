@@ -10,22 +10,22 @@
       <mutation items="4"></mutation>
       <value name="ADD0">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">21</field>
         </shadow>
       </value>
       <value name="ADD1">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">20</field>
         </shadow>
       </value>
       <value name="ADD2">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">19</field>
         </shadow>
       </value>
       <value name="ADD3">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">18</field>
         </shadow>
       </value>
     </shadow>
@@ -35,79 +35,34 @@
       <mutation items="4"></mutation>
       <value name="ADD0">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">17</field>
         </shadow>
       </value>
       <value name="ADD1">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">16</field>
         </shadow>
       </value>
       <value name="ADD2">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">15</field>
         </shadow>
       </value>
       <value name="ADD3">
         <shadow type="pinout">
-          <field name="PIN">0</field>
+          <field name="PIN">14</field>
         </shadow>
       </value>
     </shadow>
   </value>
   <value name="sensor_shoulder_pin">
     <shadow type="pinout">
-      <field name="PIN">0</field>
+      <field name="PIN">22</field>
     </shadow>
   </value>
   <value name="sensor_elbow_pin">
     <shadow type="pinout">
-      <field name="PIN">0</field>
-    </shadow>
-  </value>
-  <value name="L1">
-    <shadow type="math_number">
-      <field name="NUM">31</field>
-    </shadow>
-  </value>
-  <value name="L2">
-    <shadow type="math_number">
-      <field name="NUM">31</field>
-    </shadow>
-  </value>
-  <value name="steps_per_rev">
-    <shadow type="math_number">
-      <field name="NUM">4096</field>
-    </shadow>
-  </value>
-  <value name="backlash_deg_m1">
-    <shadow type="math_number">
-      <field name="NUM">3.2</field>
-    </shadow>
-  </value>
-  <value name="backlash_deg_m2">
-    <shadow type="math_number">
-      <field name="NUM">3</field>
-    </shadow>
-  </value>
-  <value name="homing_dir_shoulder">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
-  <value name="homing_dir_elbow">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
-  <value name="homing_clear_steps">
-    <shadow type="math_number">
-      <field name="NUM">500</field>
-    </shadow>
-  </value>
-  <value name="default_speed_ms">
-    <shadow type="math_number">
-      <field name="NUM">2</field>
+      <field name="PIN">1</field>
     </shadow>
   </value>
 </block>
@@ -118,6 +73,20 @@
 
 # sand_table_robot__off
 <block type="sand_table_robot__off">
+</block>
+
+# sand_table_robot__step_motor
+<block type="sand_table_robot__step_motor">
+  <value name="steps">
+    <shadow type="math_number">
+      <field name="NUM">500</field>
+    </shadow>
+  </value>
+  <value name="speed">
+    <shadow type="math_number">
+      <field name="NUM">3</field>
+    </shadow>
+  </value>
 </block>
 
 # sand_table_robot__move_line

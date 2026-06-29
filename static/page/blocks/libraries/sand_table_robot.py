@@ -121,6 +121,24 @@ class SandTableRobot:
         self.skulder.reset()
         self.albue.reset()
 
+    # -----------------------------------------------------------------
+    # Low-level helpers for teaching/assignment blocks
+    #
+    # The drawing API hides the steppers; these expose one motor and one
+    # homing sensor at a time, so students can move a single stepper and
+    # read a sensor (e.g. build homing themselves).
+    # -----------------------------------------------------------------
+    def step_motor(self, motor=1, direction="f", steps=500, speed_ms=3):
+        """Drej én stepmotor.
+        motor: 1 = skulder, 2 = albue.
+        direction: "f" = fremad, "r" = tilbage.
+        steps: antal trin (4096 = en hel omgang).
+        speed_ms: ventetid pr. trin i ms (større tal = langsommere)."""
+        m = self.skulder if int(motor) == 1 else self.albue
+        m.stepms = int(speed_ms)
+        n = abs(int(steps))
+        m.step(n if direction == "f" else -n)
+
     def _rad_to_steps(self, radians):
         # Keep it identical to your code (int trunc). You can switch to round() later if desired.
         return int((radians / (2 * math.pi)) * self.STEPS_PER_REV)

@@ -250,6 +250,7 @@ Sand Drawing Machine
 sand_table_robot__create
 sand_table_robot__off
 sand_table_robot__home
+sand_table_robot__step_motor
 sand_table_robot__move_line
 sand_table_robot__move_arc
 sand_table_robot__draw_spiral
