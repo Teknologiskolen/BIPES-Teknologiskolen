@@ -140,6 +140,7 @@ WritingFile:'Skriver filen "{0}" til enhed.',
 'BlocksEditAsFile':'Kopiér script og redigér',
 'RunBlocks':'Kør blokke på enheden.',
 'BlocksPy':'blocks.py',
+'FunctionRecursion':'Denne funktion kan kalde sig selv (rekursion). På en mikrocontroller kan det køre i en uendelig løkke og få kortet til at gå ned. Tilføj en stopbetingelse, eller undgå at funktionen kalder sig selv.',
   FetchingLib:'Installerer biblioteket {0}...',
   FetchingExample:'Henter eksempel {0}...',
 

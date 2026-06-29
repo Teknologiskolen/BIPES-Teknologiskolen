@@ -153,6 +153,7 @@ var Msg = {
   'BlocksEditAsFile':'Copy script and edit',
   'RunBlocks':'Run blocks in the device.',
   'BlocksPy':'blocks.py',
+  'FunctionRecursion':'This function can call itself (recursion). On a microcontroller that can run forever and crash the board. Add a stop condition, or avoid calling the function from inside itself.',
   FetchingLib:'Installing {0} library...',
   FetchingExample:'Fetching example {0}...',
 

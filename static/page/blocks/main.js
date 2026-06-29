@@ -98,6 +98,8 @@ class Blocks {
       this.toolbox(obj.device.target)
     // Update project on changes
     this.workspace.addChangeListener(this.update)
+    // Warn when functions are wired into (direct or mutual) recursion.
+    this.workspace.addChangeListener(blocksRecursionGuard)
 
     // Shortcuts
     shortcut.add("Ctrl+Shift+L", () => {this.export.png()})
@@ -667,6 +669,95 @@ let blocksWarningIfTrue = (self, criteria) => {
       warnings.push(item [1])
   })
   self.setWarningText(warnings.length > 0 ? warnings.join("\n") : null)
+}
+
+/* Flags function (procedure) blocks that call themselves directly or indirectly.
+ * A microcontroller has a tiny call stack, so any unbounded recursion overflows it
+ * and crashes the board — we warn the moment a recursive cycle is wired up.
+ * Implemented as a workspace change listener (leaves the stock procedure blocks
+ * untouched) that builds the call graph and marks every call block that closes a
+ * cycle. Recursion with a real stop condition is still valid Python, so this warns
+ * rather than blocks. */
+let blocksRecursionGuard = (event) => {
+  if (!event || typeof Blockly == 'undefined' || !Blockly.Events)
+    return
+  // React only to structural edits; ignore UI-only events. Skip our own warning
+  // writes so we never feed back into ourselves.
+  let E = Blockly.Events
+  let structural = [E.BLOCK_MOVE, E.BLOCK_CREATE, E.BLOCK_DELETE, E.BLOCK_CHANGE]
+  if (structural.indexOf(event.type) === -1)
+    return
+  if (event.type === E.BLOCK_CHANGE && event.element === 'warning')
+    return
+
+  let ws = Blockly.Workspace.getById(event.workspaceId)
+  if (!ws || ws.isFlyout || (ws.isDragging && ws.isDragging()))
+    return
+
+  const CALL_TYPES = ['procedures_callnoreturn', 'procedures_callreturn']
+  const DEF_TYPES  = ['procedures_defnoreturn', 'procedures_defreturn']
+
+  let defName  = (b) => { try { return b.getProcedureDef()[0] } catch (e) { return null } }
+  let callName = (b) => { try { return b.getProcedureCall() } catch (e) { return null } }
+
+  // Call graph: procedure name -> set of procedure names it calls.
+  let graph = {}
+  DEF_TYPES.forEach((t) => {
+    ws.getBlocksByType(t, false).forEach((def) => {
+      let name = defName(def)
+      if (name == null)
+        return
+      let calls = graph[name] || (graph[name] = {})
+      def.getDescendants(false).forEach((d) => {
+        if (CALL_TYPES.indexOf(d.type) !== -1) {
+          let c = callName(d)
+          if (c != null)
+            calls[c] = true
+        }
+      })
+    })
+  })
+
+  // Can we travel from `start` back to `target` by following calls? (start===target counts.)
+  let reaches = (start, target) => {
+    let stack = [start], seen = {}
+    while (stack.length) {
+      let n = stack.pop()
+      if (n === target)
+        return true
+      if (seen[n])
+        continue
+      seen[n] = true
+      for (let k in (graph[n] || {}))
+        stack.push(k)
+    }
+    return false
+  }
+
+  // The definition a call block physically lives inside (climb the parent chain).
+  let enclosingDef = (b) => {
+    let p = b.getParent()
+    while (p) {
+      if (DEF_TYPES.indexOf(p.type) !== -1)
+        return defName(p)
+      p = p.getParent()
+    }
+    return null
+  }
+
+  let msg = (typeof Msg != 'undefined' && Msg['FunctionRecursion']) ||
+    'This function can call itself (recursion). On a microcontroller that can run forever and crash the board. Add a stop condition, or avoid calling the function from inside itself.'
+
+  CALL_TYPES.forEach((t) => {
+    ws.getBlocksByType(t, false).forEach((call) => {
+      let called = callName(call)
+      let inside = enclosingDef(call)
+      // The call closes a cycle when the procedure it calls can reach back into the
+      // definition that contains it — covers both self-calls and mutual recursion.
+      let recursive = (called != null && inside != null && reaches(called, inside))
+      call.setWarningText(recursive ? msg : null, 'recursion')
+    })
+  })
 }
 
 function isLocalContext() {
