@@ -140,6 +140,7 @@ Blockly.Python["machine.Pin.irq"] = function(block) {
 };
 
 Blockly.Python["machine.Pin.getValue"] = function(block) {
+  Blockly.Python.definitions_['from_machine_import_Pin'] = 'from machine import Pin';
   var pinInput = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
   var pin = pinInput.replace('(','').replace(')','');
   var pull = block.getFieldValue('PULL');
