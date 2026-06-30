@@ -73,6 +73,37 @@ class Dashboard {
 			id:'storage',
 			title:Msg['EditData']
 		  })
+		// Run the project's blocks on the device — same Play/Stop action as the Blocks
+		// page Run button (Ctrl+Shift+R), delegating to the very same BlocksCode.exec().
+		// Lets the student start the program (→ runtime mode) without leaving the
+		// dashboard. Blocks clears its workspace on deinit, so init it first to reload
+		// the current project's blocks (and start its run-state watcher) before running.
+		$.runBlocks = new DOM('button', {
+			className:'icon',
+			id:'run',
+			title:`${Msg['RunBlocks']} (Ctrl+Shift+R)`
+		  })
+			.onclick(this, () => {
+				let b = window.bipes.page.blocks
+				if (!b) return
+				if (!b.inited && typeof b.init === 'function')
+					b.init()
+				if (b.code && typeof b.code.exec === 'function')
+					b.code.exec()
+			})
+		// Mirror the Blocks Run button's Play/Stop/busy state (same run-state read as
+		// BlocksCode.watcher) so this button looks and behaves identically.
+		setInterval(() => {
+			try {
+				let c = window.bipes.page.blocks && window.bipes.page.blocks.code
+				if (!c) return
+				let booting = typeof c._deviceBooting === 'function' && c._deviceBooting()
+				let on = c.busy ? (c.busyTarget === 'run')
+								: (booting || (typeof c.isRunning === 'function' && c.isRunning()))
+				$.runBlocks.$.classList.toggle('on', !!on)
+				$.runBlocks.$.classList.toggle('busy', !!c.busy || !!booting)
+			} catch (e) {}
+		}, 250)
 		$.addPlugin = new DOM('button', {
 			className:'icon',
 			id:'add',
@@ -93,7 +124,7 @@ class Dashboard {
 
 		$.tabs = new DOM('span', {id:'tabs'})
 		$.wrapper = new DOM('div').append([$.tabs, $.add])
-		$.wrapper2 = new DOM('span').append([$.edit, $.storage])
+		$.wrapper2 = new DOM('span').append([$.edit, $.storage, $.runBlocks])
 		$.header.append([$.wrapper, $.wrapper2])
 
 		this.grid = new DashboardGrid($.grid, this)

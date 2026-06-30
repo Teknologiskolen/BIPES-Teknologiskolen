@@ -127,31 +127,27 @@ body.light section#files #pane .header,
 body.light section#files #editor #header  {
   border-color: #ccc;
 }
-section#files #run.files-execute {
-  background: transparent;
-  border-color: transparent;
-  color: #16a34a;
+section#files #editor #header #run {
+  height: 2.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 0;
+  background-color: rgba(68,153,204,0);
+  transition: background-color ease .125s;
 }
-section#files #run.files-execute:hover,
-section#files #run.files-execute:focus,
-section#files #run.files-execute.on {
-  background: transparent;
-  border-color: transparent;
+section#files #editor #header #run:hover,
+section#files #editor #header #run:focus {
+  background-color: rgba(68,153,204,.5);
 }
-section#files #run.files-execute:before {
-  background: none;
-  border-bottom: .45rem solid transparent;
-  border-left: .78rem solid #16a34a;
-  border-top: .45rem solid transparent;
-  filter: none !important;
-  height: 0;
-  margin: .3rem .36rem;
-  width: 0;
+/* '.on' swaps the play icon to a stop icon (program running); '.busy' dims and
+   blocks clicks during a start/stop transfer — mirrors the Blocks page Run button. */
+section#files #editor #header #run.on:before {
+  background-position: left calc(-1.5rem*18) bottom !important;
 }
-section#files #run.files-execute:hover:before,
-section#files #run.files-execute:focus:before,
-section#files #run.files-execute.on:before {
-  border-left-color: #22c55e;
+section#files #editor #header #run.busy {
+  opacity: .55;
+  cursor: progress;
+  pointer-events: none;
 }
 section#files #pane .header h2 {
   flex-grow: 2;

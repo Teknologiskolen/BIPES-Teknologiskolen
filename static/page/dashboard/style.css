@@ -31,6 +31,17 @@ section#dashboard #header > span button {
 section#dashboard #dashboard.on #edit {
 	background-color: rgba(68,153,204,.25);
 }
+/* Run-blocks button: '.on' swaps the play icon to a stop icon (program running),
+   '.busy' dims and blocks clicks during a start/stop transfer — mirrors the Blocks
+   page Run button. */
+section#dashboard #header > span #run.on:before {
+	background-position: left calc(-1.5rem*18) bottom !important;
+}
+section#dashboard #header > span #run.busy {
+	opacity: .55;
+	cursor: progress;
+	pointer-events: none;
+}
 section#dashboard #dashboard.on #edit:before {
 	background-position: left calc(-1.5rem*9) bottom !important;
 }

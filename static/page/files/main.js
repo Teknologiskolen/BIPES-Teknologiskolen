@@ -290,11 +290,35 @@ class DeviceFiles {
       title:Msg['WriteToDevice']
     }).onclick(this, this._fromEditor)
 
+    // Run the project's blocks on the device — same Play/Stop action as the Blocks
+    // page Run button (Ctrl+Shift+R), delegating to the very same BlocksCode.exec().
+    // Blocks clears its workspace on deinit, so init it first to reload the current
+    // project's blocks (and start its run-state watcher) before running.
     $.executeOnTarget = new DOM('button', {
       id:'run',
-      className:'icon files-execute',
-      title:Msg['ExecuteScript']
-    }).onclick(this, this._execEditorOnTarget)
+      className:'icon',
+      title:`${Msg['RunBlocks']} (Ctrl+Shift+R)`
+    }).onclick(this, () => {
+      let b = window.bipes.page.blocks
+      if (!b) return
+      if (!b.inited && typeof b.init === 'function')
+        b.init()
+      if (b.code && typeof b.code.exec === 'function')
+        b.code.exec()
+    })
+    // Mirror the Blocks Run button's Play/Stop/busy state (same run-state read as
+    // BlocksCode.watcher) so this button looks and behaves identically.
+    setInterval(() => {
+      try {
+        let c = window.bipes.page.blocks && window.bipes.page.blocks.code
+        if (!c) return
+        let booting = typeof c._deviceBooting === 'function' && c._deviceBooting()
+        let on = c.busy ? (c.busyTarget === 'run')
+                        : (booting || (typeof c.isRunning === 'function' && c.isRunning()))
+        $.executeOnTarget.$.classList.toggle('on', !!on)
+        $.executeOnTarget.$.classList.toggle('busy', !!c.busy || !!booting)
+      } catch (e) {}
+    }, 250)
 
     this.parent.$.sidebar.append($.detailsFileOnTarget)
     this.parent.$.header.append([$.saveToTarget, $.executeOnTarget])
