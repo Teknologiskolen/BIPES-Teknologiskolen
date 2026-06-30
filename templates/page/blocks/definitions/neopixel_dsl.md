@@ -5,11 +5,6 @@
 
 # neopixel__create
 <block type="neopixel__create">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="number">
     <shadow type="math_number">
       <field name="NUM">8</field>
@@ -25,15 +20,15 @@
       <field name="PIN">0</field>
     </shadow>
   </value>
+  <value name="mode">
+    <shadow type="text">
+      <field name="TEXT">GRB</field>
+    </shadow>
+  </value>
 </block>
 
 # neopixel__brightness
 <block type="neopixel__brightness">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="brightness">
     <shadow type="math_number">
       <field name="NUM">128</field>
@@ -43,11 +38,6 @@
 
 # neopixel__set_pixel
 <block type="neopixel__set_pixel">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="pixel_num">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -67,11 +57,6 @@
 
 # neopixel__set_pixel_line
 <block type="neopixel__set_pixel_line">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="pixel1">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -96,11 +81,6 @@
 
 # neopixel__set_pixel_line_gradient
 <block type="neopixel__set_pixel_line_gradient">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="pixel1">
     <shadow type="math_number">
       <field name="NUM">0</field>
@@ -130,11 +110,6 @@
 
 # neopixel__fill
 <block type="neopixel__fill">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="rgb_w">
     <shadow type="text">
       <field name="TEXT"></field>
@@ -149,20 +124,10 @@
 
 # neopixel__clear
 <block type="neopixel__clear">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
 </block>
 
 # neopixel__rotate_left
 <block type="neopixel__rotate_left">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="num_of_pixels">
     <shadow type="math_number">
       <field name="NUM">1</field>
@@ -172,11 +137,6 @@
 
 # neopixel__rotate_right
 <block type="neopixel__rotate_right">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
   <value name="num_of_pixels">
     <shadow type="math_number">
       <field name="NUM">1</field>
@@ -186,9 +146,4 @@
 
 # neopixel__show
 <block type="neopixel__show">
-  <value name="id">
-    <shadow type="math_number">
-      <field name="NUM">1</field>
-    </shadow>
-  </value>
 </block>

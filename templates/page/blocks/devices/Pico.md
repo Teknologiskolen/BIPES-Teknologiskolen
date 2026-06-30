@@ -46,6 +46,7 @@ text_trim
 text_print
 text_prompt_ext
 text_to_str
+pad_number
 end_category
 
 %{LISTS}
@@ -73,7 +74,20 @@ sep
 BIPES
 project_metadata
 try_catch
+try_except
 localstorage_store
+end_category
+
+App Core
+state_machine__create
+state_machine__go
+state_machine__state
+state_machine__is_state
+state_machine__changed
+state_machine__entered
+state_machine__tick
+state_machine__add_rule
+state_machine__feed
 end_category
 
 sep
@@ -116,9 +130,21 @@ end_category
 end_category
 
 %{SENSORS}
-Ultrasound
-HCSR04 ultrasound distance sensor
-uss_init
+Ultrasonic
+hcsr04__create
+hcsr04__distance_cm
+hcsr04__distance_mm
+end_category
+Buttons
+button_hub__create
+button_hub__add
+button_hub__was_pressed
+button_hub__was_clicked
+button_hub__was_double_clicked
+button_hub__was_released
+button_hub__is_down
+button_hub__is_held
+button_hub__repeated
 end_category
 end_category
 
@@ -141,6 +167,74 @@ dfplayer__eq
 dfplayer__reset
 dfplayer__sleep
 dfplayer__wake
+end_category
+Buzzer Music
+music__create
+music__tick
+music__stop
+music__restart
+music__resume
+end_category
+Alarm Clock
+AC_LBL_COARSE
+alarm_clock__create
+alarm_clock__update
+alarm_clock__set_alarm
+alarm_clock__enable_alarm
+alarm_clock__is_enabled
+alarm_clock__is_ringing
+alarm_clock__alarm_started
+alarm_clock__alarm_stopped
+AC_LBL_MID_BTN
+alarm_clock__read
+alarm_clock__in_normal
+alarm_clock__in_set_alarm
+alarm_clock__in_set_clock
+alarm_clock__in_ringing
+alarm_clock__set_alarm_mode
+alarm_clock__set_clock_mode
+alarm_clock__go_normal
+alarm_clock__field_pressed
+alarm_clock__plus_pressed
+alarm_clock__mode_clicked
+alarm_clock__mode_double_clicked
+alarm_clock__handle_buttons
+alarm_clock__next_field
+alarm_clock__increase
+alarm_clock__save
+alarm_clock__commit_alarm
+alarm_clock__commit_clock
+alarm_clock__stop
+alarm_clock__field
+alarm_clock__alarm_hour
+alarm_clock__alarm_minute
+alarm_clock__alarm_due
+alarm_clock__start_ringing
+AC_LBL_MID_SCREEN
+alarm_clock__begin_frame
+alarm_clock__mode_changed
+alarm_clock__draw_clock
+alarm_clock__draw_date
+alarm_clock__draw_edit_time
+alarm_clock__draw_edit_date
+alarm_clock__draw_ringing
+alarm_clock__draw_default
+AC_LBL_FINE
+alarm_clock__now_hour
+alarm_clock__now_minute
+alarm_clock__now_second
+alarm_clock__now_day
+alarm_clock__now_month
+alarm_clock__now_year
+alarm_clock__time_text
+alarm_clock__date_text
+alarm_clock__hour_changed
+alarm_clock__minute_changed
+alarm_clock__second_changed
+alarm_clock__flash_on
+alarm_clock__draw_text
+alarm_clock__clear
+alarm_clock__fill
 end_category
 Robotics Board
 kitronik_pico_robotics__create
@@ -173,19 +267,23 @@ end_category
 end_category
 
 Display
-NeoPixel LED Strip
-neopixel_init
+NeoPixel Strip
+neopixel__create
+neopixel__brightness
+neopixel__set_pixel
+neopixel__set_pixel_line
+neopixel__set_pixel_line_gradient
+neopixel__fill
+neopixel__clear
+neopixel__rotate_left
+neopixel__rotate_right
+neopixel__show
 neopixel_color_numbers
 neopixel_color_colors
 HSL_to_RGB
-neopixel_brightness
-neopixel_set_pixel
-neopixel_set_line_pixel
-neopixel_set_line_gradient_pixel
-neopixel_rotate_left
-neopixel_rotate_right
 end_category
 ST7735S
+spi
 st7735_s__create
 st7735_s__fill
 st7735_s__fill_rect
@@ -226,7 +324,10 @@ SPI.readinto
 SPI.write
 SPI.write_readinto
 end_category
-UART
+Serial
+runtime_program_serial
+runtime_send
+runtime_serial_send
 uart
 uart_init
 uart_write
@@ -247,8 +348,6 @@ ds1302__get_day
 ds1302__get_hour
 ds1302__get_minute
 ds1302__get_second
-ds1302__get_time_text
-ds1302__get_date_text
 ds1302__set_time
 end_category
 Timer_INTERRUPT

@@ -46,6 +46,11 @@ class slice_maker_class:
 slice_maker = slice_maker_class()
 
 
+# Default order of color bits for the neopixels. Neopixels are usually GRB.
+# Kept as a plain string so it's easy to change in one place.
+MODE = "GRB"
+
+
 # Delay here is the reset time. You need a pause to reset the LED strip back to the initial LED
 # however, if you have quite a bit of processing to do before the next time you update the strip
 # you could put in delay=0 (or a lower delay)
@@ -73,7 +78,16 @@ class Neopixel:
     #    'brightnessvalue', # brightness scale factor 1..255
     # ]
 
-    def __init__(self, num_leds, state_machine, pin, mode="RGB", delay=0.0003, transfer_mode="PUT"):
+    # Only a single Neopixel instance is ever created; repeated construction
+    # returns the same object (singleton).
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Neopixel, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, num_leds, state_machine, pin, mode=MODE, delay=0.0003, transfer_mode="PUT"):
         """
         Constructor for library class
 

@@ -1,7 +1,8 @@
 // Block definitions for NeoPixel / WS2812 LED strips (neopixel.py, Neopixel class).
-// Multiple-instance: give each strip an ID. NOTE: unlike the old blocks, drawing does
-// NOT auto-refresh — call "show" after setting pixels (one refresh per frame is much
-// faster in a loop). Colour value blocks (RGB / colour picker / HSL) stay separate.
+// Singleton: one shared strip object (the Neopixel class is itself a singleton).
+// NOTE: unlike the old blocks, drawing does NOT auto-refresh — call "show" after
+// setting pixels (one refresh per frame is much faster in a loop). Colour value
+// blocks (RGB / colour picker / HSL) stay separate.
 // The library .py is untouched; this .blockdef is the single source of truth.
 
 module neopixel
@@ -10,12 +11,13 @@ url "https://github.com/blaz-r/pi_pico_neopixel"
 
 category "NeoPixel Strip" color=45 {
 
-    class Neopixel as multiple ref key_input {
+    class Neopixel as singleton named "neopixel" {
 
-        block __init__ tooltip="Create a NeoPixel strip (number of LEDs, PIO state machine 0-7, data pin)." {
+        block __init__ tooltip="Create the NeoPixel strip (number of LEDs, PIO state machine 0-7, data pin, colour order)." {
             param number type=Number default=8
             param state_machine type=Number default=0
             param pin type=Number default=0 pin
+            param mode type=String default="GRB"
         }
 
         block brightness tooltip="Set the overall strip brightness (1-255)." {
