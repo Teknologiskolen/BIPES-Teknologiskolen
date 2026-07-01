@@ -135,11 +135,7 @@ export const knownLibs = {
     hostname:'./static/page/blocks/libraries',
     file:'stepper.py'
   },
-  ZerroStepper:{
-    hostname:'./static/page/blocks/libraries',
-    file:'ZerroStepper.py'
-  },
-  sandRobot:{
+  sand_table_robot:{
     hostname:'./static/page/blocks/libraries',
     file:'sand_table_robot.py'
   },
