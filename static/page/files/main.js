@@ -290,33 +290,18 @@ class DeviceFiles {
       title:Msg['WriteToDevice']
     }).onclick(this, this._fromEditor)
 
-    // Run the project's blocks on the device — same Play/Stop action as the Blocks
-    // page Run button (Ctrl+Shift+R), delegating to the very same BlocksCode.exec().
-    // Blocks clears its workspace on deinit, so init it first to reload the current
-    // project's blocks (and start its run-state watcher) before running.
     $.executeOnTarget = new DOM('button', {
       id:'run',
       className:'icon',
-      title:`${Msg['RunBlocks']} (Ctrl+Shift+R)`
-    }).onclick(this, () => {
-      let b = window.bipes.page.blocks
-      if (!b) return
-      if (!b.inited && typeof b.init === 'function')
-        b.init()
-      if (b.code && typeof b.code.exec === 'function')
-        b.code.exec()
-    })
-    // Mirror the Blocks Run button's Play/Stop/busy state (same run-state read as
-    // BlocksCode.watcher) so this button looks and behaves identically.
+      title:Msg['ExecuteScript']
+    }).onclick(this, this._execEditorOnTarget)
+    // Reflect the device's run state on the button: '.on' swaps the play icon to a
+    // stop icon while a program runs; '.busy' locks it during a reboot — same read as
+    // the dashboard/Blocks Run button.
     setInterval(() => {
       try {
-        let c = window.bipes.page.blocks && window.bipes.page.blocks.code
-        if (!c) return
-        let booting = typeof c._deviceBooting === 'function' && c._deviceBooting()
-        let on = c.busy ? (c.busyTarget === 'run')
-                        : (booting || (typeof c.isRunning === 'function' && c.isRunning()))
-        $.executeOnTarget.$.classList.toggle('on', !!on)
-        $.executeOnTarget.$.classList.toggle('busy', !!c.busy || !!booting)
+        $.executeOnTarget.$.classList.toggle('on', this._deviceRunning() || this._deviceBooting())
+        $.executeOnTarget.$.classList.toggle('busy', this._deviceBooting())
       } catch (e) {}
     }, 250)
 
@@ -761,7 +746,6 @@ class DeviceFiles {
     }
 
     this.runAfterWriteFilename = filename
-    this.$.executeOnTarget.$.classList.add('on')
     this.writeToTarget(filename, script)
   }
   _ranEditorOnTarget (str, cmd, tabUID){
@@ -769,7 +753,6 @@ class DeviceFiles {
       return
 
     this.runAfterWriteFilename = null
-    this.$.executeOnTarget.$.classList.remove('on')
     notification.send(`${Msg['PageFiles']}: ${Msg['ScriptFinishedExecuting']}`)
   }
   /**
@@ -979,6 +962,23 @@ class DeviceFiles {
       command.dispatch(channel, 'rawPush', ['RUN\n', uid, [], command.tabUID])
     else
       command.dispatch(channel, 'rawPush', ['\x04', uid, [], command.tabUID])
+  }
+  // True when the active device is currently RUNNING a program — same read as the
+  // Blocks/console Run button: a runtime device in run mode, or a plain REPL device
+  // whose channel is locked/busy. Drives the header Run button's play/stop icon.
+  _deviceRunning (){
+    let uid = channel.targetDevice
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    if (uid && channel.runtimeUids && channel.runtimeUids.has(uid))
+      return !!(dev && dev.runtimeMode && dev.runtimeMode(uid) === 'run')
+    return !!prompt.locked
+  }
+  // True while a runtime device is rebooting (emitted M,boot) — lock the button.
+  _deviceBooting (){
+    let uid = channel.targetDevice
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    return !!(uid && channel.runtimeUids && channel.runtimeUids.has(uid) &&
+              dev && dev.runtimeMode && dev.runtimeMode(uid) === 'boot')
   }
   // Normalize a program for comparison: unify line endings, strip trailing whitespace
   // and trailing blank lines, so cosmetic-only differences don't force a re-transfer.

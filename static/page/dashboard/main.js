@@ -73,35 +73,33 @@ class Dashboard {
 			id:'storage',
 			title:Msg['EditData']
 		  })
-		// Run the project's blocks on the device — same Play/Stop action as the Blocks
-		// page Run button (Ctrl+Shift+R), delegating to the very same BlocksCode.exec().
-		// Lets the student start the program (→ runtime mode) without leaving the
-		// dashboard. Blocks clears its workspace on deinit, so init it first to reload
-		// the current project's blocks (and start its run-state watcher) before running.
+		// Run the program already on the device — the SAME action as the console Run
+		// button (files.device.startExecution(): RUN for a runtime device, Ctrl-D soft
+		// reboot for a plain REPL). Lets the student (re)start the program → runtime
+		// mode without leaving the dashboard. Acts as a Play/Stop toggle: when the
+		// program is running the icon becomes Stop and a click stops it (same call as
+		// the console Stop button).
 		$.runBlocks = new DOM('button', {
 			className:'icon',
 			id:'run',
 			title:`${Msg['RunBlocks']} (Ctrl+Shift+R)`
 		  })
 			.onclick(this, () => {
-				let b = window.bipes.page.blocks
-				if (!b) return
-				if (!b.inited && typeof b.init === 'function')
-					b.init()
-				if (b.code && typeof b.code.exec === 'function')
-					b.code.exec()
+				try {
+					let dev = window.bipes.page.files && window.bipes.page.files.device
+					if (!dev) return
+					if (this._deviceRunning())
+						dev.stopExecution()
+					else
+						dev.startExecution()
+				} catch (e) {}
 			})
-		// Mirror the Blocks Run button's Play/Stop/busy state (same run-state read as
-		// BlocksCode.watcher) so this button looks and behaves identically.
+		// Reflect the device's run state on the button: '.on' swaps the play icon to a
+		// stop icon while the program runs; '.busy' locks it during a reboot.
 		setInterval(() => {
 			try {
-				let c = window.bipes.page.blocks && window.bipes.page.blocks.code
-				if (!c) return
-				let booting = typeof c._deviceBooting === 'function' && c._deviceBooting()
-				let on = c.busy ? (c.busyTarget === 'run')
-								: (booting || (typeof c.isRunning === 'function' && c.isRunning()))
-				$.runBlocks.$.classList.toggle('on', !!on)
-				$.runBlocks.$.classList.toggle('busy', !!c.busy || !!booting)
+				$.runBlocks.$.classList.toggle('on', this._deviceRunning() || this._deviceBooting())
+				$.runBlocks.$.classList.toggle('busy', this._deviceBooting())
 			} catch (e) {}
 		}, 250)
 		$.addPlugin = new DOM('button', {
@@ -175,6 +173,27 @@ class Dashboard {
     let show = !!(isRuntime && mode === 'program')
     if (this.$.modeBanner)
       this.$.modeBanner.$.style.display = show ? '' : 'none'
+  }
+  // True when the active device is currently RUNNING a program — same read as the
+  // Blocks/console Run button (BlocksCode.isRunning): a runtime device in run mode, or
+  // a plain REPL device whose channel is locked/busy.
+  _deviceRunning (){
+    let ch = window.bipes && window.bipes.channel
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let uid = ch && ch.targetDevice
+    if (uid && ch.runtimeUids && ch.runtimeUids.has(uid))
+      return !!(dev && dev.runtimeMode && dev.runtimeMode(uid) === 'run')
+    let prompt = window.bipes && window.bipes.page && window.bipes.page.prompt
+    return !!(prompt && prompt.locked)
+  }
+  // True while a runtime device is rebooting (emitted M,boot) — lock the button so a
+  // second Run can't fire mid-boot.
+  _deviceBooting (){
+    let ch = window.bipes && window.bipes.channel
+    let dev = window.bipes && window.bipes.page && window.bipes.page.device
+    let uid = ch && ch.targetDevice
+    return !!(uid && ch.runtimeUids && ch.runtimeUids.has(uid) &&
+              dev && dev.runtimeMode && dev.runtimeMode(uid) === 'boot')
   }
   /*
    * On page hidden, deinit the page.
