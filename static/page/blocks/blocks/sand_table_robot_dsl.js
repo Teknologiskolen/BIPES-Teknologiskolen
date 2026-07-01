@@ -1,10 +1,10 @@
 Blockly.Blocks["sand_table_robot__create"] = {
   init: function() {
     this.appendDummyInput().appendField((Blockly.Msg["BLBL_CREATE_SAND_TABLE_ROBOT"]||"Create Sand Table Robot"));
-    this.appendValueInput("motor_shoulder_pins").appendField((Blockly.Msg["BLBL_MOTOR_SHOULDER_PINS"]||"Motor Shoulder Pins"));
-    this.appendValueInput("motor_elbow_pins").appendField((Blockly.Msg["BLBL_MOTOR_ELBOW_PINS"]||"Motor Elbow Pins"));
-    this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_SHOULDER_PIN"]||"Sensor Shoulder Pin"));
-    this.appendValueInput("sensor_elbow_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_ELBOW_PIN"]||"Sensor Elbow Pin"));
+    this.appendValueInput("motor_shoulder").appendField((Blockly.Msg["BLBL_MOTOR_SHOULDER"]||"Motor Shoulder"));
+    this.appendValueInput("motor_elbow").appendField((Blockly.Msg["BLBL_MOTOR_ELBOW"]||"Motor Elbow"));
+    this.appendValueInput("sensor_shoulder").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_SHOULDER"]||"Sensor Shoulder"));
+    this.appendValueInput("sensor_elbow").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_ELBOW"]||"Sensor Elbow"));
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(30);
@@ -40,7 +40,7 @@ Blockly.Blocks["sand_table_robot__off"] = {
 
 Blockly.Blocks["sand_table_robot__step_motor"] = {
   init: function() {
-    this.appendDummyInput().appendField((Blockly.Msg["BLBL_DREJ_MOTOR"]||"Drej motor")).appendField(new Blockly.FieldDropdown([["1 (skulder)", "1"], ["2 (albue)", "2"]]), "motor");
+    this.appendDummyInput().appendField((Blockly.Msg["BLBL_TURN_MOTOR"]||"Turn motor")).appendField(new Blockly.FieldDropdown([["1 (skulder)", "1"], ["2 (albue)", "2"]]), "motor");
     this.appendDummyInput().appendField(new Blockly.FieldDropdown([["fremad", "f"], ["tilbage", "r"]]), "direction");
     this.appendValueInput("steps").setCheck("Number");
     this.appendValueInput("speed").setCheck("Number").appendField((Blockly.Msg["BLBL_TRIN_FART"]||"trin, fart"));
@@ -93,7 +93,7 @@ Blockly.Blocks["sand_table_robot__draw_spiral"] = {
   init: function() {
     this.appendDummyInput().appendField((Blockly.Msg["BLBL_DRAW_SPIRAL"]||"Draw Spiral"));
     this.appendValueInput("max_radius").setCheck("Number").appendField((Blockly.Msg["BLBL_MAX_RADIUS"]||"Max Radius"));
-    this.appendValueInput("vindinger").setCheck("Number").appendField((Blockly.Msg["BLBL_VINDINGER"]||"Vindinger"));
+    this.appendValueInput("turns").setCheck("Number").appendField((Blockly.Msg["BLBL_TURNS"]||"Turns"));
     this.appendValueInput("segments_pr_omgang").setCheck("Number").appendField((Blockly.Msg["BLBL_SEGMENTS_PR_OMGANG"]||"Segments Pr Omgang"));
     this.appendValueInput("speed").setCheck("Number").appendField((Blockly.Msg["BLBL_SPEED"]||"Speed"));
     this.setPreviousStatement(true, null);

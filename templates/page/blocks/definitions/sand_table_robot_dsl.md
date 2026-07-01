@@ -5,62 +5,62 @@
 
 # sand_table_robot__create
 <block type="sand_table_robot__create">
-  <value name="motor_shoulder_pins">
+  <value name="motor_shoulder">
     <shadow type="lists_create_with">
       <mutation items="4"></mutation>
       <value name="ADD0">
-        <shadow type="pinout">
-          <field name="PIN">17</field>
+        <shadow type="math_number">
+          <field name="NUM">17</field>
         </shadow>
       </value>
       <value name="ADD1">
-        <shadow type="pinout">
-          <field name="PIN">16</field>
+        <shadow type="math_number">
+          <field name="NUM">16</field>
         </shadow>
       </value>
       <value name="ADD2">
-        <shadow type="pinout">
-          <field name="PIN">15</field>
+        <shadow type="math_number">
+          <field name="NUM">15</field>
         </shadow>
       </value>
       <value name="ADD3">
-        <shadow type="pinout">
-          <field name="PIN">14</field>
+        <shadow type="math_number">
+          <field name="NUM">14</field>
         </shadow>
       </value>
     </shadow>
   </value>
-  <value name="motor_elbow_pins">
+  <value name="motor_elbow">
     <shadow type="lists_create_with">
       <mutation items="4"></mutation>
       <value name="ADD0">
-        <shadow type="pinout">
-          <field name="PIN">21</field>
+        <shadow type="math_number">
+          <field name="NUM">21</field>
         </shadow>
       </value>
       <value name="ADD1">
-        <shadow type="pinout">
-          <field name="PIN">20</field>
+        <shadow type="math_number">
+          <field name="NUM">20</field>
         </shadow>
       </value>
       <value name="ADD2">
-        <shadow type="pinout">
-          <field name="PIN">19</field>
+        <shadow type="math_number">
+          <field name="NUM">19</field>
         </shadow>
       </value>
       <value name="ADD3">
-        <shadow type="pinout">
-          <field name="PIN">18</field>
+        <shadow type="math_number">
+          <field name="NUM">18</field>
         </shadow>
       </value>
     </shadow>
   </value>
-  <value name="sensor_shoulder_pin">
+  <value name="sensor_shoulder">
     <shadow type="pinout">
       <field name="PIN">1</field>
     </shadow>
   </value>
-  <value name="sensor_elbow_pin">
+  <value name="sensor_elbow">
     <shadow type="pinout">
       <field name="PIN">22</field>
     </shadow>
@@ -159,7 +159,7 @@
       <field name="NUM">30</field>
     </shadow>
   </value>
-  <value name="vindinger">
+  <value name="turns">
     <shadow type="math_number">
       <field name="NUM">10</field>
     </shadow>

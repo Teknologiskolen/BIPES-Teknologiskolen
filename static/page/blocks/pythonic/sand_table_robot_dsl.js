@@ -1,10 +1,10 @@
 Blockly.Python["sand_table_robot__create"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
-  var motor_shoulder_pins = Blockly.Python.valueToCode(block, "motor_shoulder_pins", Blockly.Python.ORDER_ATOMIC);
-  var motor_elbow_pins = Blockly.Python.valueToCode(block, "motor_elbow_pins", Blockly.Python.ORDER_ATOMIC);
-  var sensor_shoulder_pin = Blockly.Python.valueToCode(block, "sensor_shoulder_pin", Blockly.Python.ORDER_ATOMIC);
-  var sensor_elbow_pin = Blockly.Python.valueToCode(block, "sensor_elbow_pin", Blockly.Python.ORDER_ATOMIC);
-  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor_shoulder_pins + ", " + motor_elbow_pins + ", " + sensor_shoulder_pin + ", " + sensor_elbow_pin + ")" + "\n";
+  var motor_shoulder = Blockly.Python.valueToCode(block, "motor_shoulder", Blockly.Python.ORDER_ATOMIC);
+  var motor_elbow = Blockly.Python.valueToCode(block, "motor_elbow", Blockly.Python.ORDER_ATOMIC);
+  var sensor_shoulder = Blockly.Python.valueToCode(block, "sensor_shoulder", Blockly.Python.ORDER_ATOMIC);
+  var sensor_elbow = Blockly.Python.valueToCode(block, "sensor_elbow", Blockly.Python.ORDER_ATOMIC);
+  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor_shoulder + ", " + motor_elbow + ", " + sensor_shoulder + ", " + sensor_elbow + ")" + "\n";
   return code;
 };
 
@@ -56,10 +56,10 @@ Blockly.Python["sand_table_robot__move_arc"] = function(block) {
 Blockly.Python["sand_table_robot__draw_spiral"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
   var max_radius = Blockly.Python.valueToCode(block, "max_radius", Blockly.Python.ORDER_ATOMIC);
-  var vindinger = Blockly.Python.valueToCode(block, "vindinger", Blockly.Python.ORDER_ATOMIC);
+  var turns = Blockly.Python.valueToCode(block, "turns", Blockly.Python.ORDER_ATOMIC);
   var segments_pr_omgang = Blockly.Python.valueToCode(block, "segments_pr_omgang", Blockly.Python.ORDER_ATOMIC);
   var speed = Blockly.Python.valueToCode(block, "speed", Blockly.Python.ORDER_ATOMIC);
-  var code = "sand_table_robot.draw_spiral(" + max_radius + ", " + vindinger + ", " + segments_pr_omgang + ", " + speed + ")" + "\n";
+  var code = "sand_table_robot.draw_spiral(" + max_radius + ", " + turns + ", " + segments_pr_omgang + ", " + speed + ")" + "\n";
   return code;
 };
 
