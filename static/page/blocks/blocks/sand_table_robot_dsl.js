@@ -1,8 +1,8 @@
 Blockly.Blocks["sand_table_robot__create"] = {
   init: function() {
     this.appendDummyInput().appendField((Blockly.Msg["BLBL_CREATE_SAND_TABLE_ROBOT"]||"Create Sand Table Robot"));
-    this.appendValueInput("motor1_pins").appendField((Blockly.Msg["BLBL_MOTOR_1_PINS"]||"Motor 1 Pins"));
-    this.appendValueInput("motor2_pins").appendField((Blockly.Msg["BLBL_MOTOR_2_PINS"]||"Motor 2 Pins"));
+    this.appendValueInput("motor_shoulder_pins").appendField((Blockly.Msg["BLBL_MOTOR_SHOULDER_PINS"]||"Motor Shoulder Pins"));
+    this.appendValueInput("motor_elbow_pins").appendField((Blockly.Msg["BLBL_MOTOR_ELBOW_PINS"]||"Motor Elbow Pins"));
     this.appendValueInput("sensor_shoulder_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_SHOULDER_PIN"]||"Sensor Shoulder Pin"));
     this.appendValueInput("sensor_elbow_pin").setCheck("Number").appendField((Blockly.Msg["BLBL_SENSOR_ELBOW_PIN"]||"Sensor Elbow Pin"));
     this.setPreviousStatement(true, null);

@@ -13,10 +13,10 @@ category "Sand Drawing Machine" color=30 {
         // rest (arm lengths, steps/rev, backlash, homing dirs, speed) use the
         // library's defaults. Edit the .py defaults to change them.
         block __init__ tooltip="Create the sand-table SCARA robot: the two motor pin-arrays and the two homing-sensor pins." {
-            param motor1_pins type=Any default=[21,20,19,18]
-            param motor2_pins type=Any default=[17,16,15,14]
-            param sensor_shoulder_pin type=Number default=22 pin
-            param sensor_elbow_pin    type=Number default=1  pin
+            param motor_shoulder_pins type=Any default=[17,16,15,14]
+            param motor_elbow_pins type=Any default=[21,20,19,18]
+            param sensor_shoulder_pin type=Number default=1 pin
+            param sensor_elbow_pin    type=Number default=22  pin
         }
 
         block home tooltip="Home the robot to its reference position."

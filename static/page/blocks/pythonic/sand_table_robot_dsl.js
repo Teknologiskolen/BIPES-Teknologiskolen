@@ -1,10 +1,10 @@
 Blockly.Python["sand_table_robot__create"] = function(block) {
   Blockly.Python.definitions_["import_sand_table_robot"] = "import sand_table_robot";
-  var motor1_pins = Blockly.Python.valueToCode(block, "motor1_pins", Blockly.Python.ORDER_ATOMIC);
-  var motor2_pins = Blockly.Python.valueToCode(block, "motor2_pins", Blockly.Python.ORDER_ATOMIC);
+  var motor_shoulder_pins = Blockly.Python.valueToCode(block, "motor_shoulder_pins", Blockly.Python.ORDER_ATOMIC);
+  var motor_elbow_pins = Blockly.Python.valueToCode(block, "motor_elbow_pins", Blockly.Python.ORDER_ATOMIC);
   var sensor_shoulder_pin = Blockly.Python.valueToCode(block, "sensor_shoulder_pin", Blockly.Python.ORDER_ATOMIC);
   var sensor_elbow_pin = Blockly.Python.valueToCode(block, "sensor_elbow_pin", Blockly.Python.ORDER_ATOMIC);
-  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor1_pins + ", " + motor2_pins + ", " + sensor_shoulder_pin + ", " + sensor_elbow_pin + ")" + "\n";
+  var code = "sand_table_robot = sand_table_robot.SandTableRobot(" + motor_shoulder_pins + ", " + motor_elbow_pins + ", " + sensor_shoulder_pin + ", " + sensor_elbow_pin + ")" + "\n";
   return code;
 };
 

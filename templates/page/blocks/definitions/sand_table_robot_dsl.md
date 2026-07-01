@@ -5,32 +5,7 @@
 
 # sand_table_robot__create
 <block type="sand_table_robot__create">
-  <value name="motor1_pins">
-    <shadow type="lists_create_with">
-      <mutation items="4"></mutation>
-      <value name="ADD0">
-        <shadow type="pinout">
-          <field name="PIN">21</field>
-        </shadow>
-      </value>
-      <value name="ADD1">
-        <shadow type="pinout">
-          <field name="PIN">20</field>
-        </shadow>
-      </value>
-      <value name="ADD2">
-        <shadow type="pinout">
-          <field name="PIN">19</field>
-        </shadow>
-      </value>
-      <value name="ADD3">
-        <shadow type="pinout">
-          <field name="PIN">18</field>
-        </shadow>
-      </value>
-    </shadow>
-  </value>
-  <value name="motor2_pins">
+  <value name="motor_shoulder_pins">
     <shadow type="lists_create_with">
       <mutation items="4"></mutation>
       <value name="ADD0">
@@ -55,14 +30,39 @@
       </value>
     </shadow>
   </value>
+  <value name="motor_elbow_pins">
+    <shadow type="lists_create_with">
+      <mutation items="4"></mutation>
+      <value name="ADD0">
+        <shadow type="pinout">
+          <field name="PIN">21</field>
+        </shadow>
+      </value>
+      <value name="ADD1">
+        <shadow type="pinout">
+          <field name="PIN">20</field>
+        </shadow>
+      </value>
+      <value name="ADD2">
+        <shadow type="pinout">
+          <field name="PIN">19</field>
+        </shadow>
+      </value>
+      <value name="ADD3">
+        <shadow type="pinout">
+          <field name="PIN">18</field>
+        </shadow>
+      </value>
+    </shadow>
+  </value>
   <value name="sensor_shoulder_pin">
     <shadow type="pinout">
-      <field name="PIN">22</field>
+      <field name="PIN">1</field>
     </shadow>
   </value>
   <value name="sensor_elbow_pin">
     <shadow type="pinout">
-      <field name="PIN">1</field>
+      <field name="PIN">22</field>
     </shadow>
   </value>
 </block>
