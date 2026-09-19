@@ -79,6 +79,24 @@ class DS1302:
         year = self.bcd_to_dec(self._read_byte(self.REG_YEAR | 0x01)) + 2000
         return (year, month, day, hour, minute, second)
 
+    def get_year(self):
+        return self.get_time()[0]
+
+    def get_month(self):
+        return self.get_time()[1]
+
+    def get_day(self):
+        return self.get_time()[2]
+
+    def get_hour(self):
+        return self.get_time()[3]
+
+    def get_minute(self):
+        return self.get_time()[4]
+
+    def get_second(self):
+        return self.get_time()[5]
+
     def set_time(self, year, month, day, hour, minute, second):
         self._write_byte(self.REG_WP, 0x00)
         self._write_byte(self.REG_SECOND, self.dec_to_bcd(second))

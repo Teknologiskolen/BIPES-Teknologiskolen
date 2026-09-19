@@ -1,0 +1,130 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="block-metamodel" name="Block Metamodel">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Metamodel: Category -&gt; Class -&gt; Block -&gt; Param" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="0" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cat" value="Category" style="swimlane;html=1;startSize=26;fontStyle=1;fillColor=#EEF0FC;strokeColor=#4B4FE0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_body" value="name: String&#10;color: int" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="cat">
+          <mxGeometry x="0" y="26" width="300" height="64" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls" value="BlockClass" style="swimlane;html=1;startSize=26;fontStyle=1;fillColor=#EEF0FC;strokeColor=#4B4FE0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_body" value="className: String&#10;instanceMode: InstanceMode&#10;instanceName: String&#10;methodRef: MethodInstanceMode" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="cls">
+          <mxGeometry x="0" y="26" width="300" height="94" as="geometry" />
+        </mxCell>
+
+        <mxCell id="blk" value="Block" style="swimlane;html=1;startSize=26;fontStyle=1;fillColor=#EEF0FC;strokeColor=#4B4FE0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="blk_body" value="fnName: String&#10;label: String&#10;kind: BlockKind&#10;tooltip: String&#10;inline: boolean&#10;isConstructor: boolean" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="blk">
+          <mxGeometry x="0" y="26" width="300" height="134" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prm" value="Param" style="swimlane;html=1;startSize=26;fontStyle=1;fillColor=#EEF0FC;strokeColor=#4B4FE0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="300" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="prm_body" value="name: String&#10;type: ParamType&#10;default: Any&#10;isPin: boolean&#10;options: (String,String)[]" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="prm">
+          <mxGeometry x="0" y="26" width="300" height="114" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_im" value="&amp;lt;&amp;lt;enumeration&amp;gt;&amp;gt;&lt;br&gt;InstanceMode" style="swimlane;html=1;startSize=44;fontStyle=1;align=center;fillColor=#F1EEE7;strokeColor=#6E6656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="190" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e_im_body" value="SINGLETON&#10;MULTIPLE" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="e_im">
+          <mxGeometry x="0" y="44" width="280" height="46" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_mim" value="&amp;lt;&amp;lt;enumeration&amp;gt;&amp;gt;&lt;br&gt;MethodInstanceMode" style="swimlane;html=1;startSize=44;fontStyle=1;align=center;fillColor=#F1EEE7;strokeColor=#6E6656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mim_body" value="FIXED_NAME&#10;KEY_INPUT&#10;OBJECT_INPUT" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="e_mim">
+          <mxGeometry x="0" y="44" width="280" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_bk" value="&amp;lt;&amp;lt;enumeration&amp;gt;&amp;gt;&lt;br&gt;BlockKind" style="swimlane;html=1;startSize=44;fontStyle=1;align=center;fillColor=#F1EEE7;strokeColor=#6E6656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="430" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bk_body" value="STATEMENT&#10;VALUE&#10;HAT" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="e_bk">
+          <mxGeometry x="0" y="44" width="280" height="46" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_pt" value="&amp;lt;&amp;lt;enumeration&amp;gt;&amp;gt;&lt;br&gt;ParamType" style="swimlane;html=1;startSize=44;fontStyle=1;align=center;fillColor=#F1EEE7;strokeColor=#6E6656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="570" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pt_body" value="NUMBER&#10;STRING&#10;BOOLEAN&#10;ANY" style="text;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fillColor=none;" vertex="1" parent="e_pt">
+          <mxGeometry x="0" y="44" width="280" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge1" value="0..* classes" style="edgeStyle=none;html=1;startArrow=diamondThin;startFill=1;startSize=16;endArrow=none;strokeColor=#4B4FE0;fontColor=#4B4FE0;" edge="1" parent="1" source="cat" target="cls">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="0..* module-level blocks" style="edgeStyle=none;html=1;startArrow=diamondThin;startFill=1;startSize=16;endArrow=none;strokeColor=#4B4FE0;fontColor=#4B4FE0;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="cat" target="blk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="10" y="95" />
+              <mxPoint x="10" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge3" value="1..* methods" style="edgeStyle=none;html=1;startArrow=diamondThin;startFill=1;startSize=16;endArrow=none;strokeColor=#4B4FE0;fontColor=#4B4FE0;" edge="1" parent="1" source="cls" target="blk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" value="0..* params" style="edgeStyle=none;html=1;startArrow=diamondThin;startFill=1;startSize=16;endArrow=none;strokeColor=#4B4FE0;fontColor=#4B4FE0;" edge="1" parent="1" source="blk" target="prm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge5" value="instanceMode" style="edgeStyle=none;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#6E6656;fontColor=#6E6656;" edge="1" parent="1" source="cls" target="e_im">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge6" value="methodRef" style="edgeStyle=none;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#6E6656;fontColor=#6E6656;" edge="1" parent="1" source="cls" target="e_mim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge7" value="kind" style="edgeStyle=none;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#6E6656;fontColor=#6E6656;" edge="1" parent="1" source="blk" target="e_bk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge8" value="type" style="edgeStyle=none;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#6E6656;fontColor=#6E6656;" edge="1" parent="1" source="prm" target="e_pt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note_cat" value="Answers: WHERE in the toolbox.&#10;One Category = one flyout tab." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#FDF6E3;strokeColor=#CDB875;" vertex="1" parent="1">
+          <mxGeometry x="780" y="50" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note_cat_edge" style="edgeStyle=none;html=1;dashed=1;endArrow=none;startArrow=none;strokeColor=#CDB875;" edge="1" parent="1" source="cat" target="note_cat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note_cls" value="Answers: WHICH object / HOW MANY.&#10;singleton = 1 hidden instance;&#10;multiple = addressed by id/ref." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#FDF6E3;strokeColor=#CDB875;" vertex="1" parent="1">
+          <mxGeometry x="780" y="190" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note_cls_edge" style="edgeStyle=none;html=1;dashed=1;endArrow=none;startArrow=none;strokeColor=#CDB875;" edge="1" parent="1" source="cls" target="note_cls">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note_blk" value="Answers: WHAT it calls &amp; HOW it looks.&#10;fnName is the literal Python&#10;identifier called, not a label." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#FDF6E3;strokeColor=#CDB875;" vertex="1" parent="1">
+          <mxGeometry x="780" y="360" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note_blk_edge" style="edgeStyle=none;html=1;dashed=1;endArrow=none;startArrow=none;strokeColor=#CDB875;" edge="1" parent="1" source="blk" target="note_blk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note_prm" value="Answers: WHAT the student fills in.&#10;name is a socket label only -&#10;position, not name, binds it." style="shape=note;size=14;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#FDF6E3;strokeColor=#CDB875;" vertex="1" parent="1">
+          <mxGeometry x="780" y="570" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note_prm_edge" style="edgeStyle=none;html=1;dashed=1;endArrow=none;startArrow=none;strokeColor=#CDB875;" edge="1" parent="1" source="prm" target="note_prm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

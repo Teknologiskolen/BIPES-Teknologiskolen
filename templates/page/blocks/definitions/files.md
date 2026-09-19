@@ -216,12 +216,6 @@
 # uos_readblocks
 <block type="uos_readblocks"></block>
 
-# uos_readblocks
-<block type="uos_readblocks"></block>
-
-# uos_writeblocks
-<block type="uos_writeblocks"></block>
-
 # uos_writeblocks
 <block type="uos_writeblocks"></block>
 

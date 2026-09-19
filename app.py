@@ -699,6 +699,10 @@ def blockly_toolbox_generator ():
 
     # Definitions dictionary
     definitions_map = {}
+    # Every file each key was seen in, so a key claimed by more than one file
+    # (or twice in the same file) can be reported instead of the second writer
+    # silently overwriting the first with no warning at all.
+    key_sources = {}
 
     # Build the definitions dictionary
     for d in definitions:
@@ -721,6 +725,11 @@ def blockly_toolbox_generator ():
                 end = len(a)
 
             definitions_map[key] = a[start:end]
+            key_sources.setdefault(key, []).append(d)
+
+    for key, sources in key_sources.items():
+        if key != "-" and len(sources) > 1:
+            print(f" * Toolbox: duplicate definition key '{key}' in {sources} — only the last one wins")
 
     # toolbox.umd.js string
     js = "let blockly_toolbox = {}\n"

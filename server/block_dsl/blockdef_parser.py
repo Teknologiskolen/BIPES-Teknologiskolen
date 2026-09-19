@@ -20,11 +20,9 @@ from .model import (
     InputSpec,
     InstanceReferenceSpec,
     MethodInstanceMode,
-    ModuleSource,
     ParseResult,
 )
 from .python_generator import PythonGeneratorBuilder
-from .toolbox_builder import SimpleToolboxBuilder
 
 _GRAMMAR_PATH = Path(__file__).parent / "block_grammar.tx"
 
@@ -85,18 +83,14 @@ class BlockdefParser:
 
     def __init__(self) -> None:
         self._mm = _load_metamodel()
-        self._toolbox = SimpleToolboxBuilder()
         self._generators = PythonGeneratorBuilder()
 
     def parse_file(self, path: str | Path) -> ParseResult:
         path = Path(path)
         model = self._mm.model_from_file(str(path))
         blocks = self._extract_blocks(model)
-        toolbox = self._toolbox.build_toolbox(blocks)
         generators = self._generators.build_generators(blocks)
-        # Provide a minimal ModuleSource so ParseResult stays fully typed.
-        module = ModuleSource(name=model.name, path=str(path))
-        return ParseResult(module=module, blocks=blocks, toolbox=toolbox, generators=generators)
+        return ParseResult(blocks=blocks, generators=generators)
 
     # ------------------------------------------------------------------
     # Block extraction

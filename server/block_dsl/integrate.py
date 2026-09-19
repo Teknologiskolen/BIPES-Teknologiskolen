@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .emitters import emit_blockly_blocks_js, emit_definition_markdown, emit_python_generators_js
+from .library_introspect import load_library_signatures, validate_blocks
 
 
 @dataclass(slots=True)
@@ -77,6 +78,8 @@ def _generate_blockdef_artifacts(root: Path, targets: list[BlockdefTarget]) -> N
         blocks_by_type = {block.type: block for block in blocks}
         category_name = blocks[0].category if blocks else target.library_name
 
+        _validate_against_library(root, target, blocks)
+
         _write_if_changed(
             root / target.output_block_js,
             emit_blockly_blocks_js(blocks),
@@ -94,6 +97,20 @@ def _generate_blockdef_artifacts(root: Path, targets: list[BlockdefTarget]) -> N
                 extra_library_names=target.extra_library_names,
             ),
         )
+
+
+def _validate_against_library(root: Path, target: BlockdefTarget, blocks: list) -> None:
+    """Cross-check the parsed .blockdef against the real library .py it describes
+    (see library_introspect.py). Problems are printed as warnings -- same
+    warn-and-continue convention as app.py's generate_default_artifacts() call and
+    the toolbox generator's unknown-block-key handling -- so one drifted .blockdef
+    can't take down every device's blocks at server startup."""
+    library_path = root / "static/page/blocks/libraries" / f"{target.library_name}.py"
+    if not library_path.exists():
+        return
+    signatures = load_library_signatures(library_path)
+    for error in validate_blocks(blocks, signatures):
+        print(f" * Block DSL warning [{target.blockdef}]: {error}")
 
 
 def _write_if_changed(path: Path, content: str) -> None:
